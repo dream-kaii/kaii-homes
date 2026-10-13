@@ -1342,6 +1342,10 @@ const toc = [
 
 **空集合守卫**：`items.length === 0` 时抛错（对应 Review Focus 第 2 条）。
 
+**frontmatter 类型注意**（来自 Task 2 审查的 deferred minor）：`order` 必须是**裸数字**（`order: 1`），
+写成 `order: '1'` 会因 `z.number()` 校验失败；`year` 必须是**字符串**（`year: '2026'`），
+写成 `year: 2026` 会因 `z.string()` 失败。两者同族不同型，容易写错。
+
 - [ ] **Step 3: 验证**
 
 Run: `pnpm dev`
@@ -1561,13 +1565,70 @@ steps:
   # …其余 6 步
 ```
 
-`algo.yml`（6 步）、`backend.yml`（6 步，顺序：语言基础 → MySQL → 框架 → Redis → 分布式与中间件 → JVM 与深度）。
+`algo.yml`（6 步）与 `backend.yml`（6 步，顺序：语言基础 → MySQL → 框架 → Redis → 分布式与中间件 → JVM 与深度）的**头部字段与 `agent.yml` 同构，只有 `track` 取值不同**：
+
+```yaml
+# algo.yml
+track: algo               # ← 必须是小写 algo，不是 algorithm
+label: 算法 / 面试
+subtitle: LeetCode 路线
+intro: 刷题不是刷数量，是按题型建立反射。建议按分类集中攻克，而不是从第 1 题顺着做。
+stages:
+  - { n: 第 1 轮, title: 数组 · 字符串 · 哈希, desc: 建立基本手感，别贪难 }
+  # …共 5 个阶段
+steps:
+  - id: b1
+    title: 先建地图，再开始走
+    duration: 1 天
+    body: 开始刷之前先看一眼按题型组织的路线图，知道整个版图有多大、哪些是主干。
+    # …共 6 步（对应设计稿 data-p="algo" 面板）
+```
+
+```yaml
+# backend.yml
+track: backend            # ← 必须是小写 backend
+label: Java 后端
+subtitle: 工程基础
+intro: 先把会用变成懂原理，再谈分布式。顺序建议：语言基础 → MySQL → 框架 → Redis → 分布式与中间件 → JVM 底层。
+stages:
+  - { n: STEP 01, title: 语言基础, desc: Java 语法、集合、面向对象 }
+  # …共 6 个阶段
+steps:
+  - id: c1
+    title: 语言基础：从「会用」到「知道它怎么实现」
+    duration: 1-2 周
+    body: 先打牢 Java 语法、面向对象、异常处理这些基本功，然后重点啃集合框架。
+    # …共 6 步（对应设计稿 data-p="backend" 面板）
+```
+
+**`track` 三个合法值（与 `src/content/config.ts:40` 的 `z.enum(['agent','algo','backend'])` 严格对应）**：
+`agent` / `algo` / `backend`。拼错任何一个（如 `algorithm`）会导致 `pnpm build` 直接失败。
 
 **文章链接**：`article.status` 为 `published` 时必须有 `href` 字段指向真实路由。
 
 - [ ] **Step 2: 写 `TrackTabs.astro` 与 `StepCard.astro`**
 
 Tab 切换三块面板；`StepCard` 渲染单步（标题 + 时长 + 正文 + 提示 + 文章链接 + 文档链接）。
+
+**`article.href` 的组件层兜底**（来自 Task 2 审查的 deferred minor）：schema 里 `article.href` 是
+`.optional()`，无法强制「`status: published` 时必填」。因此 `StepCard` **必须**判断：
+
+```astro
+{step.article && (
+  step.article.status === 'published' && step.article.href ? (
+    <a href={step.article.href} class="step-link">
+      <span class="st">已有</span>{step.article.title}
+    </a>
+  ) : (
+    <span class="step-link step-link--todo">
+      <span class="st todo">待写</span>{step.article.title}
+    </span>
+  )
+)}
+```
+
+**关键**：status 是 `published` 但 `href` 缺失时，**降级为「待写」样式而不用 `<a>`**，
+避免渲染出 `href="undefined"` 导致 404（对应 Review Focus 第 1 条）。
 
 - [ ] **Step 3: 写 `src/pages/learning-path.astro`**
 
