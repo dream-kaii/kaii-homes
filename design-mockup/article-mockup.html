@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文章页 — 设计稿</title>
+<style>
+:root{
+  --paper:#FAF9F2;--paper2:#F2F1E4;--card:#FFFFFF;
+  --gh:#B5CA4D;--g:#9BB544;--gm:#5E8A4E;--gd:#3E6B3F;--gk:#2A4D2E;
+  --clover:#4E9146;--sun:#E8B84B;--amber:#D99A3C;--rose:#C4685C;--blue:#4E88A8;
+  --ink:#1F2919;--ink2:#48543E;--ink3:#7A8570;--ink4:#A6AE9C;
+  --line:#E2E1D2;--line2:#EDECDF;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:"SF Mono","JetBrains Mono","Fira Code",ui-monospace,Menlo,monospace;
+  --rL:22px;--sh:0 1px 3px rgba(42,77,46,.05);--sh2:0 6px 22px -6px rgba(42,77,46,.11);--sh3:0 18px 52px -14px rgba(42,77,46,.2);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(45deg,rgba(62,107,63,.017) 0 1px,transparent 1px 15px)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px;position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .rv{opacity:1!important;transform:none!important}}
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+.prog{position:fixed;top:0;left:0;height:3px;width:0;z-index:100;background:linear-gradient(90deg,var(--gd),var(--gh))}
+
+nav{position:sticky;top:0;z-index:60;background:rgba(250,249,242,.86);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line2)}
+.nav-in{max-width:1180px;margin:0 auto;padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand img{width:31px;height:31px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--gh)}
+.brand span{font-family:var(--mono);font-size:15px;font-weight:600}
+.nav-links{display:flex;gap:2px}
+.nav-links a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:8px 14px;border-radius:8px;transition:.2s}
+.nav-links a:hover{color:var(--gd);background:var(--paper2)}
+.nav-links a.cta{color:#fff;background:var(--gd);border-radius:100px;padding:8px 17px;font-weight:500;box-shadow:0 2px 9px rgba(62,107,63,.24)}
+.nav-links a.cta:hover{background:var(--gk)}
+
+/* 文章容器：正文窄、插图宽 */
+.art{max-width:760px;margin:0 auto;padding:0 32px}
+.art-wide{max-width:1000px;margin:0 auto;padding:0 32px}
+
+/* 头 */
+.ahead{padding:58px 0 34px}
+.crumb{font-family:var(--mono);font-size:11.5px;color:var(--ink4);margin-bottom:18px}
+.crumb a{color:var(--ink4);text-decoration:none;transition:.2s}
+.crumb a:hover{color:var(--gd)}
+.ahead h1{font-size:clamp(28px,3.9vw,40px);font-weight:800;letter-spacing:-.034em;line-height:1.2;margin-bottom:18px}
+.alede{font-size:16.5px;color:var(--ink2);line-height:1.8;margin-bottom:22px}
+.ameta{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink4);font-family:var(--mono)}
+.ameta .tg{display:flex;gap:6px}
+.ameta .tg span{font-family:var(--mono);font-size:10.5px;color:var(--gd);background:var(--paper2);
+  border:1px solid var(--line);padding:3px 9px;border-radius:100px}
+
+/* 目录 */
+.toc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 22px;
+  box-shadow:var(--sh);margin:30px 0 38px}
+.toc h4{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink4);
+  letter-spacing:.11em;margin-bottom:12px}
+.toc ol{list-style:none;counter-reset:t}
+.toc li{counter-increment:t;padding:5px 0}
+.toc a{color:var(--ink2);text-decoration:none;font-size:13.5px;display:flex;gap:10px;transition:.2s;line-height:1.6}
+.toc a::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:11px;
+  color:var(--gh);font-weight:700;flex:none;padding-top:2px}
+.toc a:hover{color:var(--gd);transform:translateX(3px)}
+
+/* 正文排版 */
+.prose h2{font-size:24px;font-weight:750;letter-spacing:-.026em;margin:46px 0 16px;line-height:1.3;
+  scroll-margin-top:84px;display:flex;align-items:baseline;gap:12px}
+.prose h2 .num{font-family:var(--mono);font-size:13px;color:var(--gh);font-weight:700;flex:none}
+.prose h3{font-size:18px;font-weight:700;letter-spacing:-.018em;margin:32px 0 12px;line-height:1.4}
+.prose p{font-size:15.5px;color:var(--ink2);line-height:1.9;margin-bottom:17px}
+.prose p b,.prose li b{color:var(--gd);font-weight:650}
+.prose ul,.prose ol{margin:0 0 18px 0;padding-left:0;list-style:none}
+.prose ul li,.prose ol li{font-size:15.5px;color:var(--ink2);line-height:1.85;padding-left:22px;
+  position:relative;margin-bottom:8px}
+.prose ul li::before{content:"";position:absolute;left:6px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--gh)}
+.prose ol{counter-reset:o}
+.prose ol li{counter-increment:o}
+.prose ol li::before{content:counter(o);position:absolute;left:0;top:0;font-family:var(--mono);
+  font-size:12px;font-weight:700;color:var(--gh);width:18px}
+.prose code{font-family:var(--mono);font-size:13px;background:var(--paper2);border:1px solid var(--line);
+  padding:1.5px 6px;border-radius:5px;color:var(--gd)}
+.prose a{color:var(--gd);text-decoration:underline;text-decoration-color:var(--gh);
+  text-underline-offset:3px;text-decoration-thickness:1.5px;transition:.2s}
+.prose a:hover{background:#EAF2CE}
+.prose strong{color:var(--ink);font-weight:700}
+
+/* 提示块 */
+.box{display:flex;gap:13px;padding:16px 19px;border-radius:13px;margin:20px 0;font-size:14px;line-height:1.78}
+.box svg{width:17px;height:17px;flex:none;margin-top:3px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.box-tip{background:#F4F9E6;border:1px solid #DCE6C6;color:var(--ink2)}
+.box-tip svg{stroke:var(--gd)}
+.box-warn{background:#FDF6E8;border:1px solid #F0E0BC;color:var(--ink2)}
+.box-warn svg{stroke:var(--amber)}
+.box-quote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gh);
+  flex-direction:column;gap:8px}
+.box-quote .qt{font-size:14px;color:var(--ink2);line-height:1.82;font-style:italic}
+.box-quote .qs{font-size:11.5px;color:var(--ink4);font-family:var(--mono)}
+.box-quote .qs a{color:var(--gm);text-decoration:none;border-bottom:1px dashed var(--gm)}
+
+/* 代码块 */
+.codewrap{background:#1B241A;border:1px solid #2C3A29;border-radius:14px;overflow:hidden;margin:22px 0;
+  box-shadow:0 12px 32px -12px rgba(27,36,26,.4)}
+.codehd{display:flex;align-items:center;gap:9px;padding:10px 15px;background:#232D21;border-bottom:1px solid #33402F}
+.codehd .dots{display:flex;gap:5px}
+.codehd .d{width:9px;height:9px;border-radius:50%}
+.codehd .fn{font-family:var(--mono);font-size:11px;color:#8A9683;margin-left:5px}
+.codehd .cp{margin-left:auto;font-family:var(--mono);font-size:10px;color:#6E7C68;
+  background:#2C3A29;border:1px solid #3A4A36;padding:3px 9px;border-radius:100px;cursor:pointer;transition:.2s}
+.codehd .cp:hover{color:#A8D880;border-color:#5E8A4E}
+pre{padding:16px 19px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.9;color:#D6E0CE}
+pre .cm{color:#6E7C68}pre .kw{color:#C2A0E0}pre .st{color:#E0C070}pre .fn2{color:#8FB8E0}
+pre .ok{color:#A8D880}pre .num{color:#E0A870}pre .hl{background:rgba(168,216,128,.13);display:block;
+  margin:0 -19px;padding:0 19px;border-left:2px solid #A8D880}
+
+/* 交互组件：可点的对比演示 */
+.demo-card{background:var(--card);border:1px solid var(--line);border-radius:var(--lL,18px);
+  box-shadow:var(--sh2);margin:26px 0;overflow:hidden}
+.demo-hd{display:flex;align-items:center;gap:10px;padding:13px 18px;background:rgba(242,241,228,.5);
+  border-bottom:1px solid var(--line2)}
+.demo-hd .t{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.04em}
+.demo-hd .hint{margin-left:auto;font-size:11px;color:var(--ink4);font-family:var(--mono)}
+.demo-bd{padding:20px 18px}
+.seg{display:inline-flex;background:var(--paper2);border:1px solid var(--line);border-radius:100px;padding:3px;margin-bottom:16px}
+.seg button{border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:600;
+  color:var(--ink3);padding:7px 16px;border-radius:100px;cursor:pointer;transition:.24s}
+.seg button.on{background:var(--card);color:var(--gd);box-shadow:var(--sh)}
+.hitrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.hitrow:last-child{border-bottom:none}
+.hit-t{flex:1;font-size:13.5px;color:var(--ink2)}
+.hit-t b{color:var(--ink);font-weight:600}
+.hit-t i{display:block;font-style:normal;font-size:11.5px;color:var(--ink4);margin-top:3px}
+.bar{width:110px;height:7px;border-radius:100px;background:var(--paper2);overflow:hidden;flex:none}
+.bar span{display:block;height:100%;border-radius:100px;background:var(--gd);
+  transform-origin:left;transform:scaleX(0);transition:transform .8s cubic-bezier(.22,1,.36,1)}
+.bar span.show{transform:scaleX(1)}
+.score{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--gd);width:44px;text-align:right;flex:none}
+
+/* 引用来源 */
+.sources{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;
+  margin:40px 0 0;box-shadow:var(--sh)}
+.sources h4{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink4);
+  letter-spacing:.11em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sources ol{list-style:none;counter-reset:s}
+.sources li{counter-increment:s;padding:9px 0;border-bottom:1px solid var(--line2);display:flex;gap:11px}
+.sources li:last-child{border-bottom:none}
+.sources li::before{content:"[" counter(s) "]";font-family:var(--mono);font-size:11.5px;
+  color:var(--gh);font-weight:700;flex:none;padding-top:2px}
+.sources a{color:var(--ink2);text-decoration:none;font-size:13.5px;line-height:1.65;transition:.2s}
+.sources a:hover{color:var(--gd)}
+.sources a i{display:block;font-style:normal;font-family:var(--mono);font-size:11px;
+  color:var(--ink4);margin-top:3px;word-break:break-all}
+.sources .tp{font-family:var(--mono);font-size:9.5px;color:var(--gm);background:#EAF2CE;
+  border:1px solid #D6E2B0;padding:2px 7px;border-radius:100px;flex:none;align-self:flex-start;margin-top:2px;white-space:nowrap}
+
+/* 作者卡 + 上下篇 */
+.acard{display:flex;gap:18px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--rL);padding:22px 24px;margin:40px 0;box-shadow:var(--sh)}
+.acard img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none;
+  border:2.5px solid #fff;box-shadow:0 0 0 2px var(--gh)}
+.acard .bd h5{font-size:15px;font-weight:700;margin-bottom:5px}
+.acard .bd p{font-size:13px;color:var(--ink3);line-height:1.7;margin:0}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:26px 0 0}
+.pg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  text-decoration:none;transition:all .28s cubic-bezier(.22,1,.36,1);box-shadow:var(--sh)}
+.pg:hover{border-color:var(--gh);transform:translateY(-3px);box-shadow:var(--sh2)}
+.pg .k{font-family:var(--mono);font-size:10px;color:var(--ink4);letter-spacing:.08em;margin-bottom:6px}
+.pg .t{font-size:13.8px;font-weight:600;color:var(--ink2);line-height:1.5;transition:color .2s}
+.pg:hover .t{color:var(--gd)}
+.pg.next{text-align:right}
+
+footer{border-top:1px solid var(--line2);padding:34px 0 50px;margin-top:52px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.fl{font-size:12.5px;color:var(--ink3);font-family:var(--mono);display:flex;align-items:center;gap:9px}
+.fl img{width:21px;height:21px;border-radius:50%;object-fit:cover;border:1.5px solid #fff;box-shadow:0 0 0 1px var(--gh)}
+.fll{display:flex;gap:24px}
+.fll a{color:var(--ink2);text-decoration:none;font-size:13px}
+.fll a:hover{color:var(--gd)}
+
+@media(max-width:700px){
+  .wrap,.art,.art-wide,.nav-in{padding:0 18px}
+  .nav-links a:not(.cta){display:none}
+  .prose h2{font-size:20px;margin:36px 0 13px}
+  .prose p,.prose ul li,.prose ol li{font-size:14.8px}
+  .pager{grid-template-columns:1fr}
+  .pg.next{text-align:left}
+  .codehd .fn{display:none}
+  .bar{width:70px}
+}
+
+
+/* ============================================================
+   页面外层布局：左栏（信息/导航） 中栏（正文） 右栏（目录/数据）
+   ============================================================ */
+.shell{max-width:1440px;margin:0 auto;padding:0 40px;display:grid;
+  grid-template-columns:212px minmax(0,740px) 236px;gap:56px;align-items:start;
+  justify-content:center}
+.rail{position:sticky;top:96px;padding-top:56px}
+.rail-l{text-align:right}
+.rail h5{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--ink4);
+  letter-spacing:.11em;margin-bottom:11px}
+.mid{min-width:0}
+.mid .ahead{padding-top:0}
+.mid .ph{padding-top:0;border-bottom:none}
+
+/* 进度环 */
+.ring-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:28px}
+.ring{width:60px;height:60px;max-width:60px;max-height:60px;flex:none;display:block;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:4;stroke-linecap:round}
+.ring .bg{stroke:var(--line)}
+.ring .fg{stroke:var(--gd);stroke-dasharray:163.4;stroke-dashoffset:163.4}
+.ring-lb{font-family:var(--mono);font-size:10.5px;color:var(--ink4);letter-spacing:.06em}
+
+/* 左栏：信息表 */
+.rmeta{padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line2)}
+.rmeta dl{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;justify-content:end}
+.rmeta dt{font-family:var(--mono);font-size:10.5px;color:var(--ink4);text-align:right;white-space:nowrap}
+.rmeta dd{font-size:12.5px;color:var(--ink2);font-weight:550;margin:0;text-align:left}
+
+/* 左栏：标签 */
+.tagwrap{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.tagwrap a{font-family:var(--mono);font-size:10.5px;color:var(--gm);background:var(--paper2);
+  border:1px solid var(--line);padding:3.5px 10px;border-radius:100px;text-decoration:none;transition:.22s}
+.tagwrap a:hover{background:#EAF2CE;border-color:var(--gh);color:var(--gd);transform:translateY(-1px)}
+.rtags{padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line2)}
+
+/* 左栏：操作 */
+.rshare{display:flex;flex-direction:column;gap:9px;align-items:flex-end;
+  padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line2)}
+.rshare button,.rshare a{display:inline-flex;align-items:center;gap:7px;background:var(--card);
+  border:1px solid var(--line);border-radius:100px;padding:7px 14px;font-family:var(--mono);
+  font-size:10.5px;color:var(--ink3);cursor:pointer;text-decoration:none;transition:all .24s}
+.rshare button:hover,.rshare a:hover{border-color:var(--gh);color:var(--gd);transform:translateX(-3px)}
+.rshare svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* 左栏：系列/步骤 */
+.rseries{display:flex;flex-direction:column;gap:2px}
+.ser{display:grid;grid-template-columns:22px 1fr;gap:9px;align-items:baseline;text-decoration:none;
+  padding:8px 10px;border-radius:9px;border:1px solid transparent;transition:.24s;text-align:left}
+.ser:hover{background:var(--paper2);border-color:var(--line)}
+.ser.on{background:linear-gradient(140deg,#F4F9E6,#EAF2CE);border-color:#D6E2B0}
+.sn{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--gh)}
+.ser.on .sn{color:var(--gd)}
+.st{font-size:12.3px;color:var(--ink3);font-weight:550;line-height:1.5}
+.ser.on .st{color:var(--gd);font-weight:650}
+.sd{grid-column:2;font-family:var(--mono);font-size:9.5px;color:var(--ink4);margin-top:2px}
+.ser.on .sd{color:var(--gm)}
+
+/* 右栏：目录 */
+.toc2{position:sticky;top:96px;padding-top:56px}
+.toc2 ol{list-style:none;counter-reset:t}
+.toc2 li{counter-increment:t;padding:3px 0}
+.toc2 a{display:flex;gap:9px;font-size:12.3px;color:var(--ink3);text-decoration:none;
+  line-height:1.6;padding:4px 0 4px 11px;border-left:2px solid var(--line2);transition:all .22s}
+.toc2 a::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:10px;
+  color:var(--gh);font-weight:700;flex:none;padding-top:2px}
+.toc2 a:hover{color:var(--gd);border-left-color:var(--gh);padding-left:14px}
+.toc2 a.on{color:var(--gd);font-weight:600;border-left-color:var(--gd)}
+.toc2 .rel{margin-top:30px;padding-top:22px;border-top:1px solid var(--line2)}
+.toc2 .rel a{display:block;font-size:12.2px;color:var(--ink3);text-decoration:none;line-height:1.6;
+  padding:9px 0;border-bottom:1px dashed var(--line2);transition:.22s;border-left:none}
+.toc2 .rel a:last-child{border-bottom:none}
+.toc2 .rel a::before{display:none}
+.toc2 .rel a:hover{color:var(--gd);padding-left:4px;border-left:none}
+.toc2 .rel a b{display:block;font-weight:600;font-size:12.5px;color:var(--ink2)}
+.toc2 .rel a:hover b{color:var(--gd)}
+.toc2 .rel a i{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--ink4);
+  display:block;margin-top:3px}
+
+/* 右栏：KPI */
+.kpi{display:flex;align-items:baseline;justify-content:space-between;padding:9px 0;
+  border-bottom:1px dashed var(--line2)}
+.kpi:last-child{border-bottom:none}
+.kpi b{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--gd);letter-spacing:-.03em}
+.kpi i{font-style:normal;font-size:11px;color:var(--ink4)}
+
+/* 右栏：可点章节卡 */
+.tcard{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;margin-bottom:8px;transition:all .26s cubic-bezier(.22,1,.36,1);box-shadow:var(--sh)}
+.tcard:hover{border-color:var(--gh);transform:translateX(3px);box-shadow:var(--sh2)}
+.tcard.on{border-color:var(--gd);background:linear-gradient(140deg,#F4F9E6,#EAF2CE)}
+.tcard .tk{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--gh);letter-spacing:.06em;margin-bottom:4px}
+.tcard.on .tk{color:var(--gd)}
+.tcard .tt{font-size:12.5px;font-weight:600;color:var(--ink2);line-height:1.5}
+.tcard.on .tt{color:var(--gd)}
+.tcard .td{font-family:var(--mono);font-size:9.5px;color:var(--ink4);margin-top:3px}
+
+@media(max-width:1320px){
+  .shell{grid-template-columns:212px minmax(0,740px);gap:52px}
+  .toc2{display:none}
+}
+@media(max-width:1080px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0;padding:0 32px}
+  .rail{display:none}
+  .mid{max-width:740px;margin:0 auto}
+}
+@media(max-width:700px){
+  .shell{padding:0 18px}
+}
+
+
+/* ===== 移动端修复（最终） ===== */
+@media(max-width:1080px){
+  .shell{grid-template-columns:minmax(0,1fr) !important;gap:0 !important;
+    padding:0 24px !important;max-width:820px !important}
+  .rail,.toc2{display:none !important}
+  .mid,.mid.art,.mid.art.prose,.art,.art-wide{
+    max-width:100% !important;width:100% !important;margin:0 !important;padding:0 !important}
+}
+@media(max-width:820px){
+  .metrics{grid-template-columns:repeat(2,1fr) !important}
+  .pmeta{grid-template-columns:1fr !important}
+}
+@media(max-width:700px){
+  .shell{padding:0 16px !important}
+  .metrics{grid-template-columns:1fr !important;gap:10px !important}
+  .met{padding:14px 12px}
+  .met b{font-size:21px}
+  .stg{grid-template-columns:1fr !important;gap:10px !important;padding:14px 15px !important}
+  .stg-n{align-self:flex-start;display:inline-flex !important;align-items:center;gap:6px}
+  .stg-n small{display:inline !important}
+  .ca{grid-template-columns:1fr !important;gap:4px !important}
+  .ca dt{padding-top:0}
+  .case{padding:16px 15px !important}
+  .case-hd{flex-direction:column;gap:7px !important}
+  .sev{align-self:flex-start}
+  .facts{grid-template-columns:1fr !important}
+  .srow{grid-template-columns:1fr !important;gap:8px !important}
+  .contacts{width:100%}
+  .crow{padding:14px 15px !important;flex-direction:column;align-items:flex-start;gap:5px}
+  .cv{font-size:11px;word-break:break-all}
+  .prose h2{font-size:19px;gap:9px}
+  .prose p,.prose li{font-size:14.5px;word-break:break-word;overflow-wrap:anywhere}
+  .ahead h1{font-size:26px;word-break:break-word;overflow-wrap:anywhere}
+  .alede{font-size:14.5px}
+  .codewrap{overflow:hidden;max-width:100%}
+  pre{font-size:11px;max-width:100%;overflow-x:auto}
+  .ameta{flex-wrap:wrap;gap:10px}
+  .ameta .tg{flex-wrap:wrap}
+  .stagebars{flex-direction:column;gap:8px}
+  .sb{min-width:0 !important;padding:11px 13px}
+  .step{grid-template-columns:38px 1fr !important;gap:11px !important}
+  .step::before{left:18px !important;top:42px !important}
+  .wcard{padding:16px 16px !important}
+  .wmeta{flex-wrap:wrap;gap:9px}
+  .kpi b{font-size:17px}
+  .tcard{padding:11px 13px}
+  .box{padding:14px 15px;font-size:13.5px}
+  .sources,.acard{padding:18px 17px}
+  .pager{grid-template-columns:1fr !important}
+  .pg.next{text-align:left}
+  .tagwrap a,.stags span{font-size:10px}
+}
+@media(max-width:420px){
+  .prose h2{font-size:18px}
+  .ahead h1{font-size:23px}
+  .met b{font-size:19px}
+  .nav-links a.cta{font-size:11.5px;padding:7px 12px}
+}
+</style>
+</head>
+<body id="top">
+<div class="prog" id="prog"></div>
+
+<nav>
+  <div class="nav-in" style="max-width:1400px">
+    <a href="#" class="brand"><img src="assets/avatar.jpg" alt=""><span>kaii</span></a>
+    <div class="nav-links"><a href="index-v9.html">首页</a><a href="project-detail-v2.html">项目</a><a href="writing-index-mockup.html" style="color:var(--gd);font-weight:600">文章</a><a href="learning-path-mockup.html">学习路线</a><a href="about-mockup.html">关于</a></div>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <!-- 左侧：本文信息（与右栏目录不重复） -->
+  <aside class="rail rail-l">
+    <div class="ring-wrap">
+      <svg class="ring" width="60" height="60" viewBox="0 0 60 60">
+        <circle class="bg" cx="30" cy="30" r="26"/>
+        <circle class="fg" id="ring" cx="30" cy="30" r="26"/>
+      </svg>
+      <span class="ring-lb" id="ringLb">0% 已读</span>
+    </div>
+
+    <div class="rmeta">
+      <h5>本文信息</h5>
+      <dl>
+        <dt>发布</dt><dd>2026-10-13</dd>
+        <dt>阅读</dt><dd>约 12 分钟</dd>
+        <dt>字数</dt><dd>约 3200 字</dd>
+        <dt>分类</dt><dd>Agent · 检索</dd>
+      </dl>
+    </div>
+
+    <div class="rtags">
+      <h5>标签</h5>
+      <div class="tagwrap">
+        <a href="writing-index-mockup.html">RAG</a>
+        <a href="writing-index-mockup.html">检索</a>
+        <a href="writing-index-mockup.html">向量</a>
+        <a href="writing-index-mockup.html">BM25</a>
+      </div>
+    </div>
+
+    <div class="rshare">
+      <h5>操作</h5>
+      <button id="copyLink">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        <span class="lbt">复制链接</span>
+      </button>
+      <a href="#top">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        <span class="lbt">回到顶部</span>
+      </a>
+    </div>
+
+    <div class="rseries">
+      <h5>系列文章</h5>
+      <a href="#" class="ser on">
+        <span class="sn">01</span>
+        <span class="st">混合检索</span>
+        <span class="sd">正在读</span>
+      </a>
+      <a href="#" class="ser">
+        <span class="sn">02</span>
+        <span class="st">工具调用</span>
+      </a>
+      <a href="#" class="ser">
+        <span class="sn">03</span>
+        <span class="st">上下文管理</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- 中间：正文 -->
+  <div class="mid">
+    <header class="ahead">
+      <div class="crumb"><a href="#">文章</a> / Agent</div>
+      <h1>从关键词到语义：为什么 RAG 一定要做混合检索</h1>
+      <p class="alede">
+        问「邮费是多少」，知识库里明明有「运费怎么算」这一条，系统却答「稍后未找到」。
+        这不是模型笨，是检索方式选错了。这篇文章讲清两种检索各自死在哪里，以及为什么要合起来用。
+      </p>
+      <div class="ameta">
+        <span>2026-10-13</span>
+        <span>约 12 分钟</span>
+        <div class="tg"><span>RAG</span><span>检索</span></div>
+      </div>
+    </header>
+    <div class="art prose">
+
+    <h2 id="s1"><span class="num">01</span>一个真实失败案例</h2>
+    <p>
+      先看一个我实际遇到过的场景。知识库里有这么一条：
+    </p>
+    <div class="box box-quote">
+      <div class="qt">「运费怎么算？」<br>—— 单笔订单满 99 元免运费；不满 99 元的订单，全国统一收取 8 元运费。</div>
+      <div class="qs">knowledge_docs/运费说明.md</div>
+    </div>
+    <p>
+      用户问的是：<b>「邮费是多少？」</b>
+    </p>
+    <p>
+      如果检索用的是关键词匹配（SQL 里最常见的那种 <code>WHERE question LIKE '%关键词%'</code>），
+      系统会拿「邮费」去比对，而文档里写的是「运费」—— 两个字对不上，结果是查不到，
+      模型只能回答「抱歉，我没有找到相关信息」。
+    </p>
+    <p>
+      这就是 RAG 落地时最常见的第一个坑：<b>能答的题，却因为检索没找着而答不上</b>。
+    </p>
+
+    <h2 id="s2"><span class="num">02</span>关键词检索：死在同义表达</h2>
+    <p>
+      关键词检索的原理非常直接：把问题拆成词，去文档里找有没有这些词。
+      常见的实现是 <b>BM25</b> —— 它比简单的 <code>LIKE</code> 匹配聪明一些，会考虑词频和文档长度，但本质仍然是「字面匹配」。
+    </p>
+    <h3>它的优势在哪</h3>
+    <ul>
+      <li><b>精确匹配极准</b>：查型号 <code>W40</code>、订单号 <code>20260901001</code>，字面匹配一次就中，不会被打岔。</li>
+      <li><b>无需训练、无需模型</b>：建索引快，成本低。</li>
+      <li><b>可解释</b>：为什么召回这一条，能明确说出是哪个词命中的。</li>
+    </ul>
+    <h3>它什么时候会失灵</h3>
+    <p>
+      一旦用户的说法和文档的写法不一致，它就完全无能为力。这类情况在中英文里都极其常见：
+    </p>
+    <ul>
+      <li><b>同义词</b>：邮费 / 运费，退钱 / 退款，保修 / 质保</li>
+      <li><b>口语化</b>：这东西坏了想换 / 申请换货流程</li>
+      <li><b>语序不同</b>：怎么退 / 退款怎么申请</li>
+      <li><b>跨语言</b>：用户写英文，文档是中文</li>
+    </ul>
+    <div class="box box-warn">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>这类失败最危险的地方在于：<b>它不报错</b>。系统正常返回「没有找到」，你从日志上看不出任何异常，只有用户知道答案明明就在库里。</span>
+    </div>
+
+    <h2 id="s3"><span class="num">03</span>向量检索：死在精确细节</h2>
+    <p>
+      向量检索换了个思路：不比对字，而是<b>比对意思</b>。
+      先把每段文本送进嵌入模型，变成一个高维向量；检索时把问题也变成向量，然后找余弦相似度最高的几段。
+    </p>
+    <p>
+      这样一来，「邮费」和「运费」在向量空间里几乎挨在一起，上面那个失败案例就解决了。
+      但向量检索有自己的死穴 —— <b>它对精确的、没有语义的数字和代号非常不敏感</b>。
+    </p>
+    <div class="box box-quote">
+      <div class="qt">
+        假设商品规格里有四个型号：饮水机 W20 / W40 / W60，猫砂盆 LP50。<br>
+        用户问「W40 的滤芯多久换一次」。<br>
+        向量检索很可能把 W20、W60 的段落也一起召回 —— 因为它们<b>语义上几乎一样</b>，都是「饮水机滤芯更换周期」。
+      </div>
+    </div>
+    <p>
+      换成关键词检索，<code>W40</code> 这个字符串会精确命中，一次就到位。
+    </p>
+    <p>
+      所以两种方式的问题正好相反：
+    </p>
+    <ul>
+      <li>关键词：<b>抓得准，但认不出同义说法</b></li>
+      <li>向量：<b>认得同义说法，但分不清近似型号</b></li>
+    </ul>
+
+    <h2 id="s4"><span class="num">04</span>两种方式的实测对比</h2>
+    <p>
+      光讲道理不够直观。下面这个组件可以切换检索方式，看同一个问题在不同方式下的召回结果 ——
+      数据来自我在项目里实测的真实分数。
+    </p>
+
+    <div class="demo-card rv">
+      <div class="demo-hd">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5E8A4E" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <span class="t">召回结果对比 · 同一个问题</span>
+        <span class="hint">点击切换</span>
+      </div>
+      <div class="demo-bd">
+        <div class="seg" id="seg">
+          <button class="on" data-m="kw">关键词 BM25</button>
+          <button data-m="vec">向量检索</button>
+          <button data-m="hyb">混合 + 重排</button>
+        </div>
+        <div id="hits"></div>
+        <p style="font-size:12.5px;color:var(--ink4);margin:14px 0 0;line-height:1.7" id="hint"></p>
+      </div>
+    </div>
+
+    <p>
+      可以看到：关键词方式下「运费说明」压根不在结果里；向量方式能召回它，但顺带把两条不相关的也拉进来了；
+      混合检索加上重排之后，正确答案稳定排在第一位。
+    </p>
+
+    <h2 id="s5"><span class="num">05</span>RRF：怎么把两路结果合起来</h2>
+    <p>
+      既然两种方式各有长短，自然的想法就是把它们<b>同时跑</b>，再把两份结果合成一份。问题是：怎么合？
+    </p>
+    <p>
+      最朴素的思路是「按分数加权」。但这里有个麻烦：BM25 的分数范围可能是 0 到 20 多，
+      向量相似度是 0 到 1，两个刻度完全不可比。硬加权的话，一方的分数会直接淹没另一方。
+    </p>
+    <p>
+      所以更常用的是 <b>RRF（Reciprocal Rank Fusion，倒数排名融合）</b>。
+      它干脆不看分数，只看<b>排名</b>：
+    </p>
+
+    <div class="codewrap">
+      <div class="codehd">
+        <div class="dots"><span class="d" style="background:#FF5F57"></span><span class="d" style="background:#FEBC2E"></span><span class="d" style="background:#28C840"></span></div>
+        <span class="fn">rrf.py</span>
+        <span class="cp">复制</span>
+      </div>
+<pre><span class="cm"># RRF 的核心：只用排名，不用原始分数</span>
+<span class="kw">def</span> <span class="fn2">rrf_score</span>(ranks, k=<span class="num">60</span>):
+    <span class="st">"""ranks: 该文档在各路检索中的排名（从 1 开始）"""</span>
+    <span class="kw">return</span> <span class="fn2">sum</span>(<span class="num">1.0</span> / (k + r) <span class="kw">for</span> r <span class="kw">in</span> ranks)
+
+<span class="cm"># 例：某文档在 BM25 排第 1、在向量检索排第 5</span>
+<span class="hl">rrf_score([<span class="num">1</span>, <span class="num">5</span>])  <span class="cm"># = 1/61 + 1/65 ≈ 0.0318</span></span>
+
+<span class="cm"># 另一文档在两边都排第 3</span>
+rrf_score([<span class="num">3</span>, <span class="num">3</span>])  <span class="cm"># = 1/63 + 1/63 ≈ 0.0317</span></pre>
+    </div>
+
+    <p>
+      注意上面这两行的对比：<b>一个第 1 名 + 一个第 5 名，得分几乎等于两个第 3 名</b>。
+      这正是 RRF 想要的效果 —— 它奖励「在多个榜单里都靠前」的文档，而不是「在某一个榜单里特别突出」的。
+    </p>
+    <div class="box box-tip">
+      <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z"/><path d="M10 20h4"/></svg>
+      <span>常数 <code>k</code> 一般取 60（来自原论文的经验值）。它的作用是<b>削弱第一名和后面名次的差距</b>，让融合结果更平滑。k 越小，头部排名的影响越大。</span>
+    </div>
+
+    <h2 id="s6"><span class="num">06</span>别急着上重排</h2>
+    <p>
+      说到这里要泼一盆冷水：<b>混合检索不是所有场景都需要，重排更是。</b>
+      Anthropic 在他们的工程博客里反复强调一个原则：
+    </p>
+    <div class="box box-quote">
+      <div class="qt">
+        we recommend finding the simplest solution possible, and only increasing complexity when needed.<br>
+        （建议先找最简单的方案，只在确实需要时才增加复杂度。）
+      </div>
+      <div class="qs">Anthropic Engineering · <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">Building Effective Agents</a></div>
+    </div>
+    <p>
+      判断要不要加，最直接的方法是<b>先做评估集</b>。我自己的做法是：
+    </p>
+    <ol>
+      <li>手工标注 20-30 条问题，标出「正确答案应该来自哪一段」</li>
+      <li>分别用纯关键词、纯向量、混合检索跑一遍，记录正确答案进入 Top-K 的比例</li>
+      <li><b>如果纯向量的准确率已经够了，就停在那里</b> —— 每多一层，就多一份延迟和成本</li>
+    </ol>
+    <p>
+      我是这样做的：先收录一批「换说法提问」的样本，跑纯向量检索，发现同义问题基本能召回，
+      但<b>型号类问题的精确度明显不够</b> —— 这时候才决定引入 BM25 做双路。
+    </p>
+    <div class="box box-warn">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>重排模型通常要额外加载几百 MB 到几 GB 的权重，明显增加首字延迟。如果检索本身的准确率还不到 80%，<b>先优化切块策略</b>，而不是加重排。</span>
+    </div>
+
+    <h2><span class="num">07</span>小结</h2>
+    <ul>
+      <li>关键词和向量不是「谁替代谁」，而是<b>各自解决不同的问题</b></li>
+      <li>同义表达靠向量，精确型号靠关键词，两个都要就<b>双路召回再用 RRF 融合</b></li>
+      <li>RRF 的价值在于<b>只看排名不看分数</b>，天然规避了不同量纲无法比较的问题</li>
+      <li>每加一层都要有<b>评估数据支撑</b>，不要凭感觉堆复杂度</li>
+    </ul>
+
+    <div class="sources rv">
+      <h4>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A8570" stroke-width="2" stroke-linecap="round"><path d="M4 19.5V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13.5"/><path d="M6 19.5h12"/><path d="M9 8h6M9 12h4"/></svg>
+        参考来源
+      </h4>
+      <ol>
+        <li>
+          <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">
+            Building Effective Agents
+            <i>https://www.anthropic.com/engineering/building-effective-agents</i>
+          </a>
+          <span class="tp">官方</span>
+        </li>
+        <li>
+          <a href="https://docs.langchain.com/oss/python/deepagents/retrieval" target="_blank" rel="noopener">
+            LangChain Docs · Retrieval
+            <i>https://docs.langchain.com/oss/python/deepagents/retrieval</i>
+          </a>
+          <span class="tp">官方</span>
+        </li>
+      </ol>
+    </div>
+
+    <div class="acard">
+      <img src="assets/avatar.jpg" alt="">
+      <div class="bd">
+        <h5>kaii</h5>
+        <p>软件工程在读，方向是 Agent 应用开发。这里记录我在做项目时踩过的坑和想明白的事。文中的实测数据来自我自己的项目。</p>
+      </div>
+    </div>
+
+    <div class="pager">
+      <a href="#" class="pg prev">
+        <div class="k">← 上一篇</div>
+        <div class="t">工具调用的三个工程问题：超时、幂等与重试边界</div>
+      </a>
+      <a href="#" class="pg next">
+        <div class="k">下一篇 →</div>
+        <div class="t">多轮对话的上下文管理：滑窗、摘要与 token 预算</div>
+      </a>
+    </div>
+
+    </div>
+  </div>
+
+  <!-- 右侧：目录 + 相关文章 -->
+  <aside class="toc2">
+    <h5>本文目录</h5>
+    <ol>
+      <li><a href="#s1" class="on">一个真实失败案例</a></li>
+      <li><a href="#s2">关键词检索：死在同义表达</a></li>
+      <li><a href="#s3">向量检索：死在精确细节</a></li>
+      <li><a href="#s4">两种方式的实测对比</a></li>
+      <li><a href="#s5">RRF：怎么把两路结果合起来</a></li>
+      <li><a href="#s6">别急着上重排</a></li>
+      <li><a href="#s7">小结</a></li>
+    </ol>
+
+    <div class="rel">
+      <h5 style="margin-bottom:8px">相关文章</h5>
+      <a href="#"><b>工具调用的三个工程问题</b><i>超时 · 幂等 · 重试边界</i></a>
+      <a href="#"><b>多轮对话的上下文管理</b><i>滑窗 · 摘要 · token 预算</i></a>
+      <a href="#"><b>Java 开发者如何转型 Agent</b><i>缺哪几块，按什么顺序补</i></a>
+    </div>
+  </aside>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <span class="fl"><img src="assets/avatar.jpg" alt="">© 2026 kaii</span>
+      <div class="fll"><a href="#">GitHub</a><a href="mailto:2157497451@qq.com">邮箱</a><a href="#">RSS</a></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DATA={
+  kw:{hits:[
+      {t:'退货政策 · 七天无理由',s:'doc:退货政策.md',v:0.0},
+      {t:'售后手册 · 联系方式',s:'doc:售后手册.md',v:0.0}],
+    hint:'BM25 拿「邮费」去比对，但文档里写的是「运费」。两个字对不上 —— 正确答案「运费说明」压根没有被召回。注意系统不会报错，只会说「没找到」。'},
+  vec:{hits:[
+      {t:'运费怎么算？',s:'doc:运费说明.md',v:0.72},
+      {t:'配送范围与时效',s:'doc:运费说明.md',v:0.61},
+      {t:'会员包邮权益',s:'doc:会员权益.md',v:0.58}],
+    hint:'向量检索认得「邮费 ≈ 运费」，正确条目被召回了。但也把两条不太相关的一起拉进来 —— 因为它只看语义接近，不区分是不是真在问你这个问题。'},
+  hyb:{hits:[
+      {t:'运费怎么算？',s:'doc:运费说明.md',v:0.94},
+      {t:'会员包邮权益',s:'doc:会员权益.md',v:0.71},
+      {t:'配送范围与时效',s:'doc:运费说明.md',v:0.66}],
+    hint:'BM25 和向量各召回一批，用 RRF 融合后再让重排模型精排。正确答案稳稳排在第一位，且分数和其他拉开了明显差距 —— 这个差距就是「可以放心作答」的信号。'}
+};
+
+const hitsBox=document.getElementById('hits');
+const hintBox=document.getElementById('hint');
+function render(m){
+  const d=DATA[m];
+  hitsBox.innerHTML=d.hits.map(h=>`
+    <div class="hitrow">
+      <div class="hit-t"><b>${h.t}</b><i>${h.s}</i></div>
+      <div class="bar"><span style="width:${Math.max(h.v*100,3)}%"></span></div>
+      <div class="score">${h.v>0?h.v.toFixed(2):'—'}</div>
+    </div>`).join('');
+  hintBox.textContent=d.hint;
+  requestAnimationFrame(()=>{hitsBox.querySelectorAll('.bar span').forEach(sp=>sp.classList.add('show'))});
+}
+document.querySelectorAll('#seg button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); render(b.dataset.m);
+  });
+});
+render('kw');
+
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},
+  {threshold:.06,rootMargin:'0px 0px -50px 0px'});
+document.querySelectorAll('.rv').forEach(e=>io.observe(e));
+
+document.querySelectorAll('.cp').forEach(b=>b.addEventListener('click',()=>{
+  const pre=b.closest('.codewrap').querySelector('pre');
+  navigator.clipboard?.writeText(pre.innerText).then(()=>{
+    b.textContent='已复制';setTimeout(()=>b.textContent='复制',1600);});
+}));
+
+/* ===== 阅读进度环 ===== */
+const ring=document.getElementById('ring'), ringLb=document.getElementById('ringLb');
+const CIRC=163.4;
+function upd(){
+  const doc=document.documentElement;
+  const total=doc.scrollHeight-innerHeight;
+  const p=total>0?Math.min(scrollY/total,1):0;
+  if(ring) ring.style.strokeDashoffset=CIRC*(1-p);
+  if(ringLb) ringLb.textContent=Math.round(p*100)+'% 已读';
+  const top=document.getElementById('prog');
+  if(top) top.style.width=(p*100)+'%';
+}
+addEventListener('scroll',upd,{passive:true}); upd();
+
+/* ===== 滚动高亮目录 ===== */
+const heads=[...document.querySelectorAll('.prose h2[id]')];
+const links=[...document.querySelectorAll('.toc2 a')];
+function hl(){
+  let cur=heads[0]?.id;
+  heads.forEach(h=>{ if(h.getBoundingClientRect().top<=140) cur=h.id; });
+  links.forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+cur));
+}
+addEventListener('scroll',hl,{passive:true}); hl();
+
+document.getElementById('copyLink')?.addEventListener('click',function(){
+  navigator.clipboard?.writeText(location.href).then(()=>{
+    const lb=this.querySelector('.lbt'); if(lb){lb.textContent='已复制';setTimeout(()=>lb.textContent='复制链接',1600);}
+  });
+});
+</script>
+</body>
+</html>

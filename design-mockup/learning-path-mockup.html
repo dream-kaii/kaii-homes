@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习路线 — 设计稿</title>
+<style>
+:root{
+  --paper:#FAF9F2;--paper2:#F2F1E4;--card:#FFFFFF;
+  --gh:#B5CA4D;--g:#9BB544;--gm:#5E8A4E;--gd:#3E6B3F;--gk:#2A4D2E;
+  --clover:#4E9146;--sun:#E8B84B;--amber:#D99A3C;--rose:#C4685C;--blue:#4E88A8;
+  --ink:#1F2919;--ink2:#48543E;--ink3:#7A8570;--ink4:#A6AE9C;
+  --line:#E2E1D2;--line2:#EDECDF;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:"SF Mono","JetBrains Mono","Fira Code",ui-monospace,Menlo,monospace;
+  --rL:22px;--sh:0 1px 3px rgba(42,77,46,.05);--sh2:0 6px 22px -6px rgba(42,77,46,.11);--sh3:0 18px 52px -14px rgba(42,77,46,.2);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.7;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(45deg,rgba(62,107,63,.017) 0 1px,transparent 1px 15px)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px;position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .rv{opacity:1!important;transform:none!important}}
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+.prog{position:fixed;top:0;left:0;height:3px;width:0;z-index:100;background:linear-gradient(90deg,var(--gd),var(--gh))}
+
+nav{position:sticky;top:0;z-index:60;background:rgba(250,249,242,.86);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line2)}
+.nav-in{max-width:1180px;margin:0 auto;padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand img{width:31px;height:31px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--gh)}
+.brand span{font-family:var(--mono);font-size:15px;font-weight:600}
+.nav-links{display:flex;gap:2px}
+.nav-links a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:8px 14px;border-radius:8px;transition:.2s}
+.nav-links a:hover{color:var(--gd);background:var(--paper2)}
+.nav-links a.cta{color:#fff;background:var(--gd);border-radius:100px;padding:8px 17px;font-weight:500;box-shadow:0 2px 9px rgba(62,107,63,.24)}
+.nav-links a.cta:hover{background:var(--gk)}
+
+/* 文章容器：正文窄、插图宽 */
+.art{max-width:760px;margin:0 auto;padding:0 32px}
+.art-wide{max-width:1000px;margin:0 auto;padding:0 32px}
+
+/* 头 */
+.ahead{padding:58px 0 34px}
+.crumb{font-family:var(--mono);font-size:11.5px;color:var(--ink4);margin-bottom:18px}
+.crumb a{color:var(--ink4);text-decoration:none;transition:.2s}
+.crumb a:hover{color:var(--gd)}
+.ahead h1{font-size:clamp(28px,3.9vw,40px);font-weight:800;letter-spacing:-.034em;line-height:1.2;margin-bottom:18px}
+.alede{font-size:16.5px;color:var(--ink2);line-height:1.8;margin-bottom:22px}
+.ameta{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--ink4);font-family:var(--mono)}
+.ameta .tg{display:flex;gap:6px}
+.ameta .tg span{font-family:var(--mono);font-size:10.5px;color:var(--gd);background:var(--paper2);
+  border:1px solid var(--line);padding:3px 9px;border-radius:100px}
+
+/* 目录 */
+.toc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 22px;
+  box-shadow:var(--sh);margin:30px 0 38px}
+.toc h4{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink4);
+  letter-spacing:.11em;margin-bottom:12px}
+.toc ol{list-style:none;counter-reset:t}
+.toc li{counter-increment:t;padding:5px 0}
+.toc a{color:var(--ink2);text-decoration:none;font-size:13.5px;display:flex;gap:10px;transition:.2s;line-height:1.6}
+.toc a::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:11px;
+  color:var(--gh);font-weight:700;flex:none;padding-top:2px}
+.toc a:hover{color:var(--gd);transform:translateX(3px)}
+
+/* 正文排版 */
+.prose h2{font-size:24px;font-weight:750;letter-spacing:-.026em;margin:46px 0 16px;line-height:1.3;
+  scroll-margin-top:84px;display:flex;align-items:baseline;gap:12px}
+.prose h2 .num{font-family:var(--mono);font-size:13px;color:var(--gh);font-weight:700;flex:none}
+.prose h3{font-size:18px;font-weight:700;letter-spacing:-.018em;margin:32px 0 12px;line-height:1.4}
+.prose p{font-size:15.5px;color:var(--ink2);line-height:1.9;margin-bottom:17px}
+.prose p b,.prose li b{color:var(--gd);font-weight:650}
+.prose ul,.prose ol{margin:0 0 18px 0;padding-left:0;list-style:none}
+.prose ul li,.prose ol li{font-size:15.5px;color:var(--ink2);line-height:1.85;padding-left:22px;
+  position:relative;margin-bottom:8px}
+.prose ul li::before{content:"";position:absolute;left:6px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--gh)}
+.prose ol{counter-reset:o}
+.prose ol li{counter-increment:o}
+.prose ol li::before{content:counter(o);position:absolute;left:0;top:0;font-family:var(--mono);
+  font-size:12px;font-weight:700;color:var(--gh);width:18px}
+.prose code{font-family:var(--mono);font-size:13px;background:var(--paper2);border:1px solid var(--line);
+  padding:1.5px 6px;border-radius:5px;color:var(--gd)}
+.prose a{color:var(--gd);text-decoration:underline;text-decoration-color:var(--gh);
+  text-underline-offset:3px;text-decoration-thickness:1.5px;transition:.2s}
+.prose a:hover{background:#EAF2CE}
+.prose strong{color:var(--ink);font-weight:700}
+
+/* 提示块 */
+.box{display:flex;gap:13px;padding:16px 19px;border-radius:13px;margin:20px 0;font-size:14px;line-height:1.78}
+.box svg{width:17px;height:17px;flex:none;margin-top:3px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.box-tip{background:#F4F9E6;border:1px solid #DCE6C6;color:var(--ink2)}
+.box-tip svg{stroke:var(--gd)}
+.box-warn{background:#FDF6E8;border:1px solid #F0E0BC;color:var(--ink2)}
+.box-warn svg{stroke:var(--amber)}
+.box-quote{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gh);
+  flex-direction:column;gap:8px}
+.box-quote .qt{font-size:14px;color:var(--ink2);line-height:1.82;font-style:italic}
+.box-quote .qs{font-size:11.5px;color:var(--ink4);font-family:var(--mono)}
+.box-quote .qs a{color:var(--gm);text-decoration:none;border-bottom:1px dashed var(--gm)}
+
+/* 代码块 */
+.codewrap{background:#1B241A;border:1px solid #2C3A29;border-radius:14px;overflow:hidden;margin:22px 0;
+  box-shadow:0 12px 32px -12px rgba(27,36,26,.4)}
+.codehd{display:flex;align-items:center;gap:9px;padding:10px 15px;background:#232D21;border-bottom:1px solid #33402F}
+.codehd .dots{display:flex;gap:5px}
+.codehd .d{width:9px;height:9px;border-radius:50%}
+.codehd .fn{font-family:var(--mono);font-size:11px;color:#8A9683;margin-left:5px}
+.codehd .cp{margin-left:auto;font-family:var(--mono);font-size:10px;color:#6E7C68;
+  background:#2C3A29;border:1px solid #3A4A36;padding:3px 9px;border-radius:100px;cursor:pointer;transition:.2s}
+.codehd .cp:hover{color:#A8D880;border-color:#5E8A4E}
+pre{padding:16px 19px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.9;color:#D6E0CE}
+pre .cm{color:#6E7C68}pre .kw{color:#C2A0E0}pre .st{color:#E0C070}pre .fn2{color:#8FB8E0}
+pre .ok{color:#A8D880}pre .num{color:#E0A870}pre .hl{background:rgba(168,216,128,.13);display:block;
+  margin:0 -19px;padding:0 19px;border-left:2px solid #A8D880}
+
+/* 交互组件：可点的对比演示 */
+.demo-card{background:var(--card);border:1px solid var(--line);border-radius:var(--lL,18px);
+  box-shadow:var(--sh2);margin:26px 0;overflow:hidden}
+.demo-hd{display:flex;align-items:center;gap:10px;padding:13px 18px;background:rgba(242,241,228,.5);
+  border-bottom:1px solid var(--line2)}
+.demo-hd .t{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink3);letter-spacing:.04em}
+.demo-hd .hint{margin-left:auto;font-size:11px;color:var(--ink4);font-family:var(--mono)}
+.demo-bd{padding:20px 18px}
+.seg{display:inline-flex;background:var(--paper2);border:1px solid var(--line);border-radius:100px;padding:3px;margin-bottom:16px}
+.seg button{border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:600;
+  color:var(--ink3);padding:7px 16px;border-radius:100px;cursor:pointer;transition:.24s}
+.seg button.on{background:var(--card);color:var(--gd);box-shadow:var(--sh)}
+.hitrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.hitrow:last-child{border-bottom:none}
+.hit-t{flex:1;font-size:13.5px;color:var(--ink2)}
+.hit-t b{color:var(--ink);font-weight:600}
+.hit-t i{display:block;font-style:normal;font-size:11.5px;color:var(--ink4);margin-top:3px}
+.bar{width:110px;height:7px;border-radius:100px;background:var(--paper2);overflow:hidden;flex:none}
+.bar span{display:block;height:100%;border-radius:100px;background:var(--gd);
+  transform-origin:left;transform:scaleX(0);transition:transform .8s cubic-bezier(.22,1,.36,1)}
+.bar span.show{transform:scaleX(1)}
+.score{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--gd);width:44px;text-align:right;flex:none}
+
+/* 引用来源 */
+.sources{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;
+  margin:40px 0 0;box-shadow:var(--sh)}
+.sources h4{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink4);
+  letter-spacing:.11em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sources ol{list-style:none;counter-reset:s}
+.sources li{counter-increment:s;padding:9px 0;border-bottom:1px solid var(--line2);display:flex;gap:11px}
+.sources li:last-child{border-bottom:none}
+.sources li::before{content:"[" counter(s) "]";font-family:var(--mono);font-size:11.5px;
+  color:var(--gh);font-weight:700;flex:none;padding-top:2px}
+.sources a{color:var(--ink2);text-decoration:none;font-size:13.5px;line-height:1.65;transition:.2s}
+.sources a:hover{color:var(--gd)}
+.sources a i{display:block;font-style:normal;font-family:var(--mono);font-size:11px;
+  color:var(--ink4);margin-top:3px;word-break:break-all}
+.sources .tp{font-family:var(--mono);font-size:9.5px;color:var(--gm);background:#EAF2CE;
+  border:1px solid #D6E2B0;padding:2px 7px;border-radius:100px;flex:none;align-self:flex-start;margin-top:2px;white-space:nowrap}
+
+/* 作者卡 + 上下篇 */
+.acard{display:flex;gap:18px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--rL);padding:22px 24px;margin:40px 0;box-shadow:var(--sh)}
+.acard img{width:52px;height:52px;border-radius:50%;object-fit:cover;flex:none;
+  border:2.5px solid #fff;box-shadow:0 0 0 2px var(--gh)}
+.acard .bd h5{font-size:15px;font-weight:700;margin-bottom:5px}
+.acard .bd p{font-size:13px;color:var(--ink3);line-height:1.7;margin:0}
+.pager{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:26px 0 0}
+.pg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  text-decoration:none;transition:all .28s cubic-bezier(.22,1,.36,1);box-shadow:var(--sh)}
+.pg:hover{border-color:var(--gh);transform:translateY(-3px);box-shadow:var(--sh2)}
+.pg .k{font-family:var(--mono);font-size:10px;color:var(--ink4);letter-spacing:.08em;margin-bottom:6px}
+.pg .t{font-size:13.8px;font-weight:600;color:var(--ink2);line-height:1.5;transition:color .2s}
+.pg:hover .t{color:var(--gd)}
+.pg.next{text-align:right}
+
+footer{border-top:1px solid var(--line2);padding:34px 0 50px;margin-top:52px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.fl{font-size:12.5px;color:var(--ink3);font-family:var(--mono);display:flex;align-items:center;gap:9px}
+.fl img{width:21px;height:21px;border-radius:50%;object-fit:cover;border:1.5px solid #fff;box-shadow:0 0 0 1px var(--gh)}
+.fll{display:flex;gap:24px}
+.fll a{color:var(--ink2);text-decoration:none;font-size:13px}
+.fll a:hover{color:var(--gd)}
+
+@media(max-width:700px){
+  .wrap,.art,.art-wide,.nav-in{padding:0 18px}
+  .nav-links a:not(.cta){display:none}
+  .prose h2{font-size:20px;margin:36px 0 13px}
+  .prose p,.prose ul li,.prose ol li{font-size:14.8px}
+  .pager{grid-template-columns:1fr}
+  .pg.next{text-align:left}
+  .codehd .fn{display:none}
+  .bar{width:70px}
+}
+
+
+/* ============================================================
+   页面外层布局：左栏（信息/导航） 中栏（正文） 右栏（目录/数据）
+   ============================================================ */
+.shell{max-width:1440px;margin:0 auto;padding:0 40px;display:grid;
+  grid-template-columns:212px minmax(0,740px) 236px;gap:56px;align-items:start;
+  justify-content:center}
+.rail{position:sticky;top:96px;padding-top:56px}
+.rail-l{text-align:right}
+.rail h5{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--ink4);
+  letter-spacing:.11em;margin-bottom:11px}
+.mid{min-width:0}
+.mid .ahead{padding-top:0}
+.mid .ph{padding-top:0;border-bottom:none}
+
+/* 进度环 */
+.ring-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:28px}
+.ring{width:60px;height:60px;max-width:60px;max-height:60px;flex:none;display:block;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:4;stroke-linecap:round}
+.ring .bg{stroke:var(--line)}
+.ring .fg{stroke:var(--gd);stroke-dasharray:163.4;stroke-dashoffset:163.4}
+.ring-lb{font-family:var(--mono);font-size:10.5px;color:var(--ink4);letter-spacing:.06em}
+
+/* 左栏：信息表 */
+.rmeta{padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line2)}
+.rmeta dl{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;justify-content:end}
+.rmeta dt{font-family:var(--mono);font-size:10.5px;color:var(--ink4);text-align:right;white-space:nowrap}
+.rmeta dd{font-size:12.5px;color:var(--ink2);font-weight:550;margin:0;text-align:left}
+
+/* 左栏：标签 */
+.tagwrap{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.tagwrap a{font-family:var(--mono);font-size:10.5px;color:var(--gm);background:var(--paper2);
+  border:1px solid var(--line);padding:3.5px 10px;border-radius:100px;text-decoration:none;transition:.22s}
+.tagwrap a:hover{background:#EAF2CE;border-color:var(--gh);color:var(--gd);transform:translateY(-1px)}
+.rtags{padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line2)}
+
+/* 左栏：操作 */
+.rshare{display:flex;flex-direction:column;gap:9px;align-items:flex-end;
+  padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--line2)}
+.rshare button,.rshare a{display:inline-flex;align-items:center;gap:7px;background:var(--card);
+  border:1px solid var(--line);border-radius:100px;padding:7px 14px;font-family:var(--mono);
+  font-size:10.5px;color:var(--ink3);cursor:pointer;text-decoration:none;transition:all .24s}
+.rshare button:hover,.rshare a:hover{border-color:var(--gh);color:var(--gd);transform:translateX(-3px)}
+.rshare svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* 左栏：系列/步骤 */
+.rseries{display:flex;flex-direction:column;gap:2px}
+.ser{display:grid;grid-template-columns:22px 1fr;gap:9px;align-items:baseline;text-decoration:none;
+  padding:8px 10px;border-radius:9px;border:1px solid transparent;transition:.24s;text-align:left}
+.ser:hover{background:var(--paper2);border-color:var(--line)}
+.ser.on{background:linear-gradient(140deg,#F4F9E6,#EAF2CE);border-color:#D6E2B0}
+.sn{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--gh)}
+.ser.on .sn{color:var(--gd)}
+.st{font-size:12.3px;color:var(--ink3);font-weight:550;line-height:1.5}
+.ser.on .st{color:var(--gd);font-weight:650}
+.sd{grid-column:2;font-family:var(--mono);font-size:9.5px;color:var(--ink4);margin-top:2px}
+.ser.on .sd{color:var(--gm)}
+
+/* 右栏：目录 */
+.toc2{position:sticky;top:96px;padding-top:56px}
+.toc2 ol{list-style:none;counter-reset:t}
+.toc2 li{counter-increment:t;padding:3px 0}
+.toc2 a{display:flex;gap:9px;font-size:12.3px;color:var(--ink3);text-decoration:none;
+  line-height:1.6;padding:4px 0 4px 11px;border-left:2px solid var(--line2);transition:all .22s}
+.toc2 a::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:10px;
+  color:var(--gh);font-weight:700;flex:none;padding-top:2px}
+.toc2 a:hover{color:var(--gd);border-left-color:var(--gh);padding-left:14px}
+.toc2 a.on{color:var(--gd);font-weight:600;border-left-color:var(--gd)}
+.toc2 .rel{margin-top:30px;padding-top:22px;border-top:1px solid var(--line2)}
+.toc2 .rel a{display:block;font-size:12.2px;color:var(--ink3);text-decoration:none;line-height:1.6;
+  padding:9px 0;border-bottom:1px dashed var(--line2);transition:.22s;border-left:none}
+.toc2 .rel a:last-child{border-bottom:none}
+.toc2 .rel a::before{display:none}
+.toc2 .rel a:hover{color:var(--gd);padding-left:4px;border-left:none}
+.toc2 .rel a b{display:block;font-weight:600;font-size:12.5px;color:var(--ink2)}
+.toc2 .rel a:hover b{color:var(--gd)}
+.toc2 .rel a i{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--ink4);
+  display:block;margin-top:3px}
+
+/* 右栏：KPI */
+.kpi{display:flex;align-items:baseline;justify-content:space-between;padding:9px 0;
+  border-bottom:1px dashed var(--line2)}
+.kpi:last-child{border-bottom:none}
+.kpi b{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--gd);letter-spacing:-.03em}
+.kpi i{font-style:normal;font-size:11px;color:var(--ink4)}
+
+/* 右栏：可点章节卡 */
+.tcard{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:12px 14px;margin-bottom:8px;transition:all .26s cubic-bezier(.22,1,.36,1);box-shadow:var(--sh)}
+.tcard:hover{border-color:var(--gh);transform:translateX(3px);box-shadow:var(--sh2)}
+.tcard.on{border-color:var(--gd);background:linear-gradient(140deg,#F4F9E6,#EAF2CE)}
+.tcard .tk{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--gh);letter-spacing:.06em;margin-bottom:4px}
+.tcard.on .tk{color:var(--gd)}
+.tcard .tt{font-size:12.5px;font-weight:600;color:var(--ink2);line-height:1.5}
+.tcard.on .tt{color:var(--gd)}
+.tcard .td{font-family:var(--mono);font-size:9.5px;color:var(--ink4);margin-top:3px}
+
+@media(max-width:1320px){
+  .shell{grid-template-columns:212px minmax(0,740px);gap:52px}
+  .toc2{display:none}
+}
+@media(max-width:1080px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0;padding:0 32px}
+  .rail{display:none}
+  .mid{max-width:740px;margin:0 auto}
+}
+@media(max-width:700px){
+  .shell{padding:0 18px}
+}
+
+.step-rail{position:sticky;top:0}
+.lp-tabs{position:sticky;top:64px;z-index:50;background:rgba(250,249,242,.93);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line2);padding:12px 0;margin-bottom:6px}
+.tab-in{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tab{background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:12px 15px;
+  cursor:pointer;text-align:left;font-family:inherit;transition:all .28s cubic-bezier(.22,1,.36,1);
+  display:flex;align-items:center;gap:11px}
+.tab:hover{border-color:var(--gh);transform:translateY(-2px);box-shadow:var(--sh2)}
+.tab.on{border-color:var(--gd);background:linear-gradient(140deg,#F4F9E6,#EAF2CE)}
+.tab-ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none;
+  background:var(--paper2);border:1px solid var(--line)}
+.tab.on .tab-ic{background:#fff;border-color:var(--gh)}
+.tab-ic svg{width:16px;height:16px;stroke:var(--ink3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.on .tab-ic svg{stroke:var(--gd)}
+.tab-tx b{display:block;font-size:13.5px;font-weight:700;color:var(--ink2);letter-spacing:-.012em}
+.tab.on .tab-tx b{color:var(--gd)}
+.tab-tx i{display:block;font-style:normal;font-size:10.5px;color:var(--ink4);margin-top:2px}
+
+.panel{display:none}
+.panel.on{display:block;animation:fadeUp .5s cubic-bezier(.22,1,.36,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+.overview{background:var(--card);border:1px solid var(--line);border-radius:var(--rL);
+  padding:24px 26px;box-shadow:var(--sh);margin-bottom:32px;position:relative;overflow:hidden}
+.overview::after{content:"";position:absolute;top:0;right:0;width:200px;height:200px;
+  background:radial-gradient(circle at top right,rgba(181,202,77,.14),transparent 68%)}
+.ov-in{position:relative;z-index:1}
+.overview h3{font-size:15.5px;font-weight:700;margin-bottom:8px;letter-spacing:-.015em}
+.overview p{font-size:13.3px;color:var(--ink2);line-height:1.78;margin-bottom:18px}
+.stagebars{display:flex;gap:7px;flex-wrap:wrap}
+.sb{flex:1;min-width:130px;background:var(--paper2);border:1px solid var(--line);border-radius:10px;
+  padding:11px 13px;transition:all .26s;text-decoration:none;display:block}
+.sb:hover{background:#F4F9E6;border-color:var(--gh);transform:translateY(-2px)}
+.sb-n{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--ink4);letter-spacing:.08em}
+.sb-t{font-size:12.5px;font-weight:650;margin:4px 0 3px;letter-spacing:-.01em}
+.sb-d{font-size:11px;color:var(--ink3);line-height:1.5}
+
+.steps{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:56px 1fr;gap:18px;position:relative;padding-bottom:22px}
+.step:last-child{padding-bottom:0}
+.step::before{content:"";position:absolute;left:27px;top:48px;bottom:0;width:1.5px;background:var(--line2)}
+.step:last-child::before{display:none}
+.step-rail{display:flex;flex-direction:column;align-items:center;padding-top:5px;z-index:1}
+.step-dot{width:32px;height:32px;border-radius:10px;background:var(--card);border:1.5px solid var(--line);
+  display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink3);
+  transition:all .32s cubic-bezier(.34,1.56,.64,1)}
+.step-card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:17px 20px;
+  box-shadow:var(--sh);transition:all .3s cubic-bezier(.22,1,.36,1)}
+.step:hover .step-card{border-color:#D5D8C4;box-shadow:var(--sh2);transform:translateX(3px)}
+.step-card h4{font-size:15px;font-weight:700;letter-spacing:-.015em;margin-bottom:7px;
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.step-card h4 em{font-style:normal;font-family:var(--mono);font-size:9.5px;font-weight:600;
+  color:var(--gm);background:#EAF2CE;border:1px solid #D6E2B0;padding:2.5px 8px;border-radius:100px}
+.step-card p{font-size:13.3px;color:var(--ink2);line-height:1.76;margin-bottom:11px}
+.step-card p:last-child{margin-bottom:0}
+.step-link{display:inline-flex;align-items:center;gap:7px;margin-top:11px;padding-top:10px;
+  border-top:1px dashed var(--line);font-size:12.5px;font-weight:600;color:var(--gd);
+  text-decoration:none;transition:gap .22s}
+.step-link:hover{gap:11px}
+.step-link svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.step-link .st{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;
+  border-radius:100px;background:#EAF2CE;border:1px solid #D6E2B0;color:var(--gm);flex:none}
+.step-link .st.todo{background:var(--paper2);border-color:var(--line);color:var(--ink4)}
+.extlinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.extlinks .el{font-family:var(--mono);font-size:9.5px;color:var(--ink4);letter-spacing:.07em}
+.extlinks a{font-family:var(--mono);font-size:10px;color:var(--ink3);text-decoration:none;
+  border-bottom:1px dashed var(--line)}
+.extlinks a:hover{color:var(--gm)}
+.callout{display:flex;gap:11px;padding:13px 16px;border-radius:11px;margin:12px 0 0;font-size:12.5px;line-height:1.7}
+.callout svg{width:15px;height:15px;flex:none;margin-top:2px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.co-tip{background:#F4F9E6;border:1px solid #DCE6C6;color:var(--ink2)}
+.co-tip svg{stroke:var(--gd)}
+.co-warn{background:#FDF6E8;border:1px solid #F0E0BC;color:var(--ink2)}
+.co-warn svg{stroke:var(--amber)}
+pre{background:#1B241A;border:1px solid #2C3A29;border-radius:11px;padding:13px 16px;overflow-x:auto;
+  font-family:var(--mono);font-size:11.8px;line-height:1.85;margin:11px 0 0;color:#D6E0CE}
+pre .cm{color:#6E7C68}pre .kw{color:#C2A0E0}pre .st{color:#E0C070}
+.step-dot.agent{background:#EAF2CE;border-color:#D6E2B0;color:var(--gd)}
+.step-dot.algo{background:#FDF0D0;border-color:#F0DFB0;color:#8A6410}
+.step-dot.back{background:#E4EEF6;border-color:#C6DCEA;color:#2A5A78}
+.step:hover .step-dot{background:var(--gd);border-color:var(--gd);color:#fff}
+.step{scroll-margin-top:150px}
+
+@media(max-width:1080px){
+  .tab-in{grid-template-columns:1fr;gap:7px}
+  .tab{padding:11px 13px}
+  .lp-tabs{position:static}
+  .stagebars{flex-direction:column}
+  .sb{min-width:0}
+}
+@media(max-width:700px){
+  .step{grid-template-columns:40px 1fr;gap:12px}
+  .step::before{left:19px;top:44px}
+  .step-dot{width:28px;height:28px;font-size:10px;border-radius:8px}
+  .step-card{padding:15px 16px}
+  .overview{padding:19px 17px}
+}
+
+
+/* ===== 移动端修复（最终） ===== */
+@media(max-width:1080px){
+  .shell{grid-template-columns:minmax(0,1fr) !important;gap:0 !important;
+    padding:0 24px !important;max-width:820px !important}
+  .rail,.toc2{display:none !important}
+  .mid,.mid.art,.mid.art.prose,.art,.art-wide{
+    max-width:100% !important;width:100% !important;margin:0 !important;padding:0 !important}
+}
+@media(max-width:820px){
+  .metrics{grid-template-columns:repeat(2,1fr) !important}
+  .pmeta{grid-template-columns:1fr !important}
+}
+@media(max-width:700px){
+  .shell{padding:0 16px !important}
+  .metrics{grid-template-columns:1fr !important;gap:10px !important}
+  .met{padding:14px 12px}
+  .met b{font-size:21px}
+  .stg{grid-template-columns:1fr !important;gap:10px !important;padding:14px 15px !important}
+  .stg-n{align-self:flex-start;display:inline-flex !important;align-items:center;gap:6px}
+  .stg-n small{display:inline !important}
+  .ca{grid-template-columns:1fr !important;gap:4px !important}
+  .ca dt{padding-top:0}
+  .case{padding:16px 15px !important}
+  .case-hd{flex-direction:column;gap:7px !important}
+  .sev{align-self:flex-start}
+  .facts{grid-template-columns:1fr !important}
+  .srow{grid-template-columns:1fr !important;gap:8px !important}
+  .contacts{width:100%}
+  .crow{padding:14px 15px !important;flex-direction:column;align-items:flex-start;gap:5px}
+  .cv{font-size:11px;word-break:break-all}
+  .prose h2{font-size:19px;gap:9px}
+  .prose p,.prose li{font-size:14.5px;word-break:break-word;overflow-wrap:anywhere}
+  .ahead h1{font-size:26px;word-break:break-word;overflow-wrap:anywhere}
+  .alede{font-size:14.5px}
+  .codewrap{overflow:hidden;max-width:100%}
+  pre{font-size:11px;max-width:100%;overflow-x:auto}
+  .ameta{flex-wrap:wrap;gap:10px}
+  .ameta .tg{flex-wrap:wrap}
+  .stagebars{flex-direction:column;gap:8px}
+  .sb{min-width:0 !important;padding:11px 13px}
+  .step{grid-template-columns:38px 1fr !important;gap:11px !important}
+  .step::before{left:18px !important;top:42px !important}
+  .wcard{padding:16px 16px !important}
+  .wmeta{flex-wrap:wrap;gap:9px}
+  .kpi b{font-size:17px}
+  .tcard{padding:11px 13px}
+  .box{padding:14px 15px;font-size:13.5px}
+  .sources,.acard{padding:18px 17px}
+  .pager{grid-template-columns:1fr !important}
+  .pg.next{text-align:left}
+  .tagwrap a,.stags span{font-size:10px}
+}
+@media(max-width:420px){
+  .prose h2{font-size:18px}
+  .ahead h1{font-size:23px}
+  .met b{font-size:19px}
+  .nav-links a.cta{font-size:11.5px;padding:7px 12px}
+}
+</style>
+</head>
+<body id="top">
+<div class="prog" id="prog"></div>
+
+<nav>
+  <div class="nav-in" style="max-width:1440px">
+    <a href="index-v9.html" class="brand"><img src="assets/avatar.jpg" alt=""><span>kaii</span></a>
+    <div class="nav-links">
+      <a href="index-v9.html">首页</a><a href="project-detail-v2.html">项目</a><a href="writing-index-mockup.html">文章</a><a href="learning-path-mockup.html" style="color:var(--gd);font-weight:600">学习路线</a><a href="about-mockup.html">关于</a>
+    </div>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <!-- 左栏：进度 + 三线说明 -->
+  <aside class="rail rail-l">
+    <div class="ring-wrap">
+      <svg class="ring" width="60" height="60" viewBox="0 0 60 60">
+        <circle class="bg" cx="30" cy="30" r="26"/>
+        <circle class="fg" id="ring" cx="30" cy="30" r="26"/>
+      </svg>
+      <span class="ring-lb" id="ringLb">0% 已读</span>
+    </div>
+
+    <div class="rmeta">
+      <h5>路线概览</h5>
+      <dl>
+        <dt>主线数</dt><dd>3 条</dd>
+        <dt>Agent</dt><dd>7 步</dd>
+        <dt>算法</dt><dd>6 步</dd>
+        <dt>后端</dt><dd>6 步</dd>
+      </dl>
+    </div>
+
+    <div class="rtags">
+      <h5>文章状态</h5>
+      <div class="tagwrap">
+        <a href="#">已有 4 篇</a>
+        <a href="#">待写 16 篇</a>
+      </div>
+    </div>
+
+    <div class="rshare">
+      <h5>操作</h5>
+      <a href="#top">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        <span class="lbt">回到顶部</span>
+      </a>
+    </div>
+
+    <div class="rseries">
+      <h5>切换路线</h5>
+      <a href="#" class="ser on" data-goto="agent"><span class="sn">01</span><span class="st">Agent 应用开发</span><span class="sd">主线 · 正在走</span></a>
+      <a href="#" class="ser" data-goto="algo"><span class="sn">02</span><span class="st">算法 / 面试</span><span class="sd">LeetCode</span></a>
+      <a href="#" class="ser" data-goto="backend"><span class="sn">03</span><span class="st">Java 后端</span><span class="sd">工程基础</span></a>
+    </div>
+  </aside>
+
+  <!-- 中栏：路线内容 -->
+  <div class="mid">
+    <header class="ahead">
+      <div class="crumb">学习路线</div>
+      <h1>学习路线</h1>
+      <p class="alede">
+        这里记录我自己走过的三条线，以及踩过的弯路。每条路线按「先做什么、再做什么」的顺序排开，
+        <b>每一步都能点进我写的对应文章</b> —— 官方文档放在文末作为补充，不单独占一步。
+      </p>
+      <div class="ameta">
+        <span>标注「待写」的是已规划、还没动笔的</span>
+      </div>
+    </header>
+
+    <div class="lp-tabs">
+      <div class="tab-in">
+        <button class="tab on" data-p="agent">
+          <span class="tab-ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></span>
+          <span class="tab-tx"><b>Agent 应用开发</b><i>主线 · 正在走</i></span>
+        </button>
+        <button class="tab" data-p="algo">
+          <span class="tab-ic"><svg viewBox="0 0 24 24"><path d="M8 3v4M16 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M9 14l2 2 4-4"/></svg></span>
+          <span class="tab-tx"><b>算法 / 面试</b><i>LeetCode 路线</i></span>
+        </button>
+        <button class="tab" data-p="backend">
+          <span class="tab-ic"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
+          <span class="tab-tx"><b>Java 后端</b><i>工程基础</i></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel on" id="p-agent">
+
+    <div class="overview rv">
+      <div class="ov-in">
+        <h3>先想清楚一件事：你要建的是 Workflow 还是 Agent</h3>
+        <p>
+          很多人一上来就问「用哪个框架」，这是错的问题。Anthropic 在他们的工程博客里给过一个很清楚的区分 ——
+          大多数场景用固定的 workflow 就够了，硬上 Agent 只会换来更慢、更贵、更难调。
+          建议先花十分钟把概念理清，再决定要不要上「Agent」这个词。
+        </p>
+        <div class="stagebars">
+          <a href="#a1" class="sb"><div class="sb-n">STEP 01</div><div class="sb-t">能对话</div><div class="sb-d">模型调用、流式输出、多轮上下文</div></a>
+          <a href="#a2" class="sb"><div class="sb-n">STEP 02</div><div class="sb-t">能动手</div><div class="sb-d">Function Calling，模型自己选工具</div></a>
+          <a href="#a3" class="sb"><div class="sb-n">STEP 03</div><div class="sb-t">有知识</div><div class="sb-d">RAG：切块、嵌入、检索、重排</div></a>
+          <a href="#a4" class="sb"><div class="sb-n">STEP 04</div><div class="sb-t">有骨架</div><div class="sb-d">图编排、上下文、人工确认</div></a>
+          <a href="#a5" class="sb"><div class="sb-n">STEP 05</div><div class="sb-t">能上线</div><div class="sb-d">工具系统、观测、评估、飞轮</div></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+
+      <div class="step rv" id="a1" data-d="1">
+        <div class="step-rail"><span class="step-dot agent">01</span></div>
+        <div class="step-card">
+          <h4>先读概念，别急着写代码 <em>半天</em></h4>
+          <p>
+            动手前先把「Workflow 和 Agent 到底差在哪」搞清楚。这不是学术问题 —— 它直接决定你的架构选型。
+            Anthropic 那篇是业内被引用最多的入门材料，讲清了五种 workflow 模式，也明确说了什么时候<b>不该</b>用 Agent。
+          </p>
+          <div class="callout co-tip">
+            <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z"/><path d="M10 20h4"/></svg>
+            <span>重点看这两句：「Workflows 是预定义代码路径编排 LLM 和工具」「Agents 是 LLM 动态决定自己的流程」。想清楚你的场景属于哪一种。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            我用一个客服场景讲清 Workflow 和 Agent 的分界
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="extlinks"><span class="el">原文</span>
+            <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">Building Effective Agents ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step rv" id="a2" data-d="1">
+        <div class="step-rail"><span class="step-dot agent">02</span></div>
+        <div class="step-card">
+          <h4>把一次对话调通 <em>1-2 天</em></h4>
+          <p>
+            不要用框架起步。建议先直接用模型 API，很多模式几行代码就能实现。
+            你需要亲手写一遍 HTTP 调用、处理流式返回、拼装多轮消息，才能理解框架在替你做什么。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            目标很朴素：能用 curl 或十几行 Python 拿到一次流式回复，并让第二句话接得住第一句的上下文。
+          </p>
+          <pre><span class="cm"># 用原生 HTTP 理解本质，再上框架</span>
+<span class="kw">curl</span> https://api.deepseek.com/v1/chat/completions \
+  -H <span class="st">"Content-Type: application/json"</span> \
+  -H <span class="st">"Authorization: Bearer $API_KEY"</span> \
+  -d <span class="st">'{"model":"deepseek-chat",
+       "messages":[{"role":"user","content":"你好"}],
+       "stream": true}'</span></pre>
+          <div class="callout co-warn">
+            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>各家上游现在基本都兼容 OpenAI 协议。把 base_url、model、api_key 全放进环境变量，之后换供应商就不用改代码。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            从零跑通一次流式对话：那些框架替你做的事
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="a3" data-d="2">
+        <div class="step-rail"><span class="step-dot agent">03</span></div>
+        <div class="step-card">
+          <h4>让模型会调工具 <em>3-5 天</em></h4>
+          <p>
+            Function Calling 是 Agent 的分水岭。核心只有一件事：<b>你把可用的函数描述给模型，它自己决定什么时候调、传什么参数</b>。
+            框架会帮你把「模型要调工具 → 执行 → 结果回灌 → 生成回答」这个循环封起来。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            Anthropic 有个反直觉的观察：他们做 SWE-bench 的 Agent 时，<b>花在优化工具定义上的时间比优化提示词还多</b>。
+            工具的命名、参数、描述，就是模型的世界观。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">已有</span>
+            工具调用的三个工程问题：超时、幂等与重试边界
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="extlinks"><span class="el">文档</span>
+            <a href="https://docs.langchain.com/oss/python/langchain/tools" target="_blank" rel="noopener">LangChain · Tools ↗</a>
+            <a href="https://docs.langchain.com/oss/python/langchain/agents" target="_blank" rel="noopener">Agents ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step rv" id="a4" data-d="2">
+        <div class="step-rail"><span class="step-dot agent">04</span></div>
+        <div class="step-card">
+          <h4>给模型接上自己的知识 <em>1-2 周</em></h4>
+          <p>
+            RAG 是这条路上坑最多的一站。顺序别乱：<b>先切块 → 再嵌入 → 存向量库 → 检索 → 加引用</b>。
+            很多人一上来就纠结用哪个向量库，其实切块策略对效果的影响远大于换个数据库。
+          </p>
+          <a href="article-mockup.html" class="step-link">
+            <span class="st">已有</span>
+            从关键词到语义：为什么 RAG 一定要做混合检索
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="a5" data-d="3">
+        <div class="step-rail"><span class="step-dot agent">05</span></div>
+        <div class="step-card">
+          <h4>用图编排把稳定部分焊死 <em>1 周</em></h4>
+          <p>
+            到这一步你会发现：光靠提示词约束不住模型。像「知识类问题必须先检索」「投诉不要进 Agent」这种规则，
+            写在提示词里模型随时可以不听 —— 要用<b>确定性的流程节点</b>把它固定下来。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            为什么我用 LangGraph 而不是纯 Agent 循环
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="extlinks"><span class="el">文档</span>
+            <a href="https://docs.langchain.com/oss/python/langgraph/overview" target="_blank" rel="noopener">LangGraph 概览 ↗</a>
+            <a href="https://docs.langchain.com/oss/python/langgraph/interrupts" target="_blank" rel="noopener">Interrupts ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step rv" id="a6" data-d="3">
+        <div class="step-rail"><span class="step-dot agent">06</span></div>
+        <div class="step-card">
+          <h4>接外部工具生态 <em>3-5 天</em></h4>
+          <p>
+            MCP 是这两年被推得最广的一套协议，本质是「让 Agent 统一地接上外部工具和数据源」。
+            官方文档把它类比成 USB-C：一份实现，到处能插。自己写一个 MCP Server 是最快的理解方式。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            手写一个 MCP Server：比读规范快十倍的理解方式
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="extlinks"><span class="el">文档</span>
+            <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">MCP 官方文档 ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step rv" id="a7" data-d="3">
+        <div class="step-rail"><span class="step-dot agent">07</span></div>
+        <div class="step-card">
+          <h4>让它能被运维 <em>持续</em></h4>
+          <p>
+            这一步最容易被跳过，但它是「玩具」和「系统」的分界线：可观测（每次调用的完整链路）、
+            评估（检索和回答质量怎么量化）、成本（钱花在哪类问题上）、数据飞轮（答不上来的问题怎么变知识）。
+          </p>
+          <div class="callout co-tip">
+            <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z"/><path d="M10 20h4"/></svg>
+            <span>Anthropic 的三条原则里有一条就是：<b>优先透明，显式展示 Agent 的规划步骤</b>。可观测不只是排障手段，也是设计要求。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            从玩具到系统：Agent 上生产前必须补的四件事
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<div class="panel" id="p-algo">
+    <div class="overview rv">
+      <div class="ov-in">
+        <h3>刷题不是刷数量，是按题型建立反射</h3>
+        <p>
+          建议先把题型分类过一遍，再按分类集中攻克，而不是从第 1 题顺着做到第 100 题。
+          同一类题连做 5-8 道，才能形成「看到这类问题就知道用什么套路」的反射。
+        </p>
+        <div class="stagebars">
+          <a href="#b1" class="sb"><div class="sb-n">第 1 轮</div><div class="sb-t">数组 · 字符串 · 哈希</div><div class="sb-d">建立基本手感，别贪难</div></a>
+          <a href="#b2" class="sb"><div class="sb-n">第 2 轮</div><div class="sb-t">双指针 · 滑动窗口</div><div class="sb-d">最高频的面试题型</div></a>
+          <a href="#b3" class="sb"><div class="sb-n">第 3 轮</div><div class="sb-t">链表 · 栈 · 队列</div><div class="sb-d">考指针操作，套路固定</div></a>
+          <a href="#b4" class="sb"><div class="sb-n">第 4 轮</div><div class="sb-t">树 · DFS · BFS</div><div class="sb-d">递归思维的分水岭</div></a>
+          <a href="#b5" class="sb"><div class="sb-n">第 5 轮</div><div class="sb-t">DP · 贪心</div><div class="sb-d">放到最后，别硬啃</div></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step rv" id="b1" data-d="1">
+        <div class="step-rail"><span class="step-dot algo">01</span></div>
+        <div class="step-card">
+          <h4>先建地图，再开始走 <em>1 天</em></h4>
+          <p>
+            开始刷之前先看一眼按题型组织的路线图，知道整个版图有多大、哪些是主干。
+            这样你每做一道题都知道它属于哪一类，而不是零散地记题。
+          </p>
+          <div class="callout co-warn">
+            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>不要一开始就按题库编号刷。按题型集中攻克的效率，比顺序刷高得多。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            我是怎么规划刷题顺序的：按题型而不是按题号
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="extlinks"><span class="el">路线图</span>
+            <a href="https://neetcode.io/roadmap" target="_blank" rel="noopener">NeetCode Roadmap ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step rv" id="b2" data-d="1">
+        <div class="step-rail"><span class="step-dot algo">02</span></div>
+        <div class="step-card">
+          <h4>Hash 表：从「我会写」到「我秒懂」 <em>3 天</em></h4>
+          <p>
+            这是性价比最高的一类。核心只有一句话：<b>用空间换时间，把查找从 O(n) 降到 O(1)</b>。
+            掌握之后，两数之和、字母异位词、最长连续序列这些都变成同一个套路。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            判断标准：看到「是否存在」「有没有重复」「配对」这类字眼，你应该下意识想到 Hash。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            Hot 100 哈希专题：识别信号再用套路
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="b3" data-d="2">
+        <div class="step-rail"><span class="step-dot algo">03</span></div>
+        <div class="step-card">
+          <h4>双指针与滑动窗口 <em>1 周</em></h4>
+          <p>
+            面试出现频率最高的一类。两种形态要分清：<b>双指针</b>解决「有序数组里找配对」，
+            <b>滑动窗口</b>解决「连续子串/子数组满足某条件」。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            滑动窗口题型的统一思路
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="b4" data-d="2">
+        <div class="step-rail"><span class="step-dot algo">04</span></div>
+        <div class="step-card">
+          <h4>链表：考的是指针操作 <em>3 天</em></h4>
+          <p>
+            套路非常固定：<b>哑结点（dummy）简化边界</b>、<b>快慢指针找中点/判环</b>、<b>反转用三指针</b>。
+            把这几招练熟，链表题基本不会挂。
+          </p>
+          <div class="callout co-tip">
+            <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z"/><path d="M10 20h4"/></svg>
+            <span>做链表题一定要画图。在纸上画出指针的移动过程，比在脑子里想快十倍，而且不容易错。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            链表题的指针套路整理
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="b5" data-d="3">
+        <div class="step-rail"><span class="step-dot algo">05</span></div>
+        <div class="step-card">
+          <h4>树与图：递归思维的分水岭 <em>1-2 周</em></h4>
+          <p>
+            树题看起来多，其实都是同一个模板：<b>「这个问题，我的左右子树分别是什么答案？」</b>
+            把递归的「定义」想清楚，代码自然就出来了。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            BFS 用队列、DFS 用递归或栈 —— 这两句话能覆盖绝大多数图的遍历题。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            二叉树遍历：把递归的「定义」想清楚
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="b6" data-d="3">
+        <div class="step-rail"><span class="step-dot algo">06</span></div>
+        <div class="step-card">
+          <h4>动态规划：最后再碰 <em>2-3 周</em></h4>
+          <p>
+            DP 是最容易劝退的一类，<b>建议放到最后</b>。前面的基础没打牢时硬啃 DP，只会打击信心。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            入门后有固定思考顺序：① 定义状态 ② 找转移方程 ③ 确定初始条件 ④ 考虑空间优化。
+            关键是第 ① 步 —— <b>把状态定义说清楚，题就解了一半</b>。
+          </p>
+          <div class="callout co-warn">
+            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>如果一道题卡了 30 分钟还没思路，直接看题解。刷题的目的是学会套路，不是证明自己聪明。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            动态规划入门：先学会定义状态
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="panel" id="p-backend">
+    <div class="overview rv">
+      <div class="ov-in">
+        <h3>先把会用变成懂原理，再谈分布式</h3>
+        <p>
+          后端的路线我建议这样走：<b>语言基础 → MySQL → 框架 → Redis → 分布式与中间件 → 最后回到 JVM 底层</b>。
+          把 JVM 放最后不是因为不重要，而是因为它解释的是「前面这些为什么会有性能问题」——
+          没有前面的实践，硬啃内存模型和 GC 只会变成背结论。
+        </p>
+        <div class="stagebars">
+          <a href="#c1" class="sb"><div class="sb-n">STEP 01</div><div class="sb-t">语言基础</div><div class="sb-d">Java 语法、集合、面向对象</div></a>
+          <a href="#c2" class="sb"><div class="sb-n">STEP 02</div><div class="sb-t">MySQL</div><div class="sb-d">SQL、索引、事务</div></a>
+          <a href="#c3" class="sb"><div class="sb-n">STEP 03</div><div class="sb-t">框架</div><div class="sb-d">Spring / SpringBoot / MyBatis</div></a>
+          <a href="#c4" class="sb"><div class="sb-n">STEP 04</div><div class="sb-t">Redis</div><div class="sb-d">数据结构、缓存、并发</div></a>
+          <a href="#c5" class="sb"><div class="sb-n">STEP 05</div><div class="sb-t">分布式与中间件</div><div class="sb-d">MQ、分布式锁、微服务</div></a>
+          <a href="#c6" class="sb"><div class="sb-n">STEP 06</div><div class="sb-t">JVM 与深度</div><div class="sb-d">内存结构、GC、并发原理</div></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step rv" id="c1" data-d="1">
+        <div class="step-rail"><span class="step-dot back">01</span></div>
+        <div class="step-card">
+          <h4>语言基础：从「会用」到「知道它怎么实现」 <em>1-2 周</em></h4>
+          <p>
+            先打牢 Java 语法、面向对象、异常处理这些基本功，然后重点啃 <b>集合框架</b>。
+            面试最爱问的也是这里 —— 但别背「HashMap 默认容量是 16」这种结论，要能讲清<b>为什么</b>。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            为什么用数组 + 链表 + 红黑树？为什么扩容是 2 倍？为什么负载因子是 0.75？
+            这几个问题背后是同一件事：<b>在时间、空间和哈希冲突之间找平衡</b>。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            HashMap 的每个设计决策，背后的权衡是什么
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="c2" data-d="1">
+        <div class="step-rail"><span class="step-dot back">02</span></div>
+        <div class="step-card">
+          <h4>MySQL：先会写，再懂它为什么慢 <em>1-2 周</em></h4>
+          <p>
+            从能写 SQL、能设计表开始，然后吃透<b>索引</b>。核心是两个问题：
+            <b>B+ 树为什么适合做索引</b>（矮胖、范围查询友好、磁盘 IO 次数少），以及<b>什么情况下索引会失效</b>。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            事务部分要能讲清四种隔离级别分别解决了什么问题，以及 MVCC 是怎么让「读不加锁」成为可能的。
+          </p>
+          <div class="callout co-tip">
+            <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z"/><path d="M10 20h4"/></svg>
+            <span>检验标准：给你一条慢 SQL，你能用 <code>EXPLAIN</code> 看出它为什么没走索引。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            从一条慢 SQL 说起：索引为什么失效
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="c3" data-d="2">
+        <div class="step-rail"><span class="step-dot back">03</span></div>
+        <div class="step-card">
+          <h4>框架：先会用，再理解它替你做了什么 <em>1-2 周</em></h4>
+          <p>
+            从 SpringBoot 起步最容易上手 —— 但不要停在「能跑起来」。
+            <b>依赖注入、AOP、自动配置</b>这三块是 Spring 的骨架，理解了它们，你才知道为什么加个注解就能生效。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            建议顺序：先能写出一个完整的分层 CRUD，再回头读 SpringBoot 的自动配置原理。
+            有了实践再看原理，理解会快很多。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            Spring 的依赖注入到底解决了什么问题
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="c4" data-d="2">
+        <div class="step-rail"><span class="step-dot back">04</span></div>
+        <div class="step-card">
+          <h4>Redis：重点不在会用，在知道会怎么坏 <em>1 周</em></h4>
+          <p>
+            先学会五种基础数据结构各自的适用场景，然后重点理解<b>缓存会怎么出问题</b>：
+            穿透、击穿、雪崩分别是什么、怎么防，以及缓存和数据库的一致性该怎么做。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            这几个问题最好的练法，是自己写一个秒杀功能 —— 库存扣减、一人一单、防超卖，
+            这些需求会逼着你把 Redis 的原子操作真正搞明白。
+          </p>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            缓存穿透、击穿、雪崩：三种病，三种药
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <div class="extlinks"><span class="el">实践</span>
+            <span style="font-size:10.5px;color:var(--ink4)">可对照「城觅」项目的秒杀链路</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step rv" id="c5" data-d="3">
+        <div class="step-rail"><span class="step-dot back">05</span></div>
+        <div class="step-card">
+          <h4>分布式与中间件：多个进程怎么协作 <em>2-3 周</em></h4>
+          <p>
+            到这里要处理的问题变成「<b>多个进程之间怎么协作</b>」：
+            <b>消息队列</b>解决削峰和异步解耦，<b>分布式锁</b>解决跨进程的互斥，
+            再往上就是<b>微服务</b>的拆分、网关与链路追踪。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            这一层最关键的概念是<b>幂等</b>：消息可能重复投递，所以你的消费逻辑必须能被执行多次而不出错。
+            这是从「会用」到「能上生产」的分界线。
+          </p>
+          <div class="callout co-warn">
+            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            <span>最忌讳只背概念。建议找一条真实链路（下单 → 扣库存 → 发消息 → 通知）完整走通一遍，比看十篇文章都管用。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">待写</span>
+            为什么消息队列一定要考虑幂等
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="step rv" id="c6" data-d="3">
+        <div class="step-rail"><span class="step-dot back">06</span></div>
+        <div class="step-card">
+          <h4>JVM 与深度原理：回头解释前面的一切 <em>2-3 周</em></h4>
+          <p>
+            放到最后不是因为它不重要，而是因为它是<b>对前面所有内容的统一解释</b>。
+            有了秒杀、缓存、微服务的实践之后再来学 JVM，你会不断产生「原来当初那个问题是这个原因」的感觉。
+          </p>
+          <p style="color:var(--ink3);font-size:12.8px">
+            重点不是记住分代的名字，而是理解<b>「为什么这样分」</b>：大多数对象朝生夕死，所以新生代用复制算法；
+            老年代存活率高，所以用标记整理。
+          </p>
+          <div class="callout co-tip">
+            <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z"/><path d="M10 20h4"/></svg>
+            <span>能讲清「一次 Young GC 的完整过程」和「什么情况下对象会晋升到老年代」，这一块就算过关。</span>
+          </div>
+          <a href="#" class="step-link">
+            <span class="st">已有</span>
+            JVM 内存结构详解 / 垃圾回收算法详解
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#" class="step-link">
+            <span class="st">已有</span>
+            线程池详解：七个参数、拒绝策略与状态流转
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- 右栏：本页导航 + 每步速览 -->
+  <aside class="toc2">
+    <h5>当前路线</h5>
+    <ol id="tocList">
+      <li><a href="#a1" class="on">先读概念，别急着写代码</a></li>
+      <li><a href="#a2">把一次对话调通</a></li>
+      <li><a href="#a3">让模型会调工具</a></li>
+      <li><a href="#a4">给模型接上知识</a></li>
+      <li><a href="#a5">用图编排焊死流程</a></li>
+      <li><a href="#a6">接外部工具生态</a></li>
+      <li><a href="#a7">让它能被运维</a></li>
+    </ol>
+
+    <div class="rel">
+      <h5 style="margin-bottom:10px">文章进度</h5>
+      <div class="kpi"><b>4</b><i>已写完</i></div>
+      <div class="kpi"><b>16</b><i>规划中</i></div>
+    </div>
+
+    <div class="rel">
+      <h5 style="margin-bottom:10px">相关文章</h5>
+      <a href="article-mockup.html"><b>为什么 RAG 要做混合检索</b><i>Agent · 检索</i></a>
+      <a href="#"><b>工具调用的三个工程问题</b><i>Agent · 工具</i></a>
+      <a href="#"><b>多轮对话的上下文管理</b><i>Agent · 上下文</i></a>
+    </div>
+  </aside>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <span class="fl"><img src="assets/avatar.jpg" alt="">© 2026 kaii</span>
+      <div class="fll"><a href="#">GitHub</a><a href="mailto:2157497451@qq.com">邮箱</a><a href="#">RSS</a></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},
+  {threshold:.06,rootMargin:'0px 0px -50px 0px'});
+document.querySelectorAll('.rv').forEach(e=>io.observe(e));
+
+const TABTOC={
+  agent:[['#a1','先读概念，别急着写代码'],['#a2','把一次对话调通'],['#a3','让模型会调工具'],
+         ['#a4','给模型接上知识'],['#a5','用图编排焊死流程'],['#a6','接外部工具生态'],['#a7','让它能被运维']],
+  algo:[['#b1','先建地图，再开始走'],['#b2','Hash 表'],['#b3','双指针与滑动窗口'],
+        ['#b4','链表：指针操作'],['#b5','树与图'],['#b6','动态规划']],
+  backend:[['#c1','语言基础'],['#c2','MySQL：索引与事务'],['#c3','框架：Spring'],
+           ['#c4','Redis：缓存与并发'],['#c5','分布式与中间件'],['#c6','JVM 与深度原理']]
+};
+function setToc(k){
+  document.getElementById('tocList').innerHTML =
+    TABTOC[k].map((x,i)=>`<li><a href="${x[0]}"${i===0?' class="on"':''}>${x[1]}</a></li>`).join('');
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  const p=document.getElementById('p-'+t.dataset.p);
+  p.classList.add('on');
+  p.querySelectorAll('.rv').forEach(e=>e.classList.add('in'));
+  document.querySelectorAll('.ser').forEach(s=>s.classList.toggle('on', s.dataset.goto===t.dataset.p));
+  setToc(t.dataset.p);
+  upd();
+}));
+document.querySelectorAll('.ser').forEach(s=>s.addEventListener('click',e=>{
+  e.preventDefault();
+  document.querySelector('.tab[data-p="'+s.dataset.goto+'"]')?.click();
+}));
+setToc('agent');
+
+const ring=document.getElementById('ring'), ringLb=document.getElementById('ringLb');
+const CIRC=163.4, bar=document.getElementById('prog');
+function upd(){
+  const doc=document.documentElement, total=doc.scrollHeight-innerHeight;
+  const p=total>0?Math.min(scrollY/total,1):0;
+  if(ring) ring.style.strokeDashoffset=CIRC*(1-p);
+  if(ringLb) ringLb.textContent=Math.round(p*100)+'% 已读';
+  if(bar) bar.style.width=(p*100)+'%';
+  const heads=[...document.querySelectorAll('.panel.on .step')];
+  const links=[...document.querySelectorAll('.toc2 ol a')];
+  let cur=heads[0]?.id;
+  heads.forEach(h=>{ if(h.getBoundingClientRect().top<=160) cur=h.id; });
+  links.forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+cur));
+}
+addEventListener('scroll',upd,{passive:true}); upd();
+</script>
+</body>
+</html>
