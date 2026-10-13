@@ -1,0 +1,25 @@
+---
+---
+<div class="mb-7 flex flex-col items-end gap-2.5">
+  <svg id="ring" width="60" height="60" viewBox="0 0 60 60"
+       class="block max-h-[60px] max-w-[60px] flex-none" style="transform:rotate(-90deg)">
+    <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-line)" stroke-width="4" />
+    <circle id="ring-fg" cx="30" cy="30" r="26" fill="none" stroke="var(--color-gd)"
+            stroke-width="4" stroke-linecap="round"
+            stroke-dasharray="163.4" stroke-dashoffset="163.4" />
+  </svg>
+  <span id="ring-label" class="font-mono text-[10.5px] tracking-wide text-ink4">0% 已读</span>
+</div>
+<script>
+  const CIRC = 163.4;
+  const fg = document.getElementById('ring-fg');
+  const lb = document.getElementById('ring-label');
+  const upd = () => {
+    const h = document.documentElement.scrollHeight - innerHeight;
+    const p = h > 0 ? Math.min(scrollY / h, 1) : 0;
+    if (fg) fg.style.strokeDashoffset = String(CIRC * (1 - p));
+    if (lb) lb.textContent = Math.round(p * 100) + '% 已读';
+  };
+  addEventListener('scroll', upd, { passive: true });
+  upd();
+</script>

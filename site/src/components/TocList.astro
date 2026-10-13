@@ -1,0 +1,46 @@
+---
+interface Props {
+  items: { href: string; label: string }[];
+  heading?: string;
+}
+const { items, heading = '本文目录' } = Astro.props;
+---
+<div>
+  <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">{heading}</h5>
+  <ol class="list-none counter-reset">
+    {items.map((it, i) => (
+      <li class="py-[3px]">
+        <a href={it.href}
+           data-toc
+           class:list={['flex gap-2.5 border-l-2 border-line2 py-1 pl-3 text-[12.3px] leading-relaxed text-ink3 no-underline transition',
+                        i === 0 && 'is-active font-semibold text-gd']}>
+          <span class="flex-none pt-0.5 font-mono text-[10px] font-bold text-gh">
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <span>{it.label}</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+</div>
+<style>
+  [data-toc].is-active { border-left-color: var(--color-gd); }
+  [data-toc]:hover { color: var(--color-gd); border-left-color: var(--color-gh); padding-left: .875rem; }
+</style>
+<script>
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-toc]')];
+  const targets = links
+    .map((a) => {
+      const id = a.getAttribute('href')?.slice(1);
+      return id ? document.getElementById(id) : null;
+    })
+    .filter((el): el is HTMLElement => !!el);
+
+  const hl = () => {
+    let cur = targets[0]?.id;
+    targets.forEach((t) => { if (t.getBoundingClientRect().top <= 140) cur = t.id; });
+    links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === '#' + cur));
+  };
+  addEventListener('scroll', hl, { passive: true });
+  hl();
+</script>

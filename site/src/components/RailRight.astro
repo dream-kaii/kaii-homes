@@ -1,0 +1,10 @@
+---
+interface Props { sticky?: boolean }
+const { sticky = true } = Astro.props;
+---
+<aside class:list={['toc2', sticky && 'sticky top-24 self-start pt-14']}>
+  <slot />
+</aside>
+<style>
+  @media (max-width: 1320px) { .toc2 { display: none; } }
+</style>
