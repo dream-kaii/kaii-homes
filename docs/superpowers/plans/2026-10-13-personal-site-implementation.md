@@ -47,6 +47,11 @@
     去「覆盖」Tailwind 的 `px-*` / `mx-*` —— 简写会把横向值一并清零
   - 需要微调时**用长写属性**（`padding-top` / `padding-bottom`），或直接不加 Tailwind 的对应 utility
   - 同理适用于 `border`、`background`、`font` 等简写属性
+- **CDP 点击陷阱**（Task 6 实测发现，影响所有用浏览器验证的任务）：
+  用 `scrollIntoView({block:'center'})` 后，被点击元素可能落到 `sticky` 导航条（`h-16`）**下方**，
+  原始坐标点击会打中导航链接导致页面重载。**必须先用 `elementFromPoint` 做命中测试再点。**
+- **`animation-name` 不能用作断言依据**：其计算值在 reduce 下、以及动画跑完后
+  （如 `.q-state.done .qs-dot{animation:none}`）本就是 `none`。要断言应读**作者样式表的基础声明**。
 - **无 JS 场景必须验证**：`.rv` 等由脚本驱动的可见性，其 `:root:not(.js)` 兜底**必须覆盖包装层本身**。
   只给子元素写兜底会产生「子元素 opacity:1 但父层仍藏着」的假象。
   验证方式：用 CDP 的 `Emulation.setScriptExecutionDisabled` + `CSS.getComputedStyleForNode`
