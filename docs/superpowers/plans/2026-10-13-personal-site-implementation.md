@@ -37,6 +37,9 @@
 - **响应式断点**：`1320px`（收右栏）/ `1080px`（收左栏）/ `700px`（收边距）
 - **不得编造**：文章中的版本号、API 签名、性能数字必须来自 `sources-verified.md` 中已核实的来源
 - **内部链接不得 404**：所有 `href` 指向真实存在的路由
+- **导航 `active` 取值必须与 `Nav.astro` 的 `key` 严格一致**：`'home' | 'projects' | 'writing' | 'learning' | 'about'`
+  首页 → `home`；项目列表页与项目详情页 → `projects`；文章列表页与文章详情页 → `writing`；
+  学习路线页 → `learning`；关于页 → `about`
 
 ---
 
@@ -1354,6 +1357,8 @@ const toc = [
 </ContentLayout>
 ```
 
+**列表页 `projects/index.astro` 的 `active`**：必须是 `active="projects"`（不是 `home`）。
+
 **空集合守卫**：`items.length === 0` 时抛错（对应 Review Focus 第 2 条）。
 
 **frontmatter 类型注意**（来自 Task 2 审查的 deferred minor）：`order` 必须是**裸数字**（`order: 1`），
@@ -1484,6 +1489,8 @@ const DATA = {
 **3d. 正文排版样式**：在 `global.css` 增加 `.prose-k` 规则（h2/h3/p/ul/ol/code/a/strong 的样式），从 `design-mockup/article-mockup.html` 的 `.prose` 规则迁移，并加上 `scroll-margin-top: 84px` 保证锚点跳转不被导航遮挡。
 
 - [ ] **Step 4: 写列表页 `src/pages/writing/index.astro`**
+
+**`active` 必须是 `active="writing"`**（不是 `home`）。
 
 - 左栏：分类筛选器（全部/Agent/Java/算法，带计数）+ 文章统计 + 热门标签
 - 中栏：文章卡片列表
