@@ -37,6 +37,9 @@
 - **响应式断点**：`1320px`（收右栏）/ `1080px`（收左栏）/ `700px`（收边距）
 - **不得编造**：文章中的版本号、API 签名、性能数字必须来自 `sources-verified.md` 中已核实的来源
 - **内部链接不得 404**：所有 `href` 指向真实存在的路由
+- **构建卫生**：`dist/` 不得提交（已被 `.gitignore` 排除）；每次验证后必须 `rm -rf dist` 重新构建，
+  避免增量构建残留孤儿页面。Task 15 的验收含一项：干净构建后 `dist/` 只含源文件对应的页面
+- **证据文件必须机读**：验证证据存为合法 JSON（不得混入日志行），报告正文引用的数字必须能在存档中复现
 - **导航 `active` 取值必须与 `Nav.astro` 的 `key` 严格一致**：`'home' | 'projects' | 'writing' | 'learning' | 'about'`
   首页 → `home`；项目列表页与项目详情页 → `projects`；文章列表页与文章详情页 → `writing`；
   学习路线页 → `learning`；关于页 → `about`
@@ -1928,10 +1931,23 @@ pnpm build && pnpm preview --port 4321
     { "name": "占位文章可达", "path": "/writing/tool-calling-pitfalls/", "expect": { "text": "还在写" } },
     { "name": "学习路线", "path": "/learning-path/", "expect": { "text": "学习路线" } },
     { "name": "关于", "path": "/about/", "expect": { "text": "kaii" } },
-    { "name": "404", "path": "/nonexistent-xyz/", "expect": { "text": "404" } }
+    { "name": "404", "path": "/nonexistent-xyz/", "expect": { "text": "404" } },
+    { "name": "首页导航完整", "path": "/", "expect": { "selector": "nav" } },
+    { "name": "右栏目录存在", "path": "/writing/rag-hybrid-retrieval/", "expect": { "selector": "[data-toc]" } }
   ]
 }
 ```
+
+- [ ] **Step 2b: 干净构建检查**
+
+```bash
+rm -rf dist && pnpm build
+find dist -name "index.html" | sort
+```
+
+**预期**：`dist/` 只含源文件对应的页面，无孤儿产物。当前源文件有 6 个页面
+（`index`、`about`、`learning-path`、`projects/index`、`projects/[slug]`、`writing/index`、`writing/[slug]`），
+构建后应恰好产出对应数量，且不含任何 `__probe` / 临时验证页。
 
 - [ ] **Step 3: 运行验收**
 
