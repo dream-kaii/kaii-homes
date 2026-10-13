@@ -1,0 +1,58 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { site } from '../data/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  active?: string;
+}
+const { title, description = site.role, active } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <div id="progress-bar"
+         class="fixed left-0 top-0 z-[100] h-[3px] w-0"
+         style="background:linear-gradient(90deg,var(--color-gd),var(--color-gh))"></div>
+    <Nav active={active} />
+    <slot />
+    <Footer />
+    <script>
+      // 滚动入场 + 顶部进度条（全站共用）
+      const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (!rm) {
+        const io = new IntersectionObserver((es) => {
+          es.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+          });
+        }, { threshold: .06, rootMargin: '0px 0px -50px 0px' });
+        document.querySelectorAll('.rv').forEach((el) => io.observe(el));
+      } else {
+        document.querySelectorAll('.rv').forEach((el) => el.classList.add('in'));
+      }
+
+      const bar = document.getElementById('progress-bar');
+      const upd = () => {
+        const h = document.documentElement.scrollHeight - innerHeight;
+        if (bar) bar.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + '%';
+      };
+      addEventListener('scroll', upd, { passive: true });
+      upd();
+    </script>
+  </body>
+</html>

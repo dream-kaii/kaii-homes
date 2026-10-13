@@ -1,0 +1,21 @@
+---
+import { site } from '../data/site';
+---
+<footer class="mt-14 border-t border-line2 pb-12 pt-8">
+  <div class="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-6 px-10">
+    <span class="flex items-center gap-2.5 font-mono text-[12.5px] text-ink3">
+      <img src="/avatar.jpg" alt="" width="21" height="21"
+           class="rounded-full border-[1.5px] border-white object-cover"
+           style="box-shadow:0 0 0 1px var(--color-gh)" />
+      © 2026 {site.name}
+    </span>
+    <div class="flex gap-6">
+      <a href={site.github} rel="noopener" target="_blank"
+         class="text-[13px] text-ink2 no-underline transition hover:text-gd">GitHub</a>
+      <a href={`mailto:${site.email}`}
+         class="text-[13px] text-ink2 no-underline transition hover:text-gd">邮箱</a>
+      <a href="/rss.xml"
+         class="text-[13px] text-ink2 no-underline transition hover:text-gd">RSS</a>
+    </div>
+  </div>
+</footer>

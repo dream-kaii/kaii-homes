@@ -1,7 +1,8 @@
 ---
-import '../styles/global.css';
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
-<html lang="zh-CN">
-  <head><meta charset="utf-8"><title>kaii</title></head>
-  <body><h1>kaii</h1></body>
-</html>
+<BaseLayout title="kaii — Agent 应用开发" active="home">
+  <main class="mx-auto max-w-[1440px] px-10 py-20">
+    <h1 class="text-4xl font-extrabold">首页</h1>
+  </main>
+</BaseLayout>
