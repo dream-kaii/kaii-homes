@@ -278,6 +278,20 @@ cp ../design-mockup/assets/avatar.jpg public/
 cp ../design-mockup/assets/hero-bg.jpg public/
 ```
 
+**同时创建 `public/favicon.svg`**（本任务负责，`<link rel="icon" href="/favicon.svg">` 引用的就是这个文件）：
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#3E6B3F"/>
+  <path d="M16 6.5l8 4.5v9L16 24.5 8 20v-9l8-4.5z" fill="none" stroke="#B5CA4D"
+        stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="16" cy="15.5" r="2.6" fill="#B5CA4D"/>
+</svg>
+```
+
+图形是首页技术名片里的 Agent 六边形图标，配色取自设计令牌（`--color-gd` 底 + `--color-gh` 描边）。
+用 SVG 而非 ICO：单文件适配所有尺寸，体积仅 307 字节。
+
 - [ ] **Step 8: Commit**
 
 ```bash
