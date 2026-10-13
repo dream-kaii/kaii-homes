@@ -19,6 +19,11 @@
   --color-violet: #8B6FB8;
 
   --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, monospace;
+  /* 覆盖 Tailwind 默认的 --font-sans：本站为中文站，必须带中文回退，
+     否则 font-sans utility 和 var(--font-sans) 在 Windows 上会落到 Arial。
+     body 也复用这个变量，全站字体栈只有这一处定义。 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 
   --radius-sm: 8px;
   --radius-card: 14px;
@@ -30,8 +35,7 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--color-paper);
   color: var(--color-ink);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
-               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
