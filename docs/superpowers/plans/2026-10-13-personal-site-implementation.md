@@ -1254,11 +1254,38 @@ git commit -m "feat: 首页项目卡、文章列表与联系区"
 
 - [ ] **Step 1: 写组件**
 
-结构：横向可滚动轨道 + 10 个节点按钮 + 下方详情面板（两栏：`要做成什么样` / `容易踩在哪儿`）。
+**设计稿是你的视觉真相来源。精确行号如下**（文件 `design-mockup/index-v9.html`）：
 
-数据从 `evolution` 数组渲染。点击/悬停节点切换面板内容，并填充进度线。
+| 内容 | 行号 |
+|---|---|
+| 时间轴 CSS（`.tlwrap` / `.tlscroll` / `.tl` / `.tlfill` / `.nd` / `.nd-dot` / `.nd-lb` / `.nd-t`） | **370–392** |
+| 详情面板 CSS（`.tlpanel` / `.tph` / `.tpst` / `.tpd` / `.tpg` / `.tpcol`） | **393–414** |
+| 时间轴 HTML（`<div class="tlwrap">` 整段，含 `#tl` 轨道与 10 个 `.nd` 节点） | **约 915–940** |
+| 详情面板 HTML（`#tp` 容器） | **936** |
+| 渲染函数 `renderT(i)` | **1286–1300** |
 
-**键盘可达**：节点用 `<button>`，支持 `Tab` 聚焦 + `Enter` 切换。
+**结构**：横向可滚动轨道 + 10 个节点按钮 + 下方详情面板。
+
+**HTML 已由数据驱动**：`src/data/evolution.ts` 已导出 10 条
+（`{ n, title, en, desc, items, pitfalls }`，来自 Task 2，已逐字核对与设计稿一致）。
+节点用 `{evolution.map(...)}` 渲染，**不要硬编码 10 个节点**。
+
+**详情面板两栏**（从设计稿 `.tpg` 搬运）：
+- 左栏标题「要做成什么样」→ 渲染 `items`
+- 右栏标题「容易踩在哪儿」→ 渲染 `pitfalls`
+
+**切换逻辑**：点击节点 → 更新面板内容 + 给该节点加 `act` 类 + 填充进度线宽度。
+参考设计稿 `renderT` 的实现：
+```js
+const w = nds[i].offsetLeft + nds[i].offsetWidth / 2;
+document.getElementById('tlFill').style.width = w + 'px';
+```
+
+**键盘可达（硬要求）**：节点用 `<button>`（设计稿 `#tl` 里的节点已经是 `<button class="nd">`），
+支持 `Tab` 聚焦 + `Enter`/`Space` 切换。**不要用 `<div onclick>`**。
+
+**`prefers-reduced-motion` 处理**：进度线填充的 `transition` 在 rm 下应瞬时完成
+（全局兜底已压 `transition-duration`，只需确认组件没有绕过它）。
 
 - [ ] **Step 2: 验证**
 
