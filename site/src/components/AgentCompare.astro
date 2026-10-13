@@ -261,7 +261,11 @@
     height: 6px;
     border-radius: 50%;
     background: #4e9146;
-    animation: ripple 1.6s infinite;
+    /* 专属名，不复用 Hero 的 ripple：keyframes 是文档级按名解析的。
+       两个组件各写一份同名 ripple，打包去重后只剩一条 —— 但这是「此刻恰好
+       函数体一致」，属静默的跨组件耦合。日后任一组件改动形体，产物会同时留下
+       两条同名规则，浏览器按后出现的那条生效，会一并改掉另一个组件的圆点。 */
+    animation: qs-ripple 1.6s infinite;
     flex: none;
   }
   .q-state.done {
@@ -282,7 +286,7 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  @keyframes ripple {
+  @keyframes qs-ripple {
     0% { box-shadow: 0 0 0 0 rgba(62, 107, 63, 0.55); }
     70% { box-shadow: 0 0 0 9px rgba(62, 107, 63, 0); }
     100% { box-shadow: 0 0 0 0 rgba(62, 107, 63, 0); }
@@ -903,6 +907,22 @@
       timers.push(setTimeout(fn, ms));
     };
 
+    /**
+     * 直接呈现终态：不经过任何分步调度，一次性把全部受控元素置为完成态。
+     * 兼作 reduce 的初始化路径与 reduce 下「重播」的路径。
+     */
+    function showFinalState() {
+      timers.forEach((t) => clearTimeout(t));
+      timers = [];
+      pfs.forEach((e) => e.classList.add('on'));
+      tks.forEach((e) => e.classList.add('show', 'ready'));
+      syss.forEach((e) => e.classList.add('show'));
+      plainAns?.classList.add('show');
+      agentAns?.classList.add('show');
+      qState?.classList.add('done');
+      if (qStateText) qStateText.textContent = '完成';
+    }
+
     function play() {
       clearAll();
       if (qState) qState.classList.remove('done');
@@ -946,18 +966,15 @@
 
     replay?.addEventListener('click', () => {
       played = true;
-      play();
+      // reduce 下绝不能走 play()：`@media(prefers-reduced-motion:reduce)` 只关掉
+      // transition / animation，管不住这里 class 驱动的分步揭示。play() 首行 clearAll()
+      // 会把 14 个受控元素全打回隐身态，再按 420…7850ms 重放 —— 期间内容不可见约 8 秒，
+      // 比「无 JS」路径（全终态可见）还差。这里直接置终态：按钮保留，点击即回到完成态。
+      if (rm) showFinalState();
+      else play();
     });
 
-    if (rm) {
-      // 硬要求：reduce 下直接显示终态，任何元素都不得停在初始隐身态
-      pfs.forEach((e) => e.classList.add('on'));
-      tks.forEach((e) => e.classList.add('show', 'ready'));
-      syss.forEach((e) => e.classList.add('show'));
-      plainAns?.classList.add('show');
-      agentAns?.classList.add('show');
-      qState?.classList.add('done');
-      if (qStateText) qStateText.textContent = '完成';
-    }
+    // 硬要求：reduce 下直接显示终态，任何元素都不得停在初始隐身态
+    if (rm) showFinalState();
   }
 </script>
