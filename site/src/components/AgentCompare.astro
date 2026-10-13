@@ -1,0 +1,963 @@
+---
+// AgentCompare —— 首页「Agent 和普通 AI 问答，差在哪」同步演示
+// 结构与样式搬运自 design-mockup/index-v9.html L712–800（HTML）/ L152–330（CSS）；
+// 动画时序搬运自 L1166–1230，时间参数一律不变。
+// 自包含、无 props；零运行时框架依赖（只用原生 <script>）。
+---
+
+<section id="how" class="how-sec mx-auto max-w-[1180px] px-8">
+  <div class="sec-h rv" style="text-align:center;max-width:760px;margin:0 auto 40px">
+    <span class="kick" style="justify-content:center">HOW IT WORKS</span>
+    <h2>Agent 和普通 AI 问答，差在哪</h2>
+    <p style="margin:0 auto">
+      如果只记一句话：普通 AI 只是「回答你」，Agent 会「替你把事办了」。<br />
+      下面用同一个问题，把两种走法并排演一遍。
+    </p>
+  </div>
+
+  <!-- 问题（共用） -->
+  <div class="qbar rv" data-d="1">
+    <span class="q-av">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></svg>
+    </span>
+    <span class="q-txt">我的快递到哪了？</span>
+    <span class="q-state" id="qState"><span class="qs-dot"></span><span id="qStateText">播放中</span></span>
+    <button class="q-replay" id="replay" type="button">
+      <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2 5.3" /><path d="M20 4v7h-7" /></svg>
+      重播
+    </button>
+  </div>
+
+  <div class="sync rv" data-d="2">
+    <!-- ===== 左：普通 AI ===== -->
+    <div class="sync-col sync-plain">
+      <div class="sync-hd">
+        <span class="sync-tag bad">普通 AI 问答</span>
+        <span class="sync-sub">一步到底 · 说不了就是不知道</span>
+      </div>
+      <div class="sync-bd">
+        <div class="plain-flow">
+          <div class="pf" id="p1">
+            <span class="pf-dot"></span>
+            <span class="pf-t">拿到问题</span>
+          </div>
+          <div class="pf" id="p2">
+            <span class="pf-dot"></span>
+            <span class="pf-t">直接从记忆里编答案</span>
+          </div>
+        </div>
+        <div class="bub bub-dumb" id="plainAns">
+          抱歉，我无法查询你的快递信息，<br />建议你联系快递公司客服。
+        </div>
+        <div class="sync-note bad">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M15 9l-6 6M9 9l6 6" /></svg>
+          够不到真实数据，只能说「做不到」
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 右：Agent（左侧思考 / 右侧系统环节，同步） ===== -->
+    <div class="sync-col sync-agent">
+      <div class="sync-hd">
+        <span class="sync-tag good">Agent</span>
+        <span class="sync-sub">边走边想 · 会自己动手查</span>
+      </div>
+
+      <div class="sync-bd sync-split">
+        <!-- 思考链 -->
+        <div class="think-col">
+          <div class="col-lb">模型在想什么</div>
+          <div class="tk" data-k="0"><i></i><span>这是要查物流，光靠我不行</span></div>
+          <div class="tk" data-k="1"><i></i><span>得先知道是哪个订单</span></div>
+          <div class="tk" data-k="2"><i></i><span>去调物流查询工具</span></div>
+          <div class="tk" data-k="3"><i></i><span>拿到了：已到武汉转运中心</span></div>
+          <div class="tk" data-k="4"><i></i><span>可以回答了</span></div>
+        </div>
+
+        <!-- 系统环节 -->
+        <div class="sys-col">
+          <div class="col-lb">系统在做什么</div>
+          <div class="sys" data-k="0">
+            <span class="sys-n">01</span>
+            <div><b>接住请求</b><i>SSE 流式通道建立，多轮上下文续接</i></div>
+          </div>
+          <div class="sys" data-k="1">
+            <span class="sys-n">02</span>
+            <div><b>理解意图</b><i>判断这是「物流查询」，抽出关键信息</i></div>
+          </div>
+          <div class="sys" data-k="2">
+            <span class="sys-n">03</span>
+            <div><b>决策调用</b><i>Function Calling 选定物流查询工具</i></div>
+          </div>
+          <div class="sys" data-k="3">
+            <span class="sys-n">04</span>
+            <div><b>执行工具</b><i>统一引擎管超时、重试与权限</i></div>
+          </div>
+          <div class="sys" data-k="4">
+            <span class="sys-n">05</span>
+            <div><b>生成留痕</b><i>带引用作答，全过程落 trace</i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="agent-ans" id="agentAns">
+        <span class="aa-av">
+          <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" /><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" /></svg>
+        </span>
+        <span class="aa-txt">你的快递已到达武汉转运中心，<br />预计明天下午送达。</span>
+        <span class="aa-ok">
+          <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" /></svg>
+        </span>
+      </div>
+
+      <div class="sync-note good">
+        <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" /></svg>
+        自己决定去查、真的查到了，再回答你
+      </div>
+    </div>
+  </div>
+
+  <p class="cmp-tail rv" data-d="3">
+    差别不在「模型更聪明」，而在外面这套工程：检索、工具、编排、上下文、留痕。<br />
+    下面这些环节，就是我理解的、一个能真正跑起来的 Agent 应用要补上的东西。
+  </p>
+</section>
+
+<style>
+  /* ============================================================
+     同步演示 —— 普通 AI 与 Agent 并排演出
+     搬运自 design-mockup/index-v9.html L152–330。
+     令牌映射：--rL → var(--radius-lg)；--sh → 0 1px 3px rgba(42,77,46,.05)；
+     --mono → var(--font-mono)；其余色值均为设计稿 :root 的精确值。
+     ============================================================ */
+
+  /* 只写纵向 padding：横向留给模板上的 Tailwind `px-8`（对应设计稿 .wrap 的 padding:0 32px）。
+     若用 `padding:70px 0 86px` 简写会把横向清零，且本组样式不在 @layer 内、优先级高于
+     Tailwind 的 utilities，会连带把 px-8 一起抹掉 → 内容宽度 1180px、左边界 130px，
+     与设计稿 .wrap 的 1116px / 162px 不符。 */
+  .how-sec {
+    padding-top: 70px; /* 设计稿 section{padding:86px 0} + 区块内联 padding-top:70px */
+    padding-bottom: 86px;
+  }
+  @media (max-width: 700px) {
+    .how-sec {
+      padding-top: 70px;
+      padding-bottom: 62px; /* 设计稿 @media(max-width:700px) section{padding:62px 0} */
+      padding-left: 18px; /* 设计稿 .wrap{padding:0 18px}（需压过 px-8 的 32px） */
+      padding-right: 18px;
+    }
+  }
+
+  /* ---------- 区块通用（设计稿 L303–310） ---------- */
+  .kick {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-gm);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+  .kick::before {
+    content: '';
+    width: 22px;
+    height: 2px;
+    background: var(--color-gh);
+    border-radius: 2px;
+  }
+  .sec-h {
+    margin-bottom: 46px;
+  }
+  .sec-h h2 {
+    font-size: clamp(25px, 3.3vw, 32px);
+    font-weight: 750;
+    letter-spacing: -0.028em;
+    margin-bottom: 11px;
+    line-height: 1.25;
+  }
+  .sec-h p {
+    color: var(--color-ink2);
+    font-size: 14.5px;
+    max-width: 660px;
+    line-height: 1.78;
+  }
+
+  /* ---------- 问题条 ---------- */
+  .qbar {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 100px;
+    padding: 11px 13px 11px 15px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    max-width: 560px;
+    margin: 0 auto 26px;
+  }
+  .q-av {
+    width: 29px;
+    height: 29px;
+    border-radius: 50%;
+    background: var(--color-paper2);
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--color-line);
+  }
+  .q-av svg {
+    width: 15px;
+    height: 15px;
+    stroke: var(--color-gm);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .q-txt {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-ink);
+    flex: 1;
+  }
+  .q-replay {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-gk);
+    color: #fff;
+    border: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    flex: none;
+    transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.24s;
+  }
+  .q-replay:hover {
+    background: #1e3a22;
+    transform: translateY(-1px);
+  }
+  .q-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--color-gm);
+    background: #eaf2ce;
+    border: 1px solid #d6e2b0;
+    padding: 5px 11px;
+    border-radius: 100px;
+    flex: none;
+  }
+  .qs-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4e9146;
+    animation: ripple 1.6s infinite;
+    flex: none;
+  }
+  .q-state.done {
+    color: var(--color-ink3);
+    background: var(--color-paper2);
+    border-color: var(--color-line);
+  }
+  .q-state.done .qs-dot {
+    background: var(--color-ink4);
+    animation: none;
+  }
+  .q-replay svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  @keyframes ripple {
+    0% { box-shadow: 0 0 0 0 rgba(62, 107, 63, 0.55); }
+    70% { box-shadow: 0 0 0 9px rgba(62, 107, 63, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(62, 107, 63, 0); }
+  }
+
+  /* ---------- 左右两栏 ---------- */
+  .sync {
+    display: grid;
+    grid-template-columns: 0.84fr 1.16fr;
+    gap: 34px;
+    align-items: stretch;
+  }
+  .sync-col {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    display: flex;
+    flex-direction: column;
+  }
+  .sync-plain {
+    background: #f7f6ee;
+  }
+  .sync-agent {
+    border-color: #c9d9a8;
+    box-shadow: 0 16px 44px -14px rgba(62, 107, 63, 0.2);
+    padding-bottom: 16px;
+  }
+  .sync-hd {
+    padding: 15px 20px 13px;
+    border-bottom: 1px solid var(--color-line2);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .sync-plain .sync-hd {
+    background: rgba(226, 225, 210, 0.42);
+  }
+  .sync-agent .sync-hd {
+    background: linear-gradient(90deg, #eaf2ce, #f3f8e2);
+  }
+  .sync-tag {
+    font-size: 13.5px;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+  }
+  .sync-tag.bad {
+    color: var(--color-ink3);
+  }
+  .sync-tag.good {
+    color: var(--color-gd);
+  }
+  .sync-sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-ink4);
+  }
+  .sync-bd {
+    padding: 18px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    flex: 1;
+  }
+
+  /* ---------- 左：普通 AI ---------- */
+  .plain-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 4px;
+  }
+  .pf {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    opacity: 0.42;
+    transition: opacity 0.45s, transform 0.45s;
+    transform: translateX(-6px);
+  }
+  .pf.on {
+    opacity: 1;
+    transform: none;
+  }
+  .pf-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--color-ink4);
+    flex: none;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .pf.on .pf-dot {
+    background: var(--color-ink4);
+    border-color: var(--color-ink4);
+  }
+  .pf-t {
+    font-size: 12.5px;
+    color: var(--color-ink3);
+    line-height: 1.6;
+  }
+  .bub {
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 11px 15px;
+    border-radius: 14px;
+  }
+  .bub-dumb {
+    background: #efeee5;
+    color: var(--color-ink3);
+    border: 1px solid var(--color-line);
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+    max-width: 94%;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .bub-dumb.show {
+    opacity: 1;
+    transform: none;
+  }
+  .sync-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 13px;
+    font-size: 11.5px;
+    line-height: 1.62;
+    border-top: 1px dashed var(--color-line);
+  }
+  .sync-note svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    margin-top: 1px;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .sync-note.bad {
+    color: var(--color-ink3);
+  }
+  .sync-note.bad svg {
+    stroke: var(--color-ink4);
+  }
+  .sync-note.good {
+    color: var(--color-gm);
+    border-top-color: #dce6c6;
+  }
+  .sync-note.good svg {
+    stroke: var(--color-gd);
+  }
+
+  /* ---------- 右：Agent（思考链 / 系统环节） ---------- */
+  .sync-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 0;
+    align-items: stretch;
+  }
+  .sync-split .think-col {
+    padding-right: 24px;
+  }
+  .sync-split .sys-col {
+    padding-left: 24px;
+  }
+  .think-col,
+  .sys-col {
+    padding: 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+  }
+  .think-col {
+    border-right: 1px solid var(--color-line2);
+    background: rgba(234, 242, 206, 0.22);
+  }
+  .sys-col {
+    background: rgba(242, 241, 228, 0.25);
+  }
+  .col-lb {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--color-ink4);
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .think-col .tk {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 6px 0;
+    position: relative;
+    opacity: 0;
+    transform: translateX(-9px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .think-col .tk.show {
+    opacity: 1;
+    transform: none;
+  }
+  .think-col .tk i {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex: none;
+    margin-top: 2px;
+    border: 1.5px solid #e3ead0;
+    background: #fff;
+    display: grid;
+    place-items: center;
+    font-style: normal;
+    font-size: 9px;
+    color: var(--color-gd);
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+    transition: background 0.35s, border-color 0.35s, box-shadow 0.35s;
+  }
+  /* 转圈态：外圈一段弧在转 */
+  .think-col .tk.show:not(.ready) i {
+    border-color: #cde0a8;
+    border-top-color: var(--color-gd);
+    border-right-color: var(--color-gh);
+    animation: spin 0.78s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  /* 完成态：打勾 */
+  .think-col .tk.ready i {
+    background: #eaf2ce;
+    border-color: var(--color-gh);
+    box-shadow: 0 0 0 3px rgba(181, 202, 77, 0.18);
+    animation: pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .think-col .tk.ready i::after {
+    content: '✓';
+  }
+  @keyframes pop {
+    0% { transform: scale(0.72); }
+    60% { transform: scale(1.16); }
+    100% { transform: scale(1); }
+  }
+  .think-col .tk span {
+    font-size: 12px;
+    color: var(--color-ink3);
+    line-height: 1.6;
+  }
+  .think-col .tk:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 24px;
+    bottom: -4px;
+    width: 1.5px;
+    background: #e4ead2;
+  }
+  .think-col .tk.ready:not(:last-child)::before {
+    background: #c9d9a8;
+    transition: background 0.5s;
+  }
+
+  .sys {
+    display: flex;
+    gap: 10px;
+    padding: 7px 0;
+    align-items: flex-start;
+    opacity: 0;
+    transform: translateY(7px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sys.show {
+    opacity: 1;
+    transform: none;
+  }
+  .sys-n {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--color-ink4);
+    background: #fff;
+    border: 1px solid var(--color-line);
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    transition: all 0.4s;
+    margin-top: 1px;
+  }
+  .sys.show .sys-n {
+    background: var(--color-gd);
+    border-color: var(--color-gd);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(62, 107, 63, 0.24);
+    animation: pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .sys b {
+    display: block;
+    font-size: 12.3px;
+    font-weight: 650;
+    color: var(--color-ink3);
+    line-height: 1.4;
+    transition: color 0.4s;
+  }
+  .sys.show b {
+    color: var(--color-ink);
+  }
+  .sys i {
+    display: block;
+    font-style: normal;
+    font-size: 11px;
+    color: var(--color-ink4);
+    line-height: 1.55;
+    margin-top: 2px;
+  }
+
+  /* ---------- 最终回答 ---------- */
+  .agent-ans {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin: 14px 20px 0;
+    padding: 13px 16px;
+    background: var(--color-gd);
+    border-radius: 16px;
+    border-bottom-left-radius: 5px;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transition: all 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 5px 18px rgba(62, 107, 63, 0.24);
+  }
+  .agent-ans.show {
+    opacity: 1;
+    transform: none;
+  }
+  .aa-av {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    flex: none;
+    display: grid;
+    place-items: center;
+  }
+  .aa-av svg {
+    width: 14px;
+    height: 14px;
+    stroke: #fff;
+    fill: none;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .aa-txt {
+    font-size: 13px;
+    line-height: 1.65;
+    flex: 1;
+  }
+  .aa-ok {
+    flex: none;
+    margin-top: 2px;
+  }
+  .aa-ok svg {
+    width: 15px;
+    height: 15px;
+    stroke: #fff;
+    fill: none;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .sync-agent > .sync-note {
+    margin: 14px 20px 0;
+  }
+
+  .cmp-tail {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--color-ink2);
+    margin: 34px auto 0;
+    max-width: 620px;
+    line-height: 1.8;
+  }
+
+  /* ---------- 响应式：<=1000px 主分栏堆叠（设计稿 L521–527） ---------- */
+  @media (max-width: 1000px) {
+    .sync {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+
+  /* ---------- 手机端：思考与系统合并成单列，虚线分隔（设计稿 L533–566） ---------- */
+  @media (max-width: 760px) {
+    .qbar {
+      flex-wrap: wrap;
+      border-radius: 18px;
+      padding: 12px 14px;
+      gap: 10px;
+    }
+    .q-av {
+      order: 0;
+    }
+    .q-txt {
+      font-size: 13.5px;
+      flex: 1 1 100%;
+      order: 1;
+    }
+    .q-state,
+    .q-replay {
+      order: 2;
+    }
+    .q-replay {
+      margin-left: auto;
+    }
+
+    .sync {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .sync-bd {
+      padding: 14px 15px 13px;
+    }
+
+    /* 手机上取消左右分栏，改为上下单列顺序流 */
+    .sync-split {
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 0;
+    }
+    .think-col,
+    .sys-col {
+      padding: 14px 15px 10px;
+      border-right: none;
+    }
+    .think-col {
+      border-bottom: 1px dashed var(--color-line2);
+      padding-bottom: 12px;
+    }
+    .sys-col {
+      padding-top: 12px;
+    }
+    .col-lb {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    .think-col .tk {
+      padding: 5px 0;
+      gap: 8px;
+    }
+    .think-col .tk i {
+      width: 16px;
+      height: 16px;
+      font-size: 8px;
+      margin-top: 1px;
+    }
+    .think-col .tk span {
+      font-size: 12.2px;
+      line-height: 1.55;
+    }
+    .think-col .tk:not(:last-child)::before {
+      left: 7px;
+      top: 21px;
+    }
+
+    .sys {
+      padding: 6px 0;
+      gap: 9px;
+    }
+    .sys-n {
+      width: 21px;
+      height: 21px;
+      font-size: 9px;
+      border-radius: 5px;
+    }
+    .sys b {
+      font-size: 12.2px;
+      line-height: 1.4;
+    }
+    .sys i {
+      font-size: 10.8px;
+      line-height: 1.5;
+    }
+
+    .agent-ans {
+      margin: 12px 15px 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+    }
+    .aa-txt {
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+    .sync-agent > .sync-note {
+      margin: 12px 15px 0;
+      font-size: 11px;
+      padding-top: 11px;
+    }
+    .sync-note {
+      font-size: 11px;
+    }
+    .bub {
+      font-size: 12.5px;
+      padding: 10px 13px;
+    }
+    .cmp-tail {
+      font-size: 12.8px;
+      margin-top: 26px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接呈现终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .qs-dot,
+    .think-col .tk.show:not(.ready) i,
+    .think-col .tk.ready i,
+    .sys.show .sys-n {
+      animation: none;
+    }
+    .q-replay,
+    .pf,
+    .pf-dot,
+    .bub-dumb,
+    .think-col .tk,
+    .think-col .tk i,
+    .think-col .tk.ready:not(:last-child)::before,
+    .sys,
+    .sys-n,
+    .sys b,
+    .agent-ans {
+      transition: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底：脚本不可用时也必须看到完整内容，不能停在 opacity:0 ----------
+     `.rv` 的滚动入场由 BaseLayout 的脚本驱动，脚本没跑就永远停在 opacity:0，
+     会把整段演示一起藏掉，所以这里要连 .rv 一起兜底。 */
+  :root:not(.js) #how .rv,
+  :root:not(.js) #how .pf,
+  :root:not(.js) .bub-dumb,
+  :root:not(.js) .think-col .tk,
+  :root:not(.js) .sys,
+  :root:not(.js) .agent-ans {
+    opacity: 1;
+    transform: none;
+  }
+  :root:not(.js) .pf-dot {
+    background: var(--color-ink4);
+    border-color: var(--color-ink4);
+  }
+  :root:not(.js) .think-col .tk i {
+    background: #eaf2ce;
+    border-color: var(--color-gh);
+    box-shadow: 0 0 0 3px rgba(181, 202, 77, 0.18);
+    animation: none;
+  }
+  :root:not(.js) .think-col .tk i::after {
+    content: '✓';
+  }
+  :root:not(.js) .think-col .tk:not(:last-child)::before {
+    background: #c9d9a8;
+  }
+  :root:not(.js) .sys-n {
+    background: var(--color-gd);
+    border-color: var(--color-gd);
+    color: #fff;
+  }
+  :root:not(.js) .sys b {
+    color: var(--color-ink);
+  }
+</style>
+
+<script>
+  // 作用域限定在本区块内，页面其它位置的同类名元素不会被牵连。
+  const root = document.getElementById('how');
+
+  if (root) {
+    const pfs = Array.from(root.querySelectorAll<HTMLElement>('.pf'));
+    const plainAns = root.querySelector<HTMLElement>('#plainAns');
+    const tks = Array.from(root.querySelectorAll<HTMLElement>('.think-col .tk'));
+    const syss = Array.from(root.querySelectorAll<HTMLElement>('.sys'));
+    const agentAns = root.querySelector<HTMLElement>('#agentAns');
+    const qState = root.querySelector<HTMLElement>('#qState');
+    const qStateText = root.querySelector<HTMLElement>('#qStateText');
+    const replay = root.querySelector<HTMLElement>('#replay');
+
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    let played = false;
+
+    const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function clearAll() {
+      timers.forEach((t) => clearTimeout(t));
+      timers = [];
+      pfs.forEach((e) => e.classList.remove('on'));
+      tks.forEach((e) => e.classList.remove('show', 'ready'));
+      syss.forEach((e) => e.classList.remove('show'));
+      plainAns?.classList.remove('show');
+      agentAns?.classList.remove('show');
+    }
+
+    const at = (ms: number, fn: () => void) => {
+      timers.push(setTimeout(fn, ms));
+    };
+
+    function play() {
+      clearAll();
+      if (qState) qState.classList.remove('done');
+      if (qStateText) qStateText.textContent = '播放中';
+
+      // 左：普通 AI —— 2 步走完
+      at(420, () => pfs[0]?.classList.add('on'));
+      at(1050, () => pfs[1]?.classList.add('on'));
+      at(1700, () => plainAns?.classList.add('show'));
+
+      // 右：Agent —— 5 步思考，每步转圈 620ms 后打勾，系统环节同步亮起
+      for (let i = 0; i < 5; i++) {
+        const T = 2300 + i * 1050;
+        at(T, () => tks[i]?.classList.add('show'));
+        at(T + 620, () => {
+          tks[i]?.classList.add('ready');
+          syss[i]?.classList.add('show');
+        });
+      }
+      at(2300 + 5 * 1050 + 300, () => {
+        agentAns?.classList.add('show');
+        if (qState) qState.classList.add('done');
+        if (qStateText) qStateText.textContent = '完成';
+      });
+    }
+
+    const ioS = new IntersectionObserver(
+      (es) => {
+        es.forEach((e) => {
+          if (e.isIntersecting && !played && !rm) {
+            played = true;
+            setTimeout(play, 340);
+            ioS.disconnect();
+          }
+        });
+      },
+      { threshold: 0.22 },
+    );
+    const box = root.querySelector<HTMLElement>('.sync');
+    if (box) ioS.observe(box);
+
+    replay?.addEventListener('click', () => {
+      played = true;
+      play();
+    });
+
+    if (rm) {
+      // 硬要求：reduce 下直接显示终态，任何元素都不得停在初始隐身态
+      pfs.forEach((e) => e.classList.add('on'));
+      tks.forEach((e) => e.classList.add('show', 'ready'));
+      syss.forEach((e) => e.classList.add('show'));
+      plainAns?.classList.add('show');
+      agentAns?.classList.add('show');
+      qState?.classList.add('done');
+      if (qStateText) qStateText.textContent = '完成';
+    }
+  }
+</script>
