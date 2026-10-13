@@ -1039,6 +1039,22 @@ git commit -m "feat: 首页 Agent 对比演示动画"
 - 中间「请求在系统里走一遍」：8 个编号步骤（sticky）
 - 右栏「输出侧 · 怎么答对」：混合检索 / 重排精筛 / 拒答与引用 / 数据飞轮
 
+**⚠️ `.term` 悬停提示样式必须处理**（来自 Task 5/6 修复复审的下行发现）：
+
+设计稿的 `CapabilityGrid` 区块（LANDSCAPE）有 **5 处** `.term`：
+`index-v9.html:867`（RAG）、`885`（向量）、`890`（重排模型）、`895`（如实拒答）、`900`（数据飞轮）。
+
+Task 5 已把 `.term` 的规则写进了 `Hero.astro`，但 **Astro 的 `<style>` 默认作用域隔离** ——
+产物中是 `.term[data-astro-cid-bbe6dxrz]`，Task 7 的组件 hash 不同，**拿不到这些样式**。
+
+**要求**：把 `.term` 的 4 条规则（`.term` / `.term::after` / `.term::before` / `:hover` 两条）
+**从 `Hero.astro` 移到 `src/styles/global.css` 作为全局样式**，并删除 Hero 里的重复声明。
+理由：`.term` 已有两个消费者（Hero + CapabilityGrid），未来可能更多 ——
+放在全局可避免第三次重复，也符合「同一套视觉语言只定义一次」的原则。
+
+`.term` 的完整规则见 `design-mockup/index-v9.html:281-293`，变量名按 site 的令牌映射
+（`--gm` → `var(--color-gm)`、`--gk` → `var(--color-gk)`）。
+
 - [ ] **Step 2: 写 `src/components/Glossary.astro`**
 
 ```astro
