@@ -40,6 +40,16 @@
 - **构建卫生**：`dist/` 不得提交（已被 `.gitignore` 排除）；每次验证后必须 `rm -rf dist` 重新构建，
   避免增量构建残留孤儿页面。Task 15 的验收含一项：干净构建后 `dist/` 只含源文件对应的页面
 - **证据文件必须机读**：验证证据存为合法 JSON（不得混入日志行），报告正文引用的数字必须能在存档中复现
+- **Astro `<style>` 的优先级陷阱**（Task 6 实测发现，影响所有任务）：
+  Astro 组件内的 `<style>` 编译后**不在 `@layer` 内**，优先级**高于** Tailwind v4 放进
+  `@layer utilities` 的 utility 类。因此：
+  - **禁止在组件 `<style>` 里对同一元素写 `padding` / `margin` 简写**（如 `padding: 70px 0 86px`）
+    去「覆盖」Tailwind 的 `px-*` / `mx-*` —— 简写会把横向值一并清零
+  - 需要微调时**用长写属性**（`padding-top` / `padding-bottom`），或直接不加 Tailwind 的对应 utility
+  - 同理适用于 `border`、`background`、`font` 等简写属性
+- **无 JS 场景必须验证**：`.rv` 等由脚本驱动的可见性，其 `:root:not(.js)` 兜底**必须覆盖包装层本身**。
+  只给子元素写兜底会产生「子元素 opacity:1 但父层仍藏着」的假象。
+  验证方式：用 CDP 的 `Emulation.setScriptExecutionDisabled` + `CSS.getComputedStyleForNode`
 - **导航 `active` 取值必须与 `Nav.astro` 的 `key` 严格一致**：`'home' | 'projects' | 'writing' | 'learning' | 'about'`
   首页 → `home`；项目列表页与项目详情页 → `projects`；文章列表页与文章详情页 → `writing`；
   学习路线页 → `learning`；关于页 → `about`
