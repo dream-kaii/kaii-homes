@@ -56,6 +56,71 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+  /* 术语气泡只淡入无位移；reduce 下直接切换显隐（随 .term 一起搬来的配套规则） */
+  .term::after,
+  .term::before { transition: none; }
+  .term:hover::after { transform: translateX(-50%) translateY(0); }
+}
+
+/* ============================================================
+   术语悬停解释（全站）
+   迁移自 design-mockup/index-v9.html:281–293，仅做令牌名映射：
+   --gm → var(--color-gm)、--gk → var(--color-gk)、--sans → var(--font-sans)。
+   放在全局而不是某个组件里的原因：`.term` 有两个消费点（Hero 的「Agent 应用」、
+   CapabilityGrid 的 5 处），而 Astro 的 `<style>` 默认作用域隔离会把选择器编译成
+   `.term[data-astro-cid-xxx]` —— 组件之间的 hash 不同，各自的 `.term` 互相拿不到样式。
+   同一套视觉语言只定义一次，第三个消费点直接复用即可。
+   ============================================================ */
+.term {
+  position: relative;
+  border-bottom: 1px dashed var(--color-gm);
+  cursor: help;
+  color: inherit;
+  font-weight: 600;
+}
+.term::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 9px);
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 250px;
+  background: var(--color-gk);
+  color: #fff;
+  font-size: 11.8px;
+  font-weight: 400;
+  line-height: 1.62;
+  padding: 9px 13px;
+  border-radius: 9px;
+  box-shadow: 0 8px 26px rgba(20, 36, 20, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s, transform 0.24s;
+  z-index: 40;
+  text-align: left;
+  white-space: normal;
+  font-family: var(--font-sans);
+}
+.term::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-gk);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s;
+  z-index: 41;
+}
+.term:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.term:hover::before {
+  opacity: 1;
 }
 
 /* 滚动入场 */
@@ -71,3 +136,8 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .rv { opacity: 1 !important; transform: none !important; }
 }
+
+/* 无 JS 兜底：`.rv` 的入场由 BaseLayout 的脚本驱动，脚本不跑就永远停在 opacity:0。
+   兜底必须落在 `.rv` 自己身上 —— 只给子元素写兜底会造出「子元素已可见、包装层还藏着」的假象
+   （Task 6 踩过这个坑）。`.rv` 是全站共用类，故兜底写在全局，任何新组件直接受益。 */
+:root:not(.js) .rv { opacity: 1; transform: none; }

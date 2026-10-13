@@ -1,0 +1,380 @@
+---
+// CapabilityGrid —— 首页「一个 Agent 应用要做好哪些事」能力全景（左 / 中 / 右三栏）
+// 结构与样式搬运自 design-mockup/index-v9.html L815–908（HTML）/ L327–362（CSS）；
+// 变量名按 site 令牌映射：--gm→var(--color-gm) --gk→var(--color-gk) --gh→var(--color-gh)
+// --gd→var(--color-gd) --ink3→var(--color-ink3) --ink4→var(--color-ink4)
+// --paper2→var(--color-paper2) --line→var(--color-line) --line2→var(--color-line2)
+// --card→var(--color-card) --rL→var(--radius-lg) --sh→0 1px 3px rgba(42,77,46,.05)
+// --sh2→0 6px 22px -6px rgba(42,77,46,.11) --mono→var(--font-mono)
+// 自包含、无 props；零运行时框架依赖（本区块无脚本）。
+---
+
+<section id="landscape" class="landscape-sec mx-auto max-w-[1180px] px-8">
+  <div class="sec-h rv">
+    <span class="kick">LANDSCAPE</span>
+    <h2>一个 Agent 应用要做好哪些事</h2>
+    <p>
+      一个能上线的 Agent，不只是「调个模型」这么简单。左边是它要听懂的部分，右边是它要答对的部分，中间是这句话真正走过的一遍。
+    </p>
+  </div>
+
+  <div class="landscape">
+    <!-- ===== 左：输入侧 ===== -->
+    <div class="lc rv" data-d="1">
+      <div class="lc-h">输入侧 · 怎么听懂</div>
+      <div class="lc-r">
+        <h4><i></i>多轮上下文</h4>
+        <p>历史不是全量塞进去。最近几轮保真原文，更早的压成摘要，按 token 预算兜底。</p>
+        <div class="tg"><span>滑窗</span><span>滚动摘要</span></div>
+      </div>
+      <div class="lc-r">
+        <h4><i></i>指代消解</h4>
+        <p>「它能退吗」必须结合历史补全成完整问句，否则检索和意图都会判错。</p>
+        <div class="tg"><span>coref</span><span>query rewrite</span></div>
+      </div>
+      <div class="lc-r">
+        <h4><i></i>意图分流</h4>
+        <p>退款要走确定性子流程，闲聊不该进 Agent，投诉要有固定兜底话术。</p>
+        <div class="tg"><span>intent</span><span>routing</span></div>
+      </div>
+      <div class="lc-r">
+        <h4><i></i>Query 扩写</h4>
+        <p>一句问题泛化成几条侧重点不同的查询，多路检索后再去重合并。</p>
+        <div class="tg"><span>multi-query</span></div>
+      </div>
+    </div>
+
+    <!-- ===== 中：请求生命周期（sticky） ===== -->
+    <div class="corecard rv" data-d="2">
+      <h4>请求在系统里走一遍</h4>
+      <p>从一句话进来到一句话出去，中间要过的关卡。</p>
+      <div class="flow">
+        <div class="fn">
+          <div class="fd">01</div>
+          <div class="fb"><h5>进来先补全</h5><p>结合摘要与滑窗，把指代补成完整问句。</p></div>
+        </div>
+        <div class="fn">
+          <div class="fd">02</div>
+          <div class="fb"><h5>判意图定路线</h5><p>八类意图带置信度，拿不准归「其他」。</p></div>
+        </div>
+        <div class="fn">
+          <div class="fd">03</div>
+          <div class="fb">
+            <h5>知识类必先检索</h5>
+            <p>
+              该检索就检索（<span class="term" data-tip="先去知识库查资料，把查到的内容一起交给模型作答">RAG</span>），写成流程硬约束，而不是指望模型自觉。
+            </p>
+          </div>
+        </div>
+        <div class="fn">
+          <div class="fd">04</div>
+          <div class="fb"><h5>过证据置信度闸</h5><p>精排分、有效证据数、分差共同决定能不能答。</p></div>
+        </div>
+        <div class="fn">
+          <div class="fd">05</div>
+          <div class="fb"><h5>进 Agent 做决策</h5><p>ReAct 循环临场决定调哪个工具、走几步收敛。</p></div>
+        </div>
+        <div class="fn">
+          <div class="fd">06</div>
+          <div class="fb"><h5>执行引擎统一把关</h5><p>参数校验、权限分级、写操作等确认。</p></div>
+        </div>
+        <div class="fn">
+          <div class="fd">07</div>
+          <div class="fb"><h5>带引用生成</h5><p>说出来源编号，答不了就如实拒答。</p></div>
+        </div>
+        <div class="fn">
+          <div class="fd">08</div>
+          <div class="fb"><h5>落 trace 与审计</h5><p>每个节点的 prompt、耗时、token 都留痕。</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 右：输出侧 ===== -->
+    <div class="lc rv" data-d="3">
+      <div class="lc-h">输出侧 · 怎么答对</div>
+      <div class="lc-r">
+        <h4><i></i>混合检索</h4>
+        <p>
+          关键词与<span class="term" data-tip="按意思而不是字面找资料，问「邮费」能找到「运费怎么算」">向量</span>各有所长。BM25 抓精确型号，向量抓同义说法，融合后取长补短。
+        </p>
+        <div class="tg"><span>BM25</span><span>dense</span><span>RRF</span></div>
+      </div>
+      <div class="lc-r">
+        <h4><i></i>重排精筛</h4>
+        <p>
+          召回要宽、排序要准。粗排 Top-50 后交给<span class="term" data-tip="更精细的排序模型，把最相关的重新排到最前">重排模型</span>精排出 Top-10。
+        </p>
+        <div class="tg"><span>reranker</span></div>
+      </div>
+      <div class="lc-r">
+        <h4><i></i>拒答与引用</h4>
+        <p>
+          证据不足时<span class="term" data-tip="明确说「我不知道」，而不是编一个听起来合理的答案">如实拒答</span>，比编一个像样的答案更有价值。
+        </p>
+        <div class="tg"><span>citations</span><span>abstain</span></div>
+      </div>
+      <div class="lc-r">
+        <h4><i></i>数据飞轮</h4>
+        <p>
+          答不上来的问题不该被丢掉 —— 它们是<span class="term" data-tip="把问倒的问题收集起来，人审后补进知识库，越用越准">数据飞轮</span>最好的燃料。
+        </p>
+        <div class="tg"><span>问题池</span><span>人工审核</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ============================================================
+     区块容器
+     设计稿 .wrap{max-width:1180px;padding:0 32px}（index-v9.html:27）——
+     与 Hero、AgentCompare 用的 max-w-[1180px] px-8 相同，四个区块左边缘对齐。
+     只写纵向 padding：横向留给模板上的 Tailwind `px-8`。
+     若用 `padding:86px 0` 简写会把横向清零（组件 <style> 不在 @layer 内，
+     优先级高于 Tailwind utilities），左边缘会从 162px 漂到 130px。
+     ============================================================ */
+  .landscape-sec {
+    padding-top: 86px; /* 设计稿 section{padding:86px 0} */
+    padding-bottom: 86px;
+  }
+  @media (max-width: 700px) {
+    .landscape-sec {
+      padding-top: 62px; /* 设计稿 @media(max-width:700px) section{padding:62px 0} */
+      padding-bottom: 62px;
+      padding-left: 18px; /* 设计稿 .wrap{padding:0 18px}（需压过 px-8 的 32px） */
+      padding-right: 18px;
+    }
+  }
+
+  /* ---------- 区块通用（设计稿 L303–310） ---------- */
+  .kick {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-gm);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+  .kick::before {
+    content: '';
+    width: 22px;
+    height: 2px;
+    background: var(--color-gh);
+    border-radius: 2px;
+  }
+  .sec-h {
+    margin-bottom: 46px;
+  }
+  .sec-h h2 {
+    font-size: clamp(25px, 3.3vw, 32px);
+    font-weight: 750;
+    letter-spacing: -0.028em;
+    margin-bottom: 11px;
+    line-height: 1.25;
+  }
+  .sec-h p {
+    color: var(--color-ink2);
+    font-size: 14.5px;
+    max-width: 660px;
+    line-height: 1.78;
+  }
+
+  /* ---------- 三栏网格（设计稿 .landscape L335） ---------- */
+  .landscape {
+    display: grid;
+    grid-template-columns: 1fr 1.28fr 1fr;
+    gap: 26px;
+    align-items: start;
+  }
+
+  .lc {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .lc-h {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-ink4);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--color-line2);
+    margin-bottom: 3px;
+  }
+  .lc-r {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    padding: 15px 17px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s, border-color 0.3s;
+  }
+  .lc-r:hover {
+    transform: translateX(4px);
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    border-color: #d5d8c4;
+  }
+  .lc-r h4 {
+    font-size: 13.8px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.012em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lc-r h4 i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-gh);
+    flex: none;
+  }
+  .lc-r p {
+    font-size: 12.3px;
+    color: var(--color-ink3);
+    line-height: 1.65;
+    margin: 0;
+  }
+  .lc-r .tg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 9px;
+  }
+  .lc-r .tg span {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--color-gm);
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+    padding: 2px 7px;
+    border-radius: 100px;
+  }
+
+  /* ---------- 中栏：请求生命周期（设计稿 .corecard L351–362） ---------- */
+  .corecard {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    padding: 24px 22px;
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    position: sticky;
+    top: 88px; /* 设计稿取 88px：站点 Nav 高度 h-16=64px + 24px 呼吸位 */
+  }
+  .corecard h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: -0.015em;
+  }
+  .corecard > p {
+    font-size: 12.3px;
+    color: var(--color-ink3);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .fn {
+    display: flex;
+    gap: 12px;
+    position: relative;
+    padding-bottom: 15px;
+  }
+  .fn:last-child {
+    padding-bottom: 0;
+  }
+  .fn::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 26px;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--color-line2);
+  }
+  .fn:last-child::before {
+    display: none;
+  }
+  .fd {
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: var(--color-paper2);
+    border: 1.5px solid var(--color-line);
+    display: grid;
+    place-items: center;
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--color-ink4);
+    transition: all 0.35s;
+    z-index: 1;
+  }
+  .fn:hover .fd {
+    background: var(--color-gd);
+    border-color: var(--color-gd);
+    color: #fff;
+    transform: scale(1.12);
+  }
+  .fb h5 {
+    font-size: 13px;
+    font-weight: 650;
+    margin-bottom: 3px;
+    letter-spacing: -0.01em;
+  }
+  .fb p {
+    font-size: 11.8px;
+    color: var(--color-ink3);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ---------- 响应式：<=1100px 收成单列，sticky 关闭（设计稿 L517–520） ---------- */
+  @media (max-width: 1100px) {
+    .landscape {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+    .corecard {
+      position: static;
+    }
+    /* 单列后右栏的术语气泡会顶出视口右边缘：气泡以 .term 为锚居中定位、
+       max-width 250px，390px 视口下「重排模型」气泡右边缘实测 419.4px > 390px，
+       把文档撑出横向滚动（scrollWidth 419 > innerWidth 390）。
+       只裁横向（overflow-y 留 visible，气泡仍可向上溢出到卡片外），
+       且只在 <=1100px 单列时启用 —— 多列时气泡本就在视口内（1440px 实测最右 1355px），
+       全宽度裁切会把桌面端允许溢出栏位的气泡拦腰截断。
+       与 `.hero{overflow:hidden}` 对 Hero 术语气泡的处理是同一套口径。 */
+  }
+
+  /* ---------- 减少动态效果：直接呈现终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .lc-r,
+    .fd {
+      transition: none;
+    }
+    .fn:hover .fd,
+    .lc-r:hover {
+      transform: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底：脚本不可用时内容仍须可见 ----------
+     `.rv` 的滚动入场由 BaseLayout 的脚本驱动，脚本没跑就永远停在 opacity:0。
+     global.css 已为 `.rv` 提供 :root:not(.js) 兜底，此处兜底的是本组件自己的
+     交互态（hover 位移），保证无 JS 时左中右三栏都是静息终态。 */
+  :root:not(.js) .lc-r,
+  :root:not(.js) .fd {
+    transition: none;
+  }
+</style>

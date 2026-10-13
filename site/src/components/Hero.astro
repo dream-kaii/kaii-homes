@@ -226,62 +226,10 @@ const githubLabel = site.github.replace(/^https?:\/\//, '');
     margin-bottom: 30px;
   }
 
-  /* ============================================================
-     术语悬停解释
-     迁移自 design-mockup/index-v9.html L281–293；唯一的消费点就在
-     Hero 的 .lede 里（「Agent 应用」），故随 Hero 一起落地。
-     ============================================================ */
-  .term {
-    position: relative;
-    border-bottom: 1px dashed var(--color-gm);
-    cursor: help;
-    color: inherit;
-    font-weight: 600;
-  }
-  .term::after {
-    content: attr(data-tip);
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 9px);
-    transform: translateX(-50%) translateY(4px);
-    width: max-content;
-    max-width: 250px;
-    background: var(--color-gk);
-    color: #fff;
-    font-size: 11.8px;
-    font-weight: 400;
-    line-height: 1.62;
-    padding: 9px 13px;
-    border-radius: 9px;
-    box-shadow: 0 8px 26px rgba(20, 36, 20, 0.28);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.24s, transform 0.24s;
-    z-index: 40;
-    text-align: left;
-    white-space: normal;
-    font-family: var(--font-sans);
-  }
-  .term::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: calc(100% + 3px);
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: var(--color-gk);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.24s;
-    z-index: 41;
-  }
-  .term:hover::after {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  .term:hover::before {
-    opacity: 1;
-  }
+  /* 术语悬停解释（.term）的样式已提升到 src/styles/global.css：
+     `.term` 现有两个消费点（本组件的「Agent 应用」+ CapabilityGrid 的 5 处），
+     Astro 的 <style> 作用域隔离会让组件各自编译出互不可见的 `.term[data-astro-cid-*]`，
+     故改为全站唯一一份定义。此处不再重复声明。 */
 
   .hero-btns {
     display: flex;
@@ -532,14 +480,6 @@ const githubLabel = site.github.replace(/^https?:\/\//, '');
     .hero-social a,
     .idcard {
       transition: none;
-    }
-    /* 术语气泡只淡入无位移；reduce 下直接切换显隐 */
-    .term::after,
-    .term::before {
-      transition: none;
-    }
-    .term:hover::after {
-      transform: translateX(-50%) translateY(0);
     }
   }
 </style>

@@ -1,0 +1,235 @@
+---
+// Glossary —— 首页「名词速查」折叠面板
+// 结构与样式搬运自 design-mockup/index-v9.html L1079–1107（HTML）/ L296–318（CSS）；
+// 数据来自 src/data/glossary.ts（12 条，Task 2 产出），模板只负责渲染，不硬编码词条。
+// 与设计稿的差异（均已在报告里逐条举证）：
+//   1. 标题栏由可点击 <div> 升级为 <button>，以满足「Tab 聚焦 + Enter/Space 切换」的硬要求
+//   2. <h3> 由 button 内部移到 button 外层 —— <button> 的内容模型是 phrasing content，
+//      <h3> 是 flow content，写在 button 里属无效 HTML；外层包裹同时保住标题语义
+//   3. 无 JS 兜底：`.gl-body` 直接展开（脚本不可用时面板无法切换，不能把内容藏起来）
+import { glossary } from '../data/glossary';
+---
+
+<section class="gl-sec mx-auto max-w-[1180px] px-8">
+  <!-- `.rv` 与 `overflow-hidden` 解耦：入场动画的隐藏层（.rv）单独一层，
+       圆角裁剪层在内层。这样 `.rv` 的可见性不再依赖「零高度元素能否被
+       IntersectionObserver 命中」这一行为细节。 -->
+  <div class="rv">
+    <div id="glossary" class="glossary overflow-hidden rounded-[22px] border border-line bg-card">
+      <h3>
+        <button
+          id="gl-head"
+          type="button"
+          aria-expanded="false"
+          aria-controls="gl-body"
+          class="gl-head flex w-full cursor-pointer items-center gap-3 border-b border-line2 px-[26px] py-[17px] text-left"
+        >
+          <svg
+            class="gl-arrow h-4 w-4 flex-none"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-gm)"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6"></path>
+          </svg>
+          <span class="gl-ttl flex-1 text-[14.5px] font-bold">名词速查</span>
+          <span id="gl-hint" class="font-mono text-[11px] text-ink4">看不明白的词，这里有一句话解释</span>
+        </button>
+      </h3>
+
+      <div id="gl-body" class="gl-body">
+        <dl class="gl-grid">
+          {
+            glossary.map((g) => (
+              <div class="gl-item border-b border-line2 px-[26px] py-3.5">
+                <dt class="mb-1.5 font-mono text-[11.5px] font-bold text-gd">{g.term}</dt>
+                <dd class="text-[12.8px] leading-relaxed text-ink2">{g.def}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* 容器：与 Hero / AgentCompare / CapabilityGrid 同宽同边距。
+     设计稿 .wrap{max-width:1180px;padding:0 32px}（index-v9.html:27）——
+     brief 的示例写的是 max-w-[1440px] px-10，会让本区块与上下的兄弟区块左右各错开
+     32px。只写纵向 padding，横向交给模板上的 Tailwind `px-8`（简写会把横向清零）。 */
+  .gl-sec {
+    padding-top: 86px; /* 设计稿 section{padding:86px 0}（L304） */
+    padding-bottom: 20px; /* 设计稿本节的内联 style="padding-bottom:20px"（L1081） */
+  }
+  @media (max-width: 700px) {
+    .gl-sec {
+      padding-top: 62px; /* 设计稿 @media(max-width:700px) section{padding:62px 0}（L569 段） */
+      padding-bottom: 20px; /* 内联 padding-bottom 优先级更高，不随断点变化 */
+      padding-left: 18px; /* 设计稿 .wrap{padding:0 18px}（需压过 px-8 的 32px） */
+      padding-right: 18px;
+    }
+  }
+
+  /* ---------- 面板外壳（设计稿 .glossary L298–299） ---------- */
+  .glossary {
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05); /* 设计稿 var(--sh) */
+  }
+
+  /* ---------- 标题栏（设计稿 .gl-head L300–305） ----------
+     只写外观，不写 padding —— 模板上已有 Tailwind 的 px-[26px] py-[17px]，
+     组件 <style> 不在 @layer 内、优先级更高，写简写会把它们一并清掉。 */
+  .gl-head {
+    background: rgba(242, 241, 228, 0.45);
+    transition: background 0.22s;
+    user-select: none;
+  }
+  .gl-head:hover {
+    background: rgba(234, 242, 206, 0.6);
+  }
+  /* 键盘聚焦可见：Tab 到标题栏时必须看得出焦点在哪（brief 的硬要求）。
+     内描边 + 与容器一致的上圆角，避免方形描边顶出圆角容器。 */
+  .gl-head:focus-visible {
+    outline: 2.5px solid var(--color-gd);
+    outline-offset: -3px;
+    border-radius: 21px 21px 0 0;
+  }
+  .gl-head .gl-ttl {
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+  }
+
+  /* ---------- 箭头（设计稿 .gl-arrow L307–308） ---------- */
+  .gl-arrow {
+    transition: transform 0.3s;
+  }
+  #glossary.open .gl-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* ---------- 折叠体（设计稿 .gl-body L309–310） ----------
+     设计稿写死 `max-height:900px`（`.glossary.open .gl-body`）—— 在双列 1440px 下
+     内容高 588px，900px 够用；但本站把词表改成 12 条后，单列窄屏的内容高度会涨到
+     1455px（320px 视口实测），900 / 1200 这类硬上限都会把最后几条裁掉，
+     且因为 `overflow:hidden` 完全不可见、也不出现滚动条，属静默丢内容。
+     所以展开高度由脚本按 `scrollHeight` 实测写入内联 `max-height`
+     （见 <script> 的 setOpen）；这里的 `--gl-max` 只是脚本缺席时的 CSS 兜底上限。 */
+  .gl-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #glossary.open .gl-body {
+    max-height: var(--gl-max, 1200px);
+  }
+
+  /* ---------- 双列词表（设计稿 .gl-grid / .gl-item L311–317） ---------- */
+  .gl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 6px 0;
+  }
+  /* 双列时最后一行贴着面板底边，去掉那两条的下边框，避免与容器边框叠成双线 */
+  .gl-grid > .gl-item:nth-last-child(-n + 2) {
+    border-bottom-width: 0;
+  }
+
+  /* ---------- 响应式：<=1000px 单列（设计稿 L524） ---------- */
+  @media (max-width: 1000px) {
+    .gl-grid {
+      grid-template-columns: 1fr;
+    }
+    /* 单列后贴底的只有最后一条；上一条的横线要还原，否则列表中间缺一道分隔 */
+    .gl-grid > .gl-item:nth-last-child(-n + 2) {
+      border-bottom-width: 1px;
+    }
+    .gl-grid > .gl-item:last-child {
+      border-bottom-width: 0;
+    }
+    /* 窄屏时标题栏的提示语（实测 165px 宽、不可收缩）会把箭头+标题挤到换行。
+       允许它收缩并整段移到第二行，标题栏就不会横向吃紧。 */
+    .gl-head {
+      flex-wrap: wrap;
+    }
+    .gl-head > span:last-child {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接切换，无过渡 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .gl-head,
+    .gl-arrow,
+    .gl-body {
+      transition: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底 ----------
+     脚本不可用时面板无法切换，若仍停在 max-height:0，12 条名词对访客完全不可见。
+     这里直接置为展开终态（`.open` 类永远不会被加上，不会与上面的规则打架）。 */
+  :root:not(.js) .gl-body {
+    max-height: none;
+    overflow: visible;
+  }
+  :root:not(.js) #glossary .gl-arrow {
+    transform: rotate(180deg);
+  }
+</style>
+
+<script>
+  const gl = document.getElementById('glossary');
+  const head = document.getElementById('gl-head');
+  const body = document.getElementById('gl-body');
+  const hint = document.getElementById('gl-hint');
+
+  if (gl && head && body) {
+    const HINT_CLOSED = '看不明白的词，这里有一句话解释';
+    const HINT_OPEN = '点标题栏可以收起';
+
+    /**
+     * 把展开高度写成实测值。
+     *
+     * 为什么不写死一个常数：内容高度随视口宽度剧烈变化 —— 双列 1440px 是 588px，
+     * 单列 320px 是 1455px（跨 2.5 倍以上）。任何固定上限在窄屏都会裁掉尾部词条，
+     * 而 `overflow:hidden` 意味着既看不见裁剪痕迹、也不出现滚动条，属静默丢内容。
+     * `scrollHeight` 量的是内容真实高度（不受 max-height 影响），所以这里读它。
+     */
+    const applyMaxHeight = () => {
+      gl.style.setProperty('--gl-max', body.scrollHeight + 'px');
+    };
+
+    // 展开/收起只有一个写入口，避免 class 与 ARIA 状态各写各的、渐渐不同步。
+    const setOpen = (open: boolean) => {
+      if (open) applyMaxHeight();
+      gl.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', String(open));
+      body.setAttribute('aria-hidden', String(!open));
+      if (hint) hint.textContent = open ? HINT_OPEN : HINT_CLOSED;
+    };
+
+    // SSR 初始态是收起；这里把它显式写实一遍。
+    // 注意 aria-hidden 只在脚本可用时写：无 JS 时面板由 :root:not(.js) 兜底直接展开，
+    // 若在 SSR 就写死 aria-hidden="true"，屏幕阅读器会把看得见的内容整段跳过。
+    setOpen(false);
+
+    // <button> 天然带 Tab 聚焦与 Enter / Space 激活 → 都归到这一个 click 上，
+    // 不需要再监听 keydown（自己监听反而要处理 repeat / 空格滚动等边角）。
+    head.addEventListener('click', () => {
+      setOpen(!gl.classList.contains('open'));
+    });
+
+    // 展开状态下改窗口宽度会换列、行高全变，重算一次，否则上限会变成旧宽度的值。
+    // 只监听我们自己发起的 resize，避免无意义地反复触发布局读取。
+    addEventListener('resize', () => {
+      if (gl.classList.contains('open')) applyMaxHeight();
+    });
+  }
+</script>
