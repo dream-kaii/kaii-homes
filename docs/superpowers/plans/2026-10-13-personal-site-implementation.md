@@ -1328,6 +1328,8 @@ repo: https://github.com/dream-kaii/MewHelp
 import { getCollection, getEntry } from 'astro:content';
 import ContentLayout from '../../layouts/ContentLayout.astro';
 import TocList from '../../components/TocList.astro';
+import ProgressRing from '../../components/ProgressRing.astro';
+import SourceList from '../../components/SourceList.astro';
 
 export async function getStaticPaths() {
   const items = await getCollection('projects');
@@ -1346,7 +1348,31 @@ const toc = [
 ];
 ---
 <ContentLayout title={`${project.data.title} — kaii`} active="projects">
-  <div slot="left" class="text-right"><!-- 项目信息 / 技术栈 / 其他项目 --></div>
+  <!-- 左栏：进度环 + 项目信息 + 技术栈 + 其他项目 -->
+  <div slot="left" class="text-right">
+    <ProgressRing />
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">项目信息</h5>
+      <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
+        <dt class="text-right font-mono text-[10.5px] text-ink4">角色</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{project.data.role}</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">性质</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{project.data.nature}</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">年份</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{project.data.year}</dd>
+      </dl>
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">技术栈</h5>
+      <div class="flex flex-wrap justify-end gap-1.5">
+        {project.data.stack.map((s) => (
+          <span class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gm">{s}</span>
+        ))}
+      </div>
+    </div>
+  </div>
   <article class="prose-k">
     <Content />
   </article>
@@ -1502,6 +1528,12 @@ const DATA = {
 
 ```astro
 ---
+import { getCollection } from 'astro:content';
+import ContentLayout from '../../layouts/ContentLayout.astro';
+import TocList from '../../components/TocList.astro';
+import ProgressRing from '../../components/ProgressRing.astro';
+import SourceList from '../../components/SourceList.astro';
+
 export async function getStaticPaths() {
   const items = await getCollection('writing');
   if (items.length === 0) throw new Error('writing 内容集合为空');
@@ -1514,7 +1546,35 @@ const toc = headings.filter(h => h.depth === 2)
 const isPlanned = post.data.status === 'planned';
 ---
 <ContentLayout title={`${post.data.title} — kaii`} active="writing">
-  <div slot="left"><!-- 进度环 / 本文信息 / 标签 / 操作 / 系列文章 --></div>
+
+  <!-- 左栏：进度环 + 本文信息 + 标签 + 系列文章。必须 import ProgressRing（Task 4 产出） -->
+  <div slot="left" class="text-right">
+    <ProgressRing />
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">本文信息</h5>
+      <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-[7px] justify-end">
+        <dt class="text-right font-mono text-[10.5px] text-ink4">发布</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">
+          {post.data.date.toISOString().slice(0, 10)}
+        </dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">阅读</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">约 {post.data.minutes} 分钟</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">分类</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{post.data.category}</dd>
+      </dl>
+    </div>
+
+    <div class="rtags mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">标签</h5>
+      <div class="flex flex-wrap justify-end gap-1.5">
+        {post.data.tags.map((tg) => (
+          <a href="/writing/" class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gm no-underline transition hover:border-gh hover:bg-[#EAF2CE] hover:text-gd">{tg}</a>
+        ))}
+      </div>
+    </div>
+  </div>
+
   <article class="prose-k" data-planned={isPlanned}>
     <header><!-- 面包屑 / h1 / 摘要 / 元信息 --></header>
     {isPlanned && /* 见 Step 3b 的内联提示条 */ null}
@@ -1653,7 +1713,7 @@ Tab 切换三块面板；`StepCard` 渲染单步（标题 + 时长 + 正文 + �
 
 - [ ] **Step 3: 写 `src/pages/learning-path.astro`**
 
-- 左栏：进度环 + 路线概览 + 文章状态 + 路线切换器
+- 左栏：`<ProgressRing />`（import from `../components/ProgressRing.astro`）+ 路线概览 + 文章状态 + 路线切换器
 - 中栏：三个 Tab 面板
 - 右栏：当前路线目录（随 Tab 切换）+ 文章进度 + 相关文章
 
@@ -1687,7 +1747,7 @@ git commit -m "feat: 学习路线页与三条线数据"
 
 - [ ] **Step 1: 写 `src/pages/about.astro`**
 
-- 左栏：基本情况（专业/届别/方向/状态）+ 关键词 + 操作 + 快速跳转
+- 左栏：`<ProgressRing />`（import from `../components/ProgressRing.astro`）+ 基本情况（专业/届别/方向/状态）+ 关键词 + 操作 + 快速跳转
 - 中栏：头像 → kaii → 定位 → 介绍 → 四格事实表 → §01 我的路径（三段时间线）→ §02 技术栈（四组）→ §03 联系方式
 - 右栏：本页目录 + 现在在做什么 + 看看我的作品
 
