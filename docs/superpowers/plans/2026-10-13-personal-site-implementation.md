@@ -1128,6 +1128,35 @@ git commit -m "feat: 首页能力全景与名词速查"
 - Consumes: `writing` collection（取前 8 条）
 - Produces: 三个组件
 
+**设计稿源位置（文件 `design-mockup/index-v9.html`）：**
+
+| 内容 | 行号 |
+|---|---|
+| 项目卡 CSS（`.projs` / `.pcard` / `.pct` / `.pci` / `.pcr` / `.mets` / `.mn` / `.ml`） | **420–450** |
+| 项目卡 HTML（三个卡片） | **946–1035** |
+| 文章列表 CSS（`.posts` / `.post` / `.pd` / `.pt` / `.ptg` / `.more-row` / `.more-link`） | **451–478** |
+| 文章列表 HTML + 「查看全部」 | **1040–1077** |
+| 联系区 CSS（`.band` 及其 `::before` / `::after` / `.bt` / `.ba` / `.btn-w` / `.btn-g`） | **479–520** |
+| 联系区 HTML | **1108–1128** |
+
+**三个项目的文案**（从设计稿逐字搬，不要改写）：
+- 01 MewHelp · 电商智能客服 Agent（badge「主线」，4 个指标，9 个技术栈标签）
+- 02 城觅 · 生活服务平台（badge「Java + AI」，3 个指标）
+- 03 智学云课堂 · 在线教育微服务系统（badge「工程基础」，3 个指标）
+
+**文章列表**：`posts.slice(0, 8)` 渲染 8 条，底部「查看全部 8 篇文章 →」按钮指向 `/writing/`。
+标题必须与 Task 11 的文章列表页**完全一致**（这是已在 Task 2 审查中修正过的一致性问题）。
+
+**⚠️ 本任务需要处理的三个遗留项**（来自前序任务审查的 deferred minor）：
+1. **首页缺 `<main>` landmark**（Task 5 审查发现）：`index.astro` 用 `<Hero />` 替换了原 `<main>`，
+   导致首页没有主 landmark 供屏幕阅读器跳转。**要求**：在首页所有区块外层包 `<main>`。
+2. **`site.available` 未消费**（Task 5 审查发现）：`src/data/site.ts` 有 `available: true`，
+   我在 Task 2 裁决时说过它是「开放实习机会徽章的开关」，但全仓库零引用。
+   **要求**：Hero 的徽章与联系区的文案接入 `site.available`（false 时不显示或无「开放」字样）。
+3. **容器宽度跨任务不一致**（Task 5 审查发现）：Hero 用 `max-w-[1180px] px-8`，
+   Nav/Footer 用 `max-w-[1440px] px-10`，实测左边缘错开 **122px**。
+   **要求**：统一为 `max-w-[1180px] px-8`（与设计稿的 `.wrap` 一致），并同步改 `Nav.astro` / `Footer.astro`。
+
 - [ ] **Step 1: 写 `src/components/ProjectCard.astro`**
 
 ```astro
