@@ -83,7 +83,7 @@
 │   ├── avatar.jpg                从 design-mockup/assets 复制
 │   ├── hero-bg.jpg
 │   ├── favicon.svg
-│   └── CNAME                     新域名（待用户提供，先留占位）
+│   └── DEPLOY.md                 Cloudflare Pages 部署说明（中文，含上线前替换清单）
 ├── src/
 │   ├── styles/
 │   │   └── global.css            设计令牌 + 基础样式 + 组件类
@@ -1891,13 +1891,13 @@ git commit -m "feat: 关于页与 404 页"
 
 ---
 
-### Task 14: SEO、RSS、站点地图与部署配置
+### Task 14: SEO、RSS、站点地图与 Cloudflare Pages 部署配置
 
 **Files:**
 - Create: `src/pages/rss.xml.ts`
-- Create: `public/robots.txt`, `public/CNAME`
+- Create: `public/robots.txt`, `site/DEPLOY.md`
 - Modify: `astro.config.mjs`
-- Create: `.github/workflows/deploy.yml`
+- Create: `.github/workflows/ci.yml`（仅质量门禁，不做部署）
 - Test: `pnpm build` 产出 sitemap、rss、robots
 
 **Interfaces:**
@@ -1944,29 +1944,29 @@ Sitemap: https://example.com/sitemap-index.xml
 
 （域名待用户提供后替换）
 
-- [ ] **Step 3: 写 `public/CNAME`**
+- [ ] **Step 3: 写 `site/DEPLOY.md`（Cloudflare Pages 部署说明）**
 
-```
-example.com
-```
+**不创建 `public/CNAME`** —— CNAME 文件是 GitHub Pages 专有机制，Cloudflare Pages 用不到。
 
-（占位，待用户提供真实域名）
+`DEPLOY.md` 必须覆盖：
 
-- [ ] **Step 4: 写 `.github/workflows/deploy.yml`**
+1. Cloudflare Pages 控制台连接 GitHub 仓库
+2. 构建设置：Build command `pnpm build`、Output directory `dist`、根目录 `site`
+3. 环境变量：`NODE_VERSION=22`、`PNPM_VERSION=10`
+4. 自定义域名绑定 + DNS 配置
+5. **上线前必须替换的占位清单**（附精确文件路径与行号）：
+   - `site/astro.config.mjs` 的 `site`
+   - `site/public/robots.txt` 的 `Sitemap:` 行
+
+- [ ] **Step 4: 写 `.github/workflows/ci.yml`（仅质量门禁）**
 
 ```yaml
-name: Deploy to GitHub Pages
+name: CI
 on:
   push: { branches: [main] }
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
+  pull_request: { branches: [main] }
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -1975,18 +1975,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check
       - run: pnpm build
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
 ```
 
 - [ ] **Step 5: 验证**
@@ -2089,7 +2079,8 @@ git commit -m "test: 端到端验收 spec 与报告"
 | 6 个页面 | `/`、`/projects/*`、`/writing/*`、`/learning-path/`、`/about/`、404 |
 | 4 篇内容骨架 | 1 篇完整文章 + 3 个项目详情 |
 | 三条学习路线 | `src/content/learning/*.yml` |
-| 部署工作流 | `.github/workflows/deploy.yml` |
+| 部署说明 | `site/DEPLOY.md`（Cloudflare Pages） |
+| CI 门禁 | `.github/workflows/ci.yml` |
 | 验收报告 | `dsh-verify-out/report.html` |
 
-**待用户提供**：新域名（替换 `astro.config.mjs` 的 `site`、`public/CNAME`、`robots.txt`）
+**待用户提供**：新域名（替换 `site/astro.config.mjs` 的 `site`、`site/public/robots.txt` 的 Sitemap 行）

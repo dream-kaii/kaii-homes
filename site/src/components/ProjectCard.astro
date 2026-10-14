@@ -1,0 +1,156 @@
+---
+// ProjectCard —— 首页「精选项目」单张项目卡
+// 结构与样式搬运自 design-mockup/index-v9.html L948–1031（HTML）/ L420–450（CSS）；
+// 令牌映射：--card→var(--color-card) --line→var(--color-line) --ink4→var(--color-ink4)
+// --ink→var(--color-ink) --gm→var(--color-gm) --gd→var(--color-gd) --ink2→var(--color-ink2)
+// --paper2→var(--color-paper2) --ink3→var(--color-ink3) --rL(22px)→rounded-[22px]
+// --sh→0 1px 3px rgba(42,77,46,.05)
+// 设计稿的 `.pc::before` 左侧渐变条与 hover 抬升一并保留（用 group-hover 承接）。
+//
+// 与设计稿的三处差异（均已在 task-8-report.md 举证）：
+//   1. 整卡是 <a>，故设计稿 `a{text-decoration:none}` 的兜底直接写在卡上（no-underline），
+//      并补 `color:inherit`（设计稿只给内联 h3 的 <a> 写了这一条）。
+//   2. 设计稿的 `.tag:hover`（背景 EAF2CE / 边框 D6E2B0）保留 —— 整卡可点时它同时是
+//      「即将跳转」的局部反馈，不依赖 tab 聚焦。
+//   3. 指标数字的初值写 0、终值由首页脚本按 data-count 滚动写入（设计稿同）。
+interface Props {
+  index: string;
+  title: string;
+  role: string;
+  desc: string;
+  badge: string;
+  badgePrimary?: boolean;
+  metrics: { value: number; label: string; suffix?: string }[];
+  tags: string[];
+  href: string;
+}
+const { index, title, role, desc, badge, badgePrimary, metrics, tags, href } = Astro.props;
+---
+
+<a
+  href={href}
+  class="pc-rv group relative block overflow-hidden rounded-[22px] border border-line bg-card px-8 py-8 text-inherit no-underline transition hover:-translate-y-1 hover:border-[#D5D8C4]"
+  style="box-shadow:0 1px 3px rgba(42,77,46,.05)"
+>
+  <span class="pc-bar" aria-hidden="true"></span>
+
+  <div class="mb-3.5 flex items-start justify-between gap-6">
+    <div>
+      <span class="mb-2 block font-mono text-[11px] font-bold tracking-[.13em] text-ink4">{index}</span>
+      <h3 class="mb-1.5 text-[21px] font-bold leading-snug tracking-[-.022em] text-ink">{title}</h3>
+      <div class="font-mono text-[12.5px] font-semibold text-gm">{role}</div>
+    </div>
+    <span
+      class:list={[
+        'whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-bold',
+        badgePrimary ? 'bg-gd text-white' : 'border border-line bg-paper2 text-ink2',
+      ]}
+      style={badgePrimary ? 'box-shadow:0 2px 10px rgba(62,107,63,.26)' : undefined}
+    >
+      {badge}
+    </span>
+  </div>
+
+  <p class="pc-desc mb-4 max-w-[700px] text-[14px] leading-[1.78] text-ink2">{desc}</p>
+
+  <div class="mets mb-4 flex flex-wrap gap-8 border-y border-dashed border-line py-3.5">
+    {
+      metrics.map((m) => (
+        <div>
+          <span
+            class="block font-mono text-[23px] font-bold leading-tight tracking-[-.035em] text-gd"
+            data-count={m.value}
+            data-suffix={m.suffix ?? ''}>0</span>
+          <span class="text-[11px] font-medium text-ink3">{m.label}</span>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="flex flex-wrap gap-1.5">
+    {
+      tags.map((t) => (
+        <span class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gd">
+          {t}
+        </span>
+      ))
+    }
+  </div>
+</a>
+
+<style>
+  /* ---------- 左侧渐变竖条（设计稿 .pc::before L429–431） ----------
+     设计稿用 `.pc::before`，本站整卡是 <a>，a 上的伪元素：hover 时由 transform 刷出。
+     用独立 span 而不是 ::before，是为了让 hover 检测留在同一个元素上（group-hover 亦可，
+     但 span 不参与布局、也不占用伪元素名额，后续加装饰不用再改名）。 */
+  .pc-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--color-gh), var(--color-gd));
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .pc-rv:hover .pc-bar {
+    transform: scaleY(1);
+  }
+
+  .pc-rv {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s, border-color 0.35s;
+  }
+
+  /* 卡片描述：设计稿 `.pc>p{font-size:14px;line-height:1.78;max-width:700px}`。
+     只写字体度量，不写 margin / padding —— 模板已有 Tailwind 的 mb-4 max-w-[700px]，
+     组件 <style> 不在 @layer 内、优先级更高，写简写会把它们一并清掉。 */
+  .pc-desc {
+    font-size: 14px;
+    line-height: 1.78;
+    color: var(--color-ink2);
+  }
+
+  /* 指标区：设计稿 `.mets{gap:34px;padding:14px 0}`。
+     只写纵向 padding 与 gap，横向留给模板的 flex-wrap/gap-8 —— 若写 `padding:14px 0`
+     简写，模板上并不存在的横向 padding 会被写成 0（无害），但一旦将来加了 `px-*`
+     就会被静默抹掉，故一律用长写属性。 */
+  .mets {
+    padding-top: 14px;
+    padding-bottom: 14px;
+    gap: 34px;
+  }
+
+  /* 窄屏：卡片内边距收窄（设计稿 @media(max-width:700px) `.pc{padding:22px 20px}`）。
+     设计稿在同一断点还有 `.pct{flex-direction:column;gap:12px}` 与 `.mets{gap:20px}`，
+     一并迁移。横向 padding 必须压过模板的 px-8（32px → 20px），故用长写属性。 */
+  @media (max-width: 700px) {
+    .pc-rv {
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-top: 22px;
+      padding-bottom: 22px;
+    }
+    .pc-hd {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .mets {
+      gap: 20px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接呈现终态（设计稿 L15–17 的全局 reduce 口径） ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .pc-rv,
+    .pc-bar {
+      transition: none;
+    }
+    .pc-rv:hover {
+      transform: none;
+    }
+    .pc-rv:hover .pc-bar {
+      transform: scaleY(1);
+    }
+  }
+</style>
