@@ -37,9 +37,24 @@
 - **响应式断点**：`1320px`（收右栏）/ `1080px`（收左栏）/ `700px`（收边距）
 - **不得编造**：文章中的版本号、API 签名、性能数字必须来自 `sources-verified.md` 中已核实的来源
 - **内部链接不得 404**：所有 `href` 指向真实存在的路由
-- **构建卫生**：`dist/` 不得提交（已被 `.gitignore` 排除）；每次验证后必须 `rm -rf dist` 重新构建，
-  避免增量构建残留孤儿页面。Task 15 的验收含一项：干净构建后 `dist/` 只含源文件对应的页面
+- **构建卫生**：`dist/` 不得提交（已被 `.gitignore` 排除）；每次验证后必须
+  `rm -rf dist node_modules/.astro` 重新构建，避免增量构建残留孤儿页面。
+  Task 15 的验收含一项：干净构建后 `dist/` 只含源文件对应的页面
+- **⚠️ Astro content 缓存会造成「假绿」**（Task 8 实测发现，影响 Task 11 / 15）：
+  `node_modules/.astro/data-store.json` 是 Astro 5 content layer 的持久化缓存。
+  **只删 `src/content/` 下的内容文件而不删该缓存，重建后产物仍会渲染已删除的文章** ——
+  Task 8 实测：删空 `src/content/writing/` 后 `rm -rf dist && pnpm build`，产物仍出 8 篇文章；
+  必须 `rm -rf node_modules/.astro` 才正确。
+  **因此「验证删内容→产物变化」这类测试，前置命令必须是 `rm -rf dist node_modules/.astro && pnpm build`。**
+  同理，`pnpm check` 也依赖该缓存生成的类型，改动 content 集合后应先清缓存再 check
 - **证据文件必须机读**：验证证据存为合法 JSON（不得混入日志行），报告正文引用的数字必须能在存档中复现
+- **⚠️ 并行实现者必须隔离提交**（Task 8/9 实测事故）：
+  两个任务并行跑在**同一工作树**时，各自执行 `git add -A` 会把对方尚未提交的在途改动一起带走 ——
+  Task 9 的 `ab66ed3` 实际含 20 个文件（19 个属 Task 8），`ec037e5` 的内容甚至是 Task 8 对 Hero 的修复。
+  因此：
+  - 会碰同一批文件的任务 → **串行执行**，不并行
+  - 必须并行时 → 每个 agent 的提交命令**点名自己产出的路径**（`git add <path1> <path2>`），
+    **禁止 `git add -A` / `git add .`**，且派发时把这条写进任务 brief
 - **Astro `<style>` 的优先级陷阱**（Task 6 实测发现，影响所有任务）：
   Astro 组件内的 `<style>` 编译后**不在 `@layer` 内**，优先级**高于** Tailwind v4 放进
   `@layer utilities` 的 utility 类。因此：
