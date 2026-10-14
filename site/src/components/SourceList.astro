@@ -1,0 +1,166 @@
+---
+/**
+ * SourceList · 参考来源区块
+ *
+ * 来源：design-mockup/article-mockup.html
+ *   - CSS  `.sources` / `h4` / `ol` / `li` / `li::before` / `a` / `a i` / `.tp`  →  L143–158
+ *   - HTML 编号列表 + 类型标签结构                                        →  L634–650
+ *
+ * 消费方：Task 10（项目详情页）、Task 11（文章详情页）—— 两处共用，故抽为独立组件。
+ *
+ * 与设计稿的映射：
+ *   --card → var(--color-card)   --line → var(--color-line)   --line2 → var(--color-line2)
+ *   --sh   → var(--shadow-sm)    --mono → var(--font-mono)
+ *   --ink2 → var(--color-ink2)   --ink4 → var(--color-ink4)   --gh    → var(--color-gh)
+ *   --gm   → var(--color-gm)     --gd   → var(--color-gd)
+ *   #EAF2CE / #D6E2B0 为设计稿硬编码值，站内暂无对应令牌，原样保留（与 Hero / Glossary 口径一致）。
+ *
+ * 与设计稿的差异：
+ *   - `heading` 可覆盖标题文案（项目详情页用「参考来源」以外的措辞时不必改组件）。
+ *   - 标签文案由 `kind` 映射而来，设计稿只出现过「官方」一种，其余三种按 kind 语义补齐。
+ */
+interface Source {
+  title: string;
+  url: string;
+  kind: 'official' | 'course' | 'roadmap' | 'article';
+}
+interface Props {
+  sources: Source[];
+  heading?: string;
+}
+
+const { sources, heading = '参考来源' } = Astro.props;
+
+const KIND_LABEL: Record<Source['kind'], string> = {
+  official: '官方',
+  course: '课程',
+  roadmap: '路线图',
+  article: '文章',
+};
+---
+
+{
+  sources.length > 0 && (
+    <div class="sources rv">
+      <h4>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#7A8570"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d="M4 19.5V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13.5" />
+          <path d="M6 19.5h12" />
+          <path d="M9 8h6M9 12h4" />
+        </svg>
+        {heading}
+      </h4>
+      <ol>
+        {sources.map((s) => (
+          <li>
+            <a href={s.url} target="_blank" rel="noopener">
+              {s.title}
+              <i>{s.url}</i>
+            </a>
+            <span class="tp">{KIND_LABEL[s.kind]}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+<style>
+  /* 引用来源（设计稿 L143–158）
+     注意：本组件不写任何 padding / margin 简写去覆盖 Tailwind 类（Global Constraints #1）。 */
+  .sources {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin: 40px 0 0;
+    /* 设计稿 `--sh:0 1px 3px rgba(42,77,46,.05)`（index-v9.html L17）。
+       站内未把阴影收进令牌表，与 Hero / CapabilityGrid 口径一致，此处内联原值。 */
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+  }
+  .sources h4 {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--color-ink4);
+    letter-spacing: 0.11em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sources ol {
+    list-style: none;
+    counter-reset: s;
+  }
+  .sources li {
+    counter-increment: s;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--color-line2);
+    display: flex;
+    gap: 11px;
+  }
+  .sources li:last-child {
+    border-bottom: none;
+  }
+  .sources li::before {
+    content: '[' counter(s) ']';
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-gh);
+    font-weight: 700;
+    flex: none;
+    padding-top: 2px;
+  }
+  .sources a {
+    color: var(--color-ink2);
+    text-decoration: none;
+    font-size: 13.5px;
+    line-height: 1.65;
+    transition: 0.2s;
+  }
+  .sources a:hover {
+    color: var(--color-gd);
+  }
+  .sources a i {
+    display: block;
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-ink4);
+    margin-top: 3px;
+    word-break: break-all;
+  }
+  .sources .tp {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--color-gm);
+    background: #eaf2ce;
+    border: 1px solid #d6e2b0;
+    padding: 2px 7px;
+    border-radius: 100px;
+    flex: none;
+    align-self: flex-start;
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  /* 窄屏内边距（设计稿 L354：`.sources,.acard{padding:18px 17px}`）
+     用长写属性，避免抹掉可能存在的 Tailwind 横向类。 */
+  @media (max-width: 700px) {
+    .sources {
+      padding-top: 18px;
+      padding-bottom: 18px;
+      padding-left: 17px;
+      padding-right: 17px;
+    }
+  }
+</style>
