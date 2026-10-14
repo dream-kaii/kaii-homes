@@ -381,7 +381,10 @@ const badgeText = site.available ? '开放实习机会' : '欢迎交流';
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 600;
-    color: var(--color-gm);
+    /* 对比度修复：原 --color-gm (#5E8A4E) on #eaf2ce 仅 3.46:1，10px 小字不达标（需 4.5）。
+       换同色系更深的 --color-gd (#3E6B3F) → 5.35:1。视觉上仍是绿色徽章。
+       （Lighthouse a11y 的 color-contrast 审计项）*/
+    color: var(--color-gd);
     background: #eaf2ce;
     border: 1px solid #d6e2b0;
     padding: 3px 9px;
@@ -415,7 +418,7 @@ const badgeText = site.available ? '开放实习机会' : '欢迎交流';
   .idv.mono {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-gm);
+    color: var(--color-gd);
   }
   .idcard-ft {
     display: grid;

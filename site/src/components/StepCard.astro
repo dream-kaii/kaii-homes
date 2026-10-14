@@ -50,9 +50,9 @@ const DOT: Record<string, string> = { agent: 'agent', algo: 'algo', backend: 'ba
     <span class={`step-dot ${DOT[track] ?? 'agent'}`}>{String(index).padStart(2, '0')}</span>
   </div>
   <div class="step-card">
-    <h4>
+    <p class="mini-h">
       {step.title} <em>{step.duration}</em>
-    </h4>
+    </p>
     <p>{step.body}</p>
 
     {step.tips.map((t) => (
@@ -205,7 +205,7 @@ const DOT: Record<string, string> = { agent: 'agent', algo: 'algo', backend: 'ba
     box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
     transform: translateX(3px);
   }
-  .step-card h4 {
+  .step-card .mini-h {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.015em;
@@ -215,12 +215,12 @@ const DOT: Record<string, string> = { agent: 'agent', algo: 'algo', backend: 'ba
     gap: 9px;
     flex-wrap: wrap;
   }
-  .step-card h4 em {
+  .step-card .mini-h em {
     font-style: normal;
     font-family: var(--font-mono);
     font-size: 9.5px;
     font-weight: 600;
-    color: var(--color-gm);
+    color: var(--color-gd);
     background: #eaf2ce;
     border: 1px solid #d6e2b0;
     padding: 2.5px 8px;
@@ -277,7 +277,7 @@ const DOT: Record<string, string> = { agent: 'agent', algo: 'algo', backend: 'ba
     border-radius: 100px;
     background: #eaf2ce;
     border: 1px solid #d6e2b0;
-    color: var(--color-gm);
+    color: var(--color-gd);
     flex: none;
   }
   .step-link .st.todo {
@@ -317,7 +317,7 @@ const DOT: Record<string, string> = { agent: 'agent', algo: 'algo', backend: 'ba
     overflow-wrap: anywhere;
   }
   .extlinks a:hover {
-    color: var(--color-gm);
+    color: var(--color-gd);
   }
 
   /* ---------- 提示块（设计稿 .callout L374–379） ---------- */

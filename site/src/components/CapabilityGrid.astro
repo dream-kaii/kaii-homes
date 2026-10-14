@@ -23,22 +23,22 @@
     <div class="lc rv" data-d="1">
       <div class="lc-h">输入侧 · 怎么听懂</div>
       <div class="lc-r">
-        <h4><i></i>多轮上下文</h4>
+        <h3><i></i>多轮上下文</h3>
         <p>历史不是全量塞进去。最近几轮保真原文，更早的压成摘要，按 token 预算兜底。</p>
         <div class="tg"><span>滑窗</span><span>滚动摘要</span></div>
       </div>
       <div class="lc-r">
-        <h4><i></i>指代消解</h4>
+        <h3><i></i>指代消解</h3>
         <p>「它能退吗」必须结合历史补全成完整问句，否则检索和意图都会判错。</p>
         <div class="tg"><span>coref</span><span>query rewrite</span></div>
       </div>
       <div class="lc-r">
-        <h4><i></i>意图分流</h4>
+        <h3><i></i>意图分流</h3>
         <p>退款要走确定性子流程，闲聊不该进 Agent，投诉要有固定兜底话术。</p>
         <div class="tg"><span>intent</span><span>routing</span></div>
       </div>
       <div class="lc-r">
-        <h4><i></i>Query 扩写</h4>
+        <h3><i></i>Query 扩写</h3>
         <p>一句问题泛化成几条侧重点不同的查询，多路检索后再去重合并。</p>
         <div class="tg"><span>multi-query</span></div>
       </div>
@@ -46,21 +46,21 @@
 
     <!-- ===== 中：请求生命周期（sticky） ===== -->
     <div class="corecard rv" data-d="2">
-      <h4>请求在系统里走一遍</h4>
+      <h3>请求在系统里走一遍</h3>
       <p>从一句话进来到一句话出去，中间要过的关卡。</p>
       <div class="flow">
         <div class="fn">
           <div class="fd">01</div>
-          <div class="fb"><h5>进来先补全</h5><p>结合摘要与滑窗，把指代补成完整问句。</p></div>
+          <div class="fb"><p class="mini-h">进来先补全</p><p>结合摘要与滑窗，把指代补成完整问句。</p></div>
         </div>
         <div class="fn">
           <div class="fd">02</div>
-          <div class="fb"><h5>判意图定路线</h5><p>八类意图带置信度，拿不准归「其他」。</p></div>
+          <div class="fb"><p class="mini-h">判意图定路线</p><p>八类意图带置信度，拿不准归「其他」。</p></div>
         </div>
         <div class="fn">
           <div class="fd">03</div>
           <div class="fb">
-            <h5>知识类必先检索</h5>
+            <p class="mini-h">知识类必先检索</p>
             <p>
               该检索就检索（<span class="term" data-tip="先去知识库查资料，把查到的内容一起交给模型作答">RAG</span>），写成流程硬约束，而不是指望模型自觉。
             </p>
@@ -68,23 +68,23 @@
         </div>
         <div class="fn">
           <div class="fd">04</div>
-          <div class="fb"><h5>过证据置信度闸</h5><p>精排分、有效证据数、分差共同决定能不能答。</p></div>
+          <div class="fb"><p class="mini-h">过证据置信度闸</p><p>精排分、有效证据数、分差共同决定能不能答。</p></div>
         </div>
         <div class="fn">
           <div class="fd">05</div>
-          <div class="fb"><h5>进 Agent 做决策</h5><p>ReAct 循环临场决定调哪个工具、走几步收敛。</p></div>
+          <div class="fb"><p class="mini-h">进 Agent 做决策</p><p>ReAct 循环临场决定调哪个工具、走几步收敛。</p></div>
         </div>
         <div class="fn">
           <div class="fd">06</div>
-          <div class="fb"><h5>执行引擎统一把关</h5><p>参数校验、权限分级、写操作等确认。</p></div>
+          <div class="fb"><p class="mini-h">执行引擎统一把关</p><p>参数校验、权限分级、写操作等确认。</p></div>
         </div>
         <div class="fn">
           <div class="fd">07</div>
-          <div class="fb"><h5>带引用生成</h5><p>说出来源编号，答不了就如实拒答。</p></div>
+          <div class="fb"><p class="mini-h">带引用生成</p><p>说出来源编号，答不了就如实拒答。</p></div>
         </div>
         <div class="fn">
           <div class="fd">08</div>
-          <div class="fb"><h5>落 trace 与审计</h5><p>每个节点的 prompt、耗时、token 都留痕。</p></div>
+          <div class="fb"><p class="mini-h">落 trace 与审计</p><p>每个节点的 prompt、耗时、token 都留痕。</p></div>
         </div>
       </div>
     </div>
@@ -93,28 +93,28 @@
     <div class="lc rv" data-d="3">
       <div class="lc-h">输出侧 · 怎么答对</div>
       <div class="lc-r">
-        <h4><i></i>混合检索</h4>
+        <h3><i></i>混合检索</h3>
         <p>
           关键词与<span class="term" data-tip="按意思而不是字面找资料，问「邮费」能找到「运费怎么算」">向量</span>各有所长。BM25 抓精确型号，向量抓同义说法，融合后取长补短。
         </p>
         <div class="tg"><span>BM25</span><span>dense</span><span>RRF</span></div>
       </div>
       <div class="lc-r">
-        <h4><i></i>重排精筛</h4>
+        <h3><i></i>重排精筛</h3>
         <p>
           召回要宽、排序要准。粗排 Top-50 后交给<span class="term" data-tip="更精细的排序模型，把最相关的重新排到最前">重排模型</span>精排出 Top-10。
         </p>
         <div class="tg"><span>reranker</span></div>
       </div>
       <div class="lc-r">
-        <h4><i></i>拒答与引用</h4>
+        <h3><i></i>拒答与引用</h3>
         <p>
           证据不足时<span class="term" data-tip="明确说「我不知道」，而不是编一个听起来合理的答案">如实拒答</span>，比编一个像样的答案更有价值。
         </p>
         <div class="tg"><span>citations</span><span>abstain</span></div>
       </div>
       <div class="lc-r">
-        <h4><i></i>数据飞轮</h4>
+        <h3><i></i>数据飞轮</h3>
         <p>
           答不上来的问题不该被丢掉 —— 它们是<span class="term" data-tip="把问倒的问题收集起来，人审后补进知识库，越用越准">数据飞轮</span>最好的燃料。
         </p>
@@ -153,7 +153,7 @@
     gap: 9px;
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     letter-spacing: 0.11em;
     font-weight: 700;
     margin-bottom: 15px;
@@ -218,7 +218,7 @@
     box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
     border-color: #d5d8c4;
   }
-  .lc-r h4 {
+  .lc-r h3 {
     font-size: 13.8px;
     font-weight: 700;
     margin-bottom: 6px;
@@ -227,7 +227,7 @@
     align-items: center;
     gap: 8px;
   }
-  .lc-r h4 i {
+  .lc-r h3 i {
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -249,7 +249,7 @@
   .lc-r .tg span {
     font-family: var(--font-mono);
     font-size: 9.5px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     background: var(--color-paper2);
     border: 1px solid var(--color-line);
     padding: 2px 7px;
@@ -266,7 +266,7 @@
     position: sticky;
     top: 88px; /* 设计稿取 88px：站点 Nav 高度 h-16=64px + 24px 呼吸位 */
   }
-  .corecard h4 {
+  .corecard h3 {
     font-size: 15px;
     font-weight: 700;
     margin-bottom: 4px;
@@ -326,7 +326,7 @@
     color: #fff;
     transform: scale(1.12);
   }
-  .fb h5 {
+  .fb .mini-h {
     font-size: 13px;
     font-weight: 650;
     margin-bottom: 3px;

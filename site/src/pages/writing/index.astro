@@ -51,7 +51,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   <!-- ============ 左栏：分类筛选 + 文章统计 + 热门标签（设计稿 L406–435） ============ -->
   <div slot="left" class="text-right">
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">文章统计</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">文章统计</p>
       <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
         <dt class="text-right font-mono text-[10.5px] text-ink4">总计</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">{posts.length} 篇</dd>
@@ -65,7 +65,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5" data-writing-filter>
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">分类筛选</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">分类筛选</p>
       <div class="flex flex-col gap-[7px]">
         {
           CATS.map((c, i) => (
@@ -84,7 +84,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     </div>
 
     <div>
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">热门标签</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">热门标签</p>
       <div class="flex flex-wrap justify-end gap-1.5">
         {
           hotTags.map(([t]) => (
@@ -122,7 +122,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
             data-planned={planned ? 'true' : undefined}
           >
             {planned && <span class="wbadge">即将发布</span>}
-            <h3>{p.data.title}</h3>
+            <h2>{p.data.title}</h2>
             <p>{p.data.description}</p>
             <div class="wmeta">
               <span>{iso(p.data.date)}</span>
@@ -142,7 +142,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 
   <!-- ============ 右栏：推荐阅读 + 写作计划 + 按主题浏览（设计稿 L518–554） ============ -->
   <div slot="right">
-    <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">推荐阅读</h5>
+    <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">推荐阅读</p>
     <ol class="m-0 list-none">
       {
         featured.map((p, i) => (
@@ -165,14 +165,14 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     </ol>
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">写作计划</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">写作计划</p>
       <div class="kpi"><b>{publishedCount}</b><i>已发布</i></div>
       <div class="kpi"><b>{plannedCount}</b><i>计划中</i></div>
       <div class="kpi"><b>Agent</b><i>优先方向</i></div>
     </div>
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">按主题浏览</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">按主题浏览</p>
       <a href="/writing/" class="rel-link"><b>Agent 工程化</b><i>检索 · 工具 · 编排</i></a>
       <a href="/writing/" class="rel-link"><b>Java 基础</b><i>并发 · JVM · 集合</i></a>
       <a href="/writing/" class="rel-link"><b>算法题解</b><i>Hot 100 分类整理</i></a>
@@ -231,7 +231,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   .crumb {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     margin-bottom: 18px;
   }
   .ahead h1 {
@@ -288,7 +288,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   .wcard:hover::before {
     transform: scaleY(1);
   }
-  .wcard h3 {
+  .wcard h2 {
     font-size: 16.5px;
     font-weight: 700;
     letter-spacing: -0.018em;
@@ -300,12 +300,12 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     overflow-wrap: anywhere;
     padding-right: 76px; /* 给右上角的「即将发布」徽标让位 */
   }
-  .wcard:hover h3 {
+  .wcard:hover h2 {
     color: var(--color-gd);
   }
   .wcard p {
     font-size: 13.2px;
-    color: var(--color-ink3);
+    color: var(--color-ink2);
     line-height: 1.7;
     margin-bottom: 11px;
     overflow-wrap: anywhere;
@@ -317,7 +317,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     flex-wrap: wrap;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
   .wmeta .tg {
     display: flex;
@@ -327,7 +327,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   .wmeta .tg span {
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     background: var(--color-paper2);
     border: 1px solid var(--color-line);
     padding: 2.5px 8px;
@@ -358,7 +358,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     padding-top: 40px;
     padding-bottom: 40px;
     text-align: center;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     font-size: 13.5px;
     display: none;
   }
@@ -375,7 +375,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     font-family: inherit;
     font-size: 12.5px;
     font-weight: 600;
-    color: var(--color-ink3);
+    color: var(--color-ink2);
     cursor: pointer;
     transition: border-color 0.24s, color 0.24s, transform 0.24s, background 0.24s;
     box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
@@ -427,14 +427,14 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   .kpi i {
     font-style: normal;
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
 
   /* ---------- 右栏「按主题浏览」（设计稿 .toc2 .rel a L400–412） ---------- */
   .rel-link {
     display: block;
     font-size: 12.2px;
-    color: var(--color-ink3);
+    color: var(--color-ink2);
     text-decoration: none;
     line-height: 1.6;
     padding: 9px 0;
@@ -461,7 +461,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     font-style: normal;
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     display: block;
     margin-top: 3px;
   }
@@ -477,7 +477,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
       top: 15px;
       right: 15px;
     }
-    .wcard h3 {
+    .wcard h2 {
       padding-right: 70px;
     }
   }
@@ -486,7 +486,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   @media (prefers-reduced-motion: reduce) {
     .wcard,
     .wcard::before,
-    .wcard h3,
+    .wcard h2,
     .fbtn,
     .rel-link {
       transition: none;

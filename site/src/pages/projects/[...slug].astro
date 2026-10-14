@@ -90,7 +90,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     <ProgressRing />
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">项目信息</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">项目信息</p>
       <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
         <dt class="text-right font-mono text-[10.5px] text-ink4">角色</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">{project.data.role}</dd>
@@ -106,7 +106,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">技术栈</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">技术栈</p>
       <div class="flex flex-wrap justify-end gap-1.5">
         {
           project.data.stack.map((s) => (
@@ -121,7 +121,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     {
       project.data.repo && (
         <div class="mb-5 border-b border-line2 pb-5">
-          <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">操作</h5>
+          <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">操作</p>
           <div class="flex flex-col items-end gap-2">
             <a
               href={project.data.repo}
@@ -143,7 +143,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     }
 
     <div class="flex flex-col gap-0.5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">其他项目</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">其他项目</p>
       {
         siblings.map((s) => (
           <a
@@ -219,7 +219,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     <TocList items={toc} heading="本页目录" />
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">关键数据</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">关键数据</p>
       {
         project.data.metrics.map((m) => (
           <div class="kpi">
@@ -233,7 +233,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     {
       stageCards.length > 0 && (
         <div class="mt-7 border-t border-line2 pt-5">
-          <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">按阶段跳转</h5>
+          <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">按阶段跳转</p>
           {stageCards.map((c, i) => (
             <a href={stageHref} class:list={['tcard', i === 0 && 'on']}>
               <span class="tk">{c.k}</span>
@@ -274,11 +274,11 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
   .prose-k :global(.crumb) {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     margin-bottom: 18px;
   }
   .prose-k :global(.crumb a) {
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     text-decoration: none;
     transition: 0.2s;
   }
@@ -304,7 +304,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     flex-wrap: wrap;
     align-items: center;
     font-size: 12.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     font-family: var(--font-mono);
   }
   .prose-k :global(.ameta .tg) {
@@ -380,7 +380,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
   :global(.kpi i) {
     font-style: normal;
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
 
   /* ---------- 右栏可点阶段卡（设计稿 L283–291） ---------- */
@@ -430,7 +430,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     display: block;
     font-family: var(--font-mono);
     font-size: 9.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     margin-top: 3px;
   }
 
@@ -463,7 +463,7 @@ const stageHref = stageHead ? '#' + stageHead.slug : '#';
     display: block;
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     letter-spacing: 0.08em;
     margin-bottom: 6px;
   }

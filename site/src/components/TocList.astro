@@ -6,7 +6,10 @@ interface Props {
 const { items, heading = '本文目录' } = Astro.props;
 ---
 <div>
-  <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">{heading}</h5>
+  {/* 用 <p> 而非 <h5>：这是侧栏的小标签，不是文档结构标题。
+      用 heading 元素会在右侧目录/正文之间造成层级跳跃，触发 Lighthouse 的
+      heading-order 审计（h2 → h5 跳级）。样式由 Tailwind class 承担，与标签无关。 */}
+  <p class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">{heading}</p>
   <ol class="list-none counter-reset">
     {items.map((it, i) => (
       <li class="py-[3px]">

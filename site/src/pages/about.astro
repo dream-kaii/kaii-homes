@@ -131,21 +131,21 @@ const avatarAlt = `${site.name} 的头像`;
     <ProgressRing />
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">基本情况</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">基本情况</p>
       <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
-        <dt class="text-right font-mono text-[10.5px] text-ink4">专业</dt>
+        <dt class="text-right font-mono text-[10.5px] text-ink2">专业</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">软件工程</dd>
-        <dt class="text-right font-mono text-[10.5px] text-ink4">届别</dt>
+        <dt class="text-right font-mono text-[10.5px] text-ink2">届别</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">2028 届</dd>
-        <dt class="text-right font-mono text-[10.5px] text-ink4">方向</dt>
+        <dt class="text-right font-mono text-[10.5px] text-ink2">方向</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">Agent 开发</dd>
-        <dt class="text-right font-mono text-[10.5px] text-ink4">状态</dt>
+        <dt class="text-right font-mono text-[10.5px] text-ink2">状态</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2" data-status>{statusLabel}</dd>
       </dl>
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">关键词</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">关键词</p>
       <div class="flex flex-wrap justify-end gap-1.5">
         {
           ['Agent', 'RAG', 'Java', '后端', '检索'].map((k) => (
@@ -158,7 +158,7 @@ const avatarAlt = `${site.name} 的头像`;
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">操作</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">操作</p>
       <div class="flex flex-col items-end gap-2">
         <a href={`mailto:${site.email}`} class="ract">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -177,7 +177,7 @@ const avatarAlt = `${site.name} 的头像`;
     </div>
 
     <div>
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</p>
       <div class="flex flex-col gap-0.5">
         <a href="/" class="ser"><span class="sn">→</span><span class="st">首页</span></a>
         <a href="/projects/" class="ser"><span class="sn">→</span><span class="st">我的项目</span></a>
@@ -198,7 +198,10 @@ const avatarAlt = `${site.name} 的头像`;
       也真的踩过工具编排、上下文管理、检索降级这些工程坑。
     </p>
 
-    <div class="facts">
+    {/* dlitem 修复：`<dt>`/`<dd>` 必须祖先是 `<dl>`。原来外层是 `<div class="facts">`，
+        Lighthouse 报 dlitem。改成 `<dl>`（HTML 规范允许 dl > div > dt/dd 的分组写法），
+        布局靠 grid 不受影响。 */}
+    <dl class="facts">
       <div class="fact">
         <dt>专业</dt>
         <dd>软件工程</dd>
@@ -215,7 +218,7 @@ const avatarAlt = `${site.name} 的头像`;
         <dt>技术底座</dt>
         <dd>Java / SpringCloud</dd>
       </div>
-    </div>
+    </dl>
   </header>
 
   <h2 id="sec1"><span class="num">01</span>我的路径</h2>
@@ -229,7 +232,7 @@ const avatarAlt = `${site.name} 的头像`;
       PATH.map((s) => (
         <div class:list={['tli', s.now && 'now']}>
           <div class="tw">{s.when}</div>
-          <h4>{s.title}</h4>
+          <p class="mini-h">{s.title}</p>
           <p>{s.body}</p>
         </div>
       ))
@@ -293,14 +296,14 @@ const avatarAlt = `${site.name} 的头像`;
     <TocList items={toc} heading="本页目录" />
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</p>
       <div class="kpi"><b>Agent</b><i>主攻方向</i></div>
       <div class="kpi"><b>10 章</b><i>客户项目</i></div>
       <div class="kpi"><b>{site.available ? '实习' : '交流'}</b><i>{site.available ? '开放中' : '欢迎打扰'}</i></div>
     </div>
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</p>
       <a href="/projects/mewhelp/" class="rel-link">
         <b>MewHelp 客服 Agent</b>
         <i>主线项目 · 10 章</i>
@@ -380,7 +383,9 @@ const avatarAlt = `${site.name} 的头像`;
   .fact dt {
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-ink4);
+    /* 对比度修复：原 --color-ink4 (#A6AE9C) on 纸色仅 2.17:1，10px 小字远不达标（需 4.5）。
+       换 --color-ink2 (#48543E) → 7.61:1。仍与 dd（14px 正常字重）有视觉层次。*/
+    color: var(--color-ink2);
     letter-spacing: 0.08em;
     margin-bottom: 5px;
     font-weight: 700;
@@ -436,11 +441,12 @@ const avatarAlt = `${site.name} 的头像`;
   .tw {
     font-family: var(--font-mono);
     font-size: 10.5px;
-    color: var(--color-ink4);
+    /* 对比度修复：同 .fact dt，ink4 (#A6AE9C) 仅 2.17:1 → 换 ink2 (7.61:1)。*/
+    color: var(--color-ink2);
     letter-spacing: 0.05em;
     margin-bottom: 5px;
   }
-  .tli h4 {
+  .tli .mini-h {
     font-size: 15px;
     font-weight: 700;
     margin-bottom: 6px;
@@ -471,7 +477,7 @@ const avatarAlt = `${site.name} 的头像`;
   .sl {
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2); /* 对比度修复：ink4 仅 2.17:1 → ink2 7.61:1 */
     letter-spacing: 0.06em;
     font-weight: 700;
     padding-top: 5px;
@@ -551,7 +557,7 @@ const avatarAlt = `${site.name} 的头像`;
   .cv {
     font-family: var(--font-mono);
     font-size: 12px;
-    color: var(--color-ink4);
+    color: var(--color-ink2); /* 对比度修复：ink4 仅 2.17:1 → ink2 7.61:1 */
     overflow-wrap: anywhere;
   }
   .crow:hover .cv {
@@ -642,7 +648,7 @@ const avatarAlt = `${site.name} 的头像`;
   :global(.kpi i) {
     font-style: normal;
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
 
   :global(.rel-link) {
@@ -675,7 +681,7 @@ const avatarAlt = `${site.name} 的头像`;
     font-style: normal;
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     display: block;
     margin-top: 3px;
   }

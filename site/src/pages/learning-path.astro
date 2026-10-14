@@ -49,7 +49,7 @@ const toc = tracks
     <ProgressRing />
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">路线概览</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">路线概览</p>
       {
         tracks.map((t) => (
           <div class="mb-1.5 flex items-center justify-end gap-2">
@@ -61,13 +61,13 @@ const toc = tracks
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">已发布文章</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">已发布文章</p>
       <div class="kpi"><b>1</b><i>已完成</i></div>
       <div class="kpi"><b>7</b><i>规划中</i></div>
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">切换路线</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">切换路线</p>
       <div class="flex flex-col gap-0.5" data-track-switch>
         {
           tracks.map((t) => (
@@ -86,7 +86,7 @@ const toc = tracks
     </div>
 
     <div>
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</p>
       <div class="flex flex-col gap-0.5">
         <a href="/" class="ser"><span class="sn">→</span><span class="st">首页</span></a>
         <a href="/projects/" class="ser"><span class="sn">→</span><span class="st">我的项目</span></a>
@@ -144,14 +144,14 @@ const toc = tracks
     <TocList items={toc} heading="本页目录" />
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</p>
       <div class="kpi"><b>Agent</b><i>主线 · 正在走</i></div>
       <div class="kpi"><b>7 站</b><i>路线步骤</i></div>
       <div class="kpi"><b>{site.available ? '实习' : '交流'}</b><i>{site.available ? '开放中' : '欢迎打扰'}</i></div>
     </div>
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</p>
       <a href="/projects/mewhelp/" class="rel-link">
         <b>MewHelp 客服 Agent</b>
         <i>主线项目 · 10 章</i>

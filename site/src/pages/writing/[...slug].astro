@@ -50,7 +50,7 @@ const related = [
     <ProgressRing />
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">本文信息</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">本文信息</p>
       <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
         <dt class="text-right font-mono text-[10.5px] text-ink4">发布</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">{iso}</dd>
@@ -72,7 +72,7 @@ const related = [
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">标签</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">标签</p>
       <div class="flex flex-wrap justify-end gap-1.5">
         {
           post.data.tags.map((tg) => (
@@ -149,7 +149,7 @@ const related = [
   <div slot="right">
     {toc.length > 0 && <TocList items={toc} />}
     <div class="mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">相关文章</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">相关文章</p>
       {
         related.map((r) => (
           <a href={`/writing/${r.id}/`} class="rel-link">
@@ -176,11 +176,11 @@ const related = [
   .crumb {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     margin-bottom: 18px;
   }
   .crumb a {
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     text-decoration: none;
     transition: color 0.2s;
   }
@@ -209,7 +209,7 @@ const related = [
     flex-wrap: wrap;
     align-items: center;
     font-size: 12.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     font-family: var(--font-mono);
   }
   .ameta .tg {
@@ -269,7 +269,7 @@ const related = [
     font-style: normal;
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     display: block;
     margin-top: 3px;
   }

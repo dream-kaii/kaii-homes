@@ -3,7 +3,10 @@ import { site } from '../data/site';
 ---
 <footer class="mt-14 border-t border-line2 pb-12 pt-8">
   <div class="foot-in mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 px-8">
-    <span class="flex items-center gap-2.5 font-mono text-[12.5px] text-ink3">
+    {/* 对比度修复：text-ink3 (#7A8570) on 纸色仅 3.67:1，12.5px 小字不达标（需 4.5）。
+        换 --color-ink2 (#48543E) → 7.61:1。与右侧链接层级也统一了。
+        （Lighthouse a11y 的 color-contrast 审计项）*/}
+    <span class="flex items-center gap-2.5 font-mono text-[12.5px] text-ink2">
       <img src="/avatar.jpg" alt="" width="21" height="21"
            class="rounded-full border-[1.5px] border-white object-cover"
            style="box-shadow:0 0 0 1px var(--color-gh)" />

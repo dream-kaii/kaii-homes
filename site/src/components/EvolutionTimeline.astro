@@ -66,15 +66,15 @@ import { evolution } from '../data/evolution';
               <article class="tp-view" data-p={i} hidden={i !== 0}>
                 <div class="tph">
                   <span class="tpst">STEP {s.n}</span>
-                  <h4>
+                  <h3>
                     {s.title}
                     <em>{s.en}</em>
-                  </h4>
+                  </h3>
                 </div>
                 <p class="tpd">{s.desc}</p>
                 <div class="tpg">
                   <div class="tpcol">
-                    <h5>要做成什么样</h5>
+                    <p class="mini-h">要做成什么样</p>
                     <ul>
                       {s.items.map((x) => (
                         <li>{x}</li>
@@ -82,7 +82,7 @@ import { evolution } from '../data/evolution';
                     </ul>
                   </div>
                   <div class="tpcol dark">
-                    <h5>容易踩在哪儿</h5>
+                    <p class="mini-h">容易踩在哪儿</p>
                     <ul>
                       {s.pitfalls.map((x) => (
                         <li>{x}</li>
@@ -126,7 +126,7 @@ import { evolution } from '../data/evolution';
     gap: 9px;
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     letter-spacing: 0.11em;
     font-weight: 700;
     margin-bottom: 15px;
@@ -309,12 +309,12 @@ import { evolution } from '../data/evolution';
     border-radius: 100px;
     letter-spacing: 0.07em;
   }
-  .tpin h4 {
+  .tpin h3 {
     font-size: 19px;
     font-weight: 750;
     letter-spacing: -0.022em;
   }
-  .tpin h4 em {
+  .tpin h3 em {
     font-style: normal;
     font-family: var(--font-mono);
     font-size: 13px;
@@ -334,7 +334,7 @@ import { evolution } from '../data/evolution';
     grid-template-columns: 1fr 1fr;
     gap: 26px;
   }
-  .tpcol h5 {
+  .tpcol .mini-h {
     font-family: var(--font-mono);
     font-size: 10.5px;
     color: var(--color-ink4);

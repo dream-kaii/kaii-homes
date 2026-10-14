@@ -54,7 +54,7 @@ const totals = {
   <!-- ============ 左栏：项目统计 + 技术栈分布 ============ -->
   <div slot="left" class="text-right">
     <div class="mb-5 border-b border-line2 pb-5">
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">项目统计</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">项目统计</p>
       <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
         <dt class="text-right font-mono text-[10.5px] text-ink4">总计</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">{totals.count} 个</dd>
@@ -66,7 +66,7 @@ const totals = {
     </div>
 
     <div>
-      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">技术栈分布</h5>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">技术栈分布</p>
       <div class="flex flex-wrap justify-end gap-1.5">
         {
           topStack.map(([name, n]) => (
@@ -97,7 +97,7 @@ const totals = {
         items.map((p) => (
           <a href={p.href} class="wcard rv">
             <span class="wcard-idx">{p.index}</span>
-            <h3>{p.title}</h3>
+            <h2>{p.title}</h2>
             <p>{p.desc}</p>
             <div class="wmeta">
               <span>{p.role}</span>
@@ -123,7 +123,7 @@ const totals = {
 
   <!-- ============ 右栏：概览 KPI + 相关页面 ============ -->
   <div slot="right">
-    <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">概览</h5>
+    <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">概览</p>
     <div class="kpi">
       <b>3</b>
       <i>个项目</i>
@@ -138,7 +138,7 @@ const totals = {
     </div>
 
     <div class="rel mt-7 border-t border-line2 pt-5">
-      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">相关页面</h5>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">相关页面</p>
       <a href="/writing/" class="rel-link">
         <b>技术文章</b>
         <i>踩坑记录与原理梳理</i>
@@ -167,7 +167,7 @@ const totals = {
   .prose-k :global(.crumb) {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     margin-bottom: 18px;
   }
   .prose-k h1 {
@@ -238,7 +238,7 @@ const totals = {
     letter-spacing: 0.08em;
   }
 
-  .wcard h3 {
+  .wcard h2 {
     font-size: 16.5px;
     font-weight: 700;
     letter-spacing: -0.018em;
@@ -249,12 +249,12 @@ const totals = {
     /* 右上角编号占位，标题不压到它身上 */
     padding-right: 36px;
   }
-  .wcard:hover h3 {
+  .wcard:hover h2 {
     color: var(--color-gd);
   }
   .wcard p {
     font-size: 13.2px;
-    color: var(--color-ink3);
+    color: var(--color-ink2);
     line-height: 1.7;
     margin-bottom: 11px;
   }
@@ -266,7 +266,7 @@ const totals = {
     flex-wrap: wrap;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
   .wmeta .tg {
     display: flex;
@@ -276,7 +276,7 @@ const totals = {
   .wmeta .tg span {
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     background: var(--color-paper2);
     border: 1px solid var(--color-line);
     padding: 2.5px 8px;
@@ -308,7 +308,7 @@ const totals = {
   .wstats i {
     font-style: normal;
     font-size: 10.5px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
 
   /* ---------- 右栏（writing-index-mockup L276–280, L528–540） ---------- */
@@ -332,13 +332,13 @@ const totals = {
   :global(.kpi i) {
     font-style: normal;
     font-size: 11px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
   }
 
   :global(.rel-link) {
     display: block;
     font-size: 12.2px;
-    color: var(--color-ink3);
+    color: var(--color-ink2);
     text-decoration: none;
     line-height: 1.6;
     padding: 9px 0;
@@ -365,7 +365,7 @@ const totals = {
     font-style: normal;
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--color-ink4);
+    color: var(--color-ink2);
     display: block;
     margin-top: 3px;
   }

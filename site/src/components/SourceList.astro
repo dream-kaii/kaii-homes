@@ -42,7 +42,7 @@ const KIND_LABEL: Record<Source['kind'], string> = {
 {
   sources.length > 0 && (
     <div class="sources rv">
-      <h4>
+      <p class="mini-h">
         <svg
           width="14"
           height="14"
@@ -57,7 +57,7 @@ const KIND_LABEL: Record<Source['kind'], string> = {
           <path d="M9 8h6M9 12h4" />
         </svg>
         {heading}
-      </h4>
+      </p>
       <ol>
         {sources.map((s) => (
           <li>
@@ -86,7 +86,7 @@ const KIND_LABEL: Record<Source['kind'], string> = {
        站内未把阴影收进令牌表，与 Hero / CapabilityGrid 口径一致，此处内联原值。 */
     box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
   }
-  .sources h4 {
+  .sources .mini-h {
     font-family: var(--font-mono);
     font-size: 10.5px;
     font-weight: 700;
@@ -142,7 +142,7 @@ const KIND_LABEL: Record<Source['kind'], string> = {
   .sources .tp {
     font-family: var(--font-mono);
     font-size: 9.5px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     background: #eaf2ce;
     border: 1px solid #d6e2b0;
     padding: 2px 7px;

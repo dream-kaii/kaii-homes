@@ -44,7 +44,7 @@ const { stages } = Astro.props;
           {s.tag && <small>{s.tag}</small>}
         </div>
         <div>
-          <h4>{s.title}</h4>
+          <p class="mini-h">{s.title}</p>
           <p>{s.desc}</p>
           {s.tags && s.tags.length > 0 && (
             <div class="tgs">
@@ -124,7 +124,7 @@ const { stages } = Astro.props;
     letter-spacing: 0.08em;
   }
 
-  .stg h4 {
+  .stg .mini-h {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.014em;
@@ -148,7 +148,7 @@ const { stages } = Astro.props;
   .tgs span {
     font-family: var(--font-mono);
     font-size: 9.5px;
-    color: var(--color-gm);
+    color: var(--color-gd);
     background: var(--color-paper2);
     border: 1px solid var(--color-line);
     padding: 2.5px 8px;
