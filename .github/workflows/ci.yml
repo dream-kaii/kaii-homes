@@ -1,0 +1,31 @@
+name: CI
+
+# 只做质量门禁，**不做部署**。
+# 部署走 Cloudflare Pages 的 Git 集成（控制台连接仓库后自动构建），
+# 因此这里不需要 deploy job，也不需要 CNAME / upload-pages-artifact 这类
+# GitHub Pages 专有机制。详见 site/DEPLOY.md。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
