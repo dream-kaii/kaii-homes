@@ -65,7 +65,7 @@ export const projects: Project[] = [
       { value: 0, label: '新增数据库表' },
     ],
     tags: ['SpringBoot', 'Redis', 'Lua', 'Kafka', 'Redisson', 'LangChain4j'],
-    href: '/projects/',
+    href: '/projects/chengmi/',
   },
   {
     index: '03',
@@ -82,6 +82,6 @@ export const projects: Project[] = [
       { value: 12, label: '业务章节' },
     ],
     tags: ['SpringCloud', 'Redisson', 'RabbitMQ', 'XXL-JOB', 'Caffeine', 'Nacos'],
-    href: '/projects/',
+    href: '/projects/zhixue/',
   },
 ];
