@@ -289,11 +289,18 @@ repo: https://github.com/dream-kaii/MewHelp
 > ⚠️ **两个容易写错的字段**：`order` 要写**裸数字**（`order: 1`，不能写 `order: '1'`）；
 > `year` 要写**字符串**（`year: '2026'`，不能写 `year: 2026`）。写反了构建会直接报错。
 
-> 📌 **项目文件的「第二份真相」**：`src/content/projects/*.mdx` 同时由
-> `scripts/gen-project-content.mjs` 生成（运行 `node scripts/gen-project-content.mjs` 可字节级重建）。
-> 这份生成器是**恢复工具** —— 项目文件曾因故被清空过，需要一份能一键重建的备份。
-> **约定**：手改过 `.mdx` 之后，如果生成器里也有同一段内容，要么同步改生成器，
-> 要么以手改版本为准并接受生成器暂时过时。**别把生成器当成唯一真相。**
+> 📌 **项目文件的「恢复工具」**：`scripts/gen-project-content.mjs` 能在项目文件被误删后重建它们。
+>
+> ```bash
+> node scripts/gen-project-content.mjs          # 安全：只补缺失的文件，不动已存在的
+> node scripts/gen-project-content.mjs --force  # 危险：用生成器版本覆盖现有文件
+> ```
+>
+> **默认行为是安全的**：文件不存在才写入；已存在且内容相同就跳过；
+> **已存在且内容不同则跳过并警告**（因为仓库里的版本多半是人工润色过的新版）。
+> 只有明确要用生成器版本覆盖时才加 `--force`，且**建议先 `git commit` 或 `git stash`**。
+>
+> 换句话说：**生成器不是唯一真相**，`.mdx` 里的人写版本才是。生成器只是「文件没了怎么办」的保险。
 
 ---
 

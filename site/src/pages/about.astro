@@ -131,7 +131,7 @@ const avatarAlt = `${site.name} 的头像`;
     <ProgressRing />
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">基本情况</p>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink2">基本情况</p>
       <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
         <dt class="text-right font-mono text-[10.5px] text-ink2">专业</dt>
         <dd class="text-left text-[12.5px] font-medium text-ink2">软件工程</dd>
@@ -145,7 +145,7 @@ const avatarAlt = `${site.name} 的头像`;
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">关键词</p>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink2">关键词</p>
       <div class="flex flex-wrap justify-end gap-1.5">
         {
           ['Agent', 'RAG', 'Java', '后端', '检索'].map((k) => (
@@ -158,7 +158,7 @@ const avatarAlt = `${site.name} 的头像`;
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
-      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">操作</p>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink2">操作</p>
       <div class="flex flex-col items-end gap-2">
         <a href={`mailto:${site.email}`} class="ract">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -177,7 +177,7 @@ const avatarAlt = `${site.name} 的头像`;
     </div>
 
     <div>
-      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</p>
+      <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink2">快速跳转</p>
       <div class="flex flex-col gap-0.5">
         <a href="/" class="ser"><span class="sn">→</span><span class="st">首页</span></a>
         <a href="/projects/" class="ser"><span class="sn">→</span><span class="st">我的项目</span></a>
@@ -296,14 +296,14 @@ const avatarAlt = `${site.name} 的头像`;
     <TocList items={toc} heading="本页目录" />
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</p>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink2">现在在做什么</p>
       <div class="kpi"><b>Agent</b><i>主攻方向</i></div>
-      <div class="kpi"><b>10 章</b><i>客户项目</i></div>
+      <div class="kpi"><b>10 章</b><i>课程项目</i></div>
       <div class="kpi"><b>{site.available ? '实习' : '交流'}</b><i>{site.available ? '开放中' : '欢迎打扰'}</i></div>
     </div>
 
     <div class="mt-7 border-t border-line2 pt-5">
-      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</p>
+      <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink2">看看我的作品</p>
       <a href="/projects/mewhelp/" class="rel-link">
         <b>MewHelp 客服 Agent</b>
         <i>主线项目 · 10 章</i>

@@ -22,7 +22,7 @@
  *   - 组件（ProjectStages / CaseCard / ProjectLimits / SourceList）内嵌在
  *     对应章节之后 —— 需要 `.mdx` 才生效（纯 `.md` 会把标签转义成字面量）。
  */
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -399,8 +399,52 @@ ${sourcesBlock([
 `;
 
 mkdirSync(DIR, { recursive: true });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⚠️ 默认**不覆盖**已存在且内容不同的文件。
+//
+// 为什么：这个脚本的本职是「文件被误删后的恢复工具」（见文件头注释），
+// 但最初的实现是无条件 writeFileSync —— 等于把生成器里那版旧稿当成唯一真相，
+// 一跑就把人工润色过的 mdx 冲掉（实测：mewhelp.mdx 10107 → 5957 字节，静默丢失）。
+// 而 WRITING.md 曾经正是推荐直接运行这条命令的。
+//
+// 现在的行为：
+//   - 文件不存在            → 写入（恢复场景，本脚本的正职）
+//   - 存在且内容**相同**     → 跳过（幂等，不产生无意义改动）
+//   - 存在且内容**不同**     → 跳过并警告，需要 `--force` 才覆盖
+//   - 传了 `--force`        → 覆盖（明确表达「我要用生成器版本」）
+// ─────────────────────────────────────────────────────────────────────────────
+const FORCE = process.argv.includes('--force');
 const files = { 'mewhelp.mdx': mewhelp, 'chengmi.mdx': chengmi, 'zhixue.mdx': zhixue };
+
+let wrote = 0, skipped = 0;
 for (const [name, body] of Object.entries(files)) {
-  writeFileSync(resolve(DIR, name), body, 'utf8');
-  console.log('wrote', name, body.length, 'bytes');
+  const target = resolve(DIR, name);
+  if (!existsSync(target)) {
+    writeFileSync(target, body, 'utf8');
+    console.log('wrote  ', name, body.length, 'bytes  (新建)');
+    wrote++;
+    continue;
+  }
+  const current = readFileSync(target, 'utf8');
+  if (current === body) {
+    console.log('same   ', name, '(内容一致，跳过)');
+    continue;
+  }
+  if (FORCE) {
+    writeFileSync(target, body, 'utf8');
+    console.log('FORCED ', name, body.length, 'bytes  (--force 覆盖)');
+    wrote++;
+  } else {
+    console.log(`SKIP   ${name} —— 已存在且内容不同（现有 ${current.length} 字节 vs 生成 ${body.length} 字节）`);
+    skipped++;
+  }
+}
+
+if (skipped > 0) {
+  console.log('');
+  console.log(`⚠️  ${skipped} 个文件被跳过：仓库里的版本与生成器不一致（多半是人工润色过的新版）。`);
+  console.log('    这是预期行为。只有确定要用生成器版本覆盖时，才加 --force：');
+  console.log('      node scripts/gen-project-content.mjs --force');
+  console.log('    建议先 git commit 或 git stash，以便回滚。');
 }

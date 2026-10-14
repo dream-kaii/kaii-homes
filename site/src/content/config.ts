@@ -6,7 +6,14 @@ import { glob } from 'astro/loaders';
 //   默认的 Markdown 处理器没有组件支持，`<RetrievalDemo />` 在产物里会变成一个
 //   字面量 `<retrievaldemo>` 标签（不是组件、也不是错误）。见 task-11 报告。
 const writing = defineCollection({
-  loader: glob({ base: './src/content/writing', pattern: '**/*.{md,mdx}' }),
+  // 排除下划线前缀的模板文件（`_template.md`）—— 它只是给人 `cp` 用的骨架，
+  // 不该变成 `/writing/_template/` 页面。
+  // ⚠️ 实测：glob 的 `**/*.{md,mdx}` **不**自动排除 `_` 前缀（网上常见的说法是错的），
+  // 必须显式写负向模式，否则构建产物里会多出一个模板页。
+  loader: glob({
+    base: './src/content/writing',
+    pattern: ['**/*.{md,mdx}', '!**/_*.{md,mdx}'],
+  }),
   schema: z.object({
     title: z.string(),
     description: z.string(),

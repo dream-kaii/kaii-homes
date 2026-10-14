@@ -29,14 +29,11 @@ import { projects as homeProjects } from '../../data/projects';
 // 但路由 href 以内容集合为准 —— 首页数据里 02/03 的 href 还是占位的 '/projects/'。
 const all = [...homeProjects].sort((a, b) => a.index.localeCompare(b.index));
 
-// href 修正表：首页数据里非 01 的 href 是占位值，这里按已知 slug 补齐。
-// 用显式映射而不是从 title 推导 slug —— slug 是内容文件名，推不出来。
-const SLUG: Record<string, string> = {
-  '01': '/projects/mewhelp/',
-  '02': '/projects/chengmi/',
-  '03': '/projects/zhixue/',
-};
-const items = all.map((p) => ({ ...p, href: SLUG[p.index] ?? p.href }));
+// href 直接读 `projects.ts`。
+// 这里原来有一张 `SLUG` 修正表（因为早期 `projects.ts` 里 02/03 的 href 是占位值
+// `/projects/`）。该数据已在 commit 8b13443 修正，映射表随之冗余 —— 删掉它，
+// 避免「改 slug 要改两处」的双份真相。
+const items = all;
 
 // 技术栈分布：按出现次数降序取前 6 个，纯展示。
 const stackCount = new Map<string, number>();

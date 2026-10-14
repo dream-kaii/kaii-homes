@@ -33,6 +33,51 @@ const { title, description, active, hasLeft = true, hasRight = true } = Astro.pr
   </div>
 </BaseLayout>
 
+<!--
+  代码块复制按钮。服务端**不**生成按钮，而是在客户端注入 —— 这样无 JS 时
+  不会留下一个点了没反应的死按钮（Global Constraints：无 JS 不能出现假交互）。
+  用事件委托挂在 document 上，覆盖本布局里所有 `.prose-k pre`（文章页 + 项目页）。
+-->
+<script>
+  // @ts-nocheck —— 浏览器运行时 JS，理由同 TrackTabs.astro。
+  const COPY_TEXT = { idle: '复制', done: '已复制' };
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.code-copy');
+    if (!btn) return;
+    const pre = btn.closest('pre');
+    if (!pre) return;
+    const code = pre.querySelector('code');
+    const text = (code || pre).innerText.replace(/\n$/, '');
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = COPY_TEXT.done;
+      btn.classList.add('is-done');
+      setTimeout(() => {
+        btn.textContent = COPY_TEXT.idle;
+        btn.classList.remove('is-done');
+      }, 1600);
+    } catch {
+      // 剪贴板不可用（非 HTTPS / 权限被拒）：退回选中文本，不弹任何提示
+      const r = document.createRange();
+      r.selectNodeContents(code || pre);
+      const sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+  });
+
+  // 注入按钮：每个代码块一个
+  document.querySelectorAll('.prose-k pre').forEach((pre) => {
+    if (pre.querySelector('.code-copy')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'code-copy';
+    btn.textContent = COPY_TEXT.idle;
+    btn.setAttribute('aria-label', '复制这段代码');
+    pre.appendChild(btn);
+  });
+</script>
+
 <style>
   .shell {
     margin: 0 auto; max-width: 1440px; padding: 0 2.5rem;

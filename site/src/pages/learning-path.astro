@@ -29,6 +29,12 @@ const tracks = ORDER.map((k) => {
 });
 const activeKey = 'agent';
 
+// 文章统计从集合实时算，不硬编码 —— 否则新增一篇已发布文章后，
+// 本页与 /writing/ 页会给出矛盾的数字（同一统计的两套实现）。
+const allPosts = await getCollection('writing');
+const publishedCount = allPosts.filter((p) => p.data.status === 'published').length;
+const plannedCount = allPosts.length - publishedCount;
+
 // 把 schema 里的单 article 归一化成数组（StepCard 接收 articles[]），组件层再做 href 兜底。
 const toArticles = (step: any) =>
   step.article ? [{ status: step.article.status, title: step.article.title, href: step.article.href }] : [];
@@ -62,8 +68,8 @@ const toc = tracks
 
     <div class="mb-5 border-b border-line2 pb-5">
       <p class="mini-h mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">已发布文章</p>
-      <div class="kpi"><b>1</b><i>已完成</i></div>
-      <div class="kpi"><b>7</b><i>规划中</i></div>
+      <div class="kpi"><b>{publishedCount}</b><i>已完成</i></div>
+      <div class="kpi"><b>{plannedCount}</b><i>规划中</i></div>
     </div>
 
     <div class="mb-5 border-b border-line2 pb-5">
@@ -146,7 +152,7 @@ const toc = tracks
     <div class="mt-7 border-t border-line2 pt-5">
       <p class="mini-h mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</p>
       <div class="kpi"><b>Agent</b><i>主线 · 正在走</i></div>
-      <div class="kpi"><b>7 站</b><i>路线步骤</i></div>
+      <div class="kpi"><b>{tracks.find((t) => t.key === activeKey)!.data.steps.length} 站</b><i>路线步骤</i></div>
       <div class="kpi"><b>{site.available ? '实习' : '交流'}</b><i>{site.available ? '开放中' : '欢迎打扰'}</i></div>
     </div>
 
