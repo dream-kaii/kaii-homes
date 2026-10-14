@@ -348,13 +348,25 @@
     .corecard {
       position: static;
     }
-    /* 单列后右栏的术语气泡会顶出视口右边缘：气泡以 .term 为锚居中定位、
-       max-width 250px，390px 视口下「重排模型」气泡右边缘实测 419.4px > 390px，
-       把文档撑出横向滚动（scrollWidth 419 > innerWidth 390）。
-       只裁横向（overflow-y 留 visible，气泡仍可向上溢出到卡片外），
-       且只在 <=1100px 单列时启用 —— 多列时气泡本就在视口内（1440px 实测最右 1355px），
-       全宽度裁切会把桌面端允许溢出栏位的气泡拦腰截断。
-       与 `.hero{overflow:hidden}` 对 Hero 术语气泡的处理是同一套口径。 */
+  }
+
+  /* ---------- 术语气泡的横向裁切（Task 8 修正） ----------
+     `.term::after` 的气泡以 `.term` 为中心、`max-width:250px` 居中定位，
+     右侧的「重排模型」气泡在窄一点的视口下会顶出右边缘，把 document 撑出横向滚动。
+
+     Task 7 原本只在 `<=1100px` 时裁切，理由是「1440px 下气泡最右 1355px 仍在视口内」。
+     这个判断只在 1440 成立 —— 实测 **1180–1269px 整段区间都溢出**（1180 时
+     document.scrollWidth 1225 > clientWidth 1180，最大差值 45px；到 1270px 才归零）。
+     原因是右栏的横向位置随视口线性左移，而气泡宽度是定值 250px，两者在 1270px 附近交叉。
+     Task 7 的溢出扫描采样点是 1280 → 1100，正好跳过这一整段，所以没暴露。
+
+     现在改为「只要气泡可能越界就裁」：<=1300px 一律 `overflow-x: clip`
+     （留 30px 余量覆盖 1270 的临界点与字体渲染差异）。
+     `clip` 而非 `hidden`：不创建滚动容器，溢出不参与祖先 scrollWidth，
+     这正是本缺陷的传播路径（实测 `#landscape` sw=1225 会一路冒泡到 main/html）。
+     `overflow-y` 保持 visible，气泡仍可向上溢出到卡片外。
+     桌面宽屏（>1300px）不裁，保留右栏气泡允许横向溢出栏位的原有观感。 */
+  @media (max-width: 1300px) {
     .landscape-sec {
       overflow-x: clip;
     }

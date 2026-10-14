@@ -27,28 +27,41 @@ const catLabel: Record<string, string> = { agent: 'Agent', java: 'Java', algo: '
     <p>先把 Agent 相关的写扎实，再回来补 Java 基础。都是自己啃过一遍才动手写的东西。</p>
   </div>
 
-  <div class="wr-list rv" data-d="1">
-    {
-      shown.map((p) => (
-        <PostRow
-          category={catLabel[p.data.category] ?? p.data.category}
-          title={p.data.title}
-          href={`/writing/${p.slug}/`}
-          tags={p.data.tags}
-          planned={p.data.status === 'planned'}
-        />
-      ))
-    }
-  </div>
+  <!-- 空集合守卫：writing 尚未有内容文件时（本任务先于 Task 11 落地），
+       不渲染空壳列表与「查看全部 0 篇文章」—— 那会是一个指向空列表页的坏入口。
+       这与 CapabilityGrid/Glossary 的「数据缺失就少渲染一段」口径一致，
+       也符合 plan 的 Review Focus #2「空集合不应产出空白页面」：
+       区块头仍照常显示，只是不给空列表和假计数。 -->
+  {
+    shown.length === 0 ? (
+      <p class="wr-empty rv text-[14px] leading-[1.78] text-ink2">
+        文章正在整理中，先把 Agent 相关的写扎实再回来补 Java 基础。
+      </p>
+    ) : (
+      <>
+        <div class="wr-list rv" data-d="1">
+          {shown.map((p) => (
+            <PostRow
+              category={catLabel[p.data.category] ?? p.data.category}
+              title={p.data.title}
+              href={`/writing/${p.slug}/`}
+              tags={p.data.tags}
+              planned={p.data.status === 'planned'}
+            />
+          ))}
+        </div>
 
-  <div class="more-row rv" data-d="2">
-    <a href="/writing/" class="more-link">
-      查看全部 {posts.length} 篇文章
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 12h14M13 6l6 6-6 6"></path>
-      </svg>
-    </a>
-  </div>
+        <div class="more-row rv" data-d="2">
+          <a href="/writing/" class="more-link">
+            查看全部 {posts.length} 篇文章
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6"></path>
+            </svg>
+          </a>
+        </div>
+      </>
+    )
+  }
 </section>
 
 <style>
