@@ -1,0 +1,77 @@
+---
+/**
+ * ProjectLimits · 项目详情页「已知限制」清单
+ *
+ * 来源：design-mockup/project-detail-v2.html
+ *   - CSS  `.limits` / `.limits li` / `.limits li:last-child` / `.limits li svg`  →  L353–358
+ *   - HTML 四条 `<li>`（每条内嵌一个 16×16 的 alert 图标 + 文本）                   →  L681–690
+ *
+ * 令牌映射：--line→var(--color-line) --ink2→var(--color-ink2) --amber→var(--color-amber)
+ *
+ * 与设计稿的差异：
+ *   - 设计稿把 4 条限制连同那段 `<svg>` 一起手写在中栏里。组件把条目收成
+ *     `items: string[]`，图标由组件统一渲染 —— 图标是纯装饰（`aria-hidden`），
+ *     不该跟着正文一起被复制粘贴四遍。
+ *
+ * 用法：
+ *   <ProjectLimits items={['…', '…']} />
+ *   条目字符串里的反引号会被当作 Markdown 行内代码，但**组件不做 Markdown 解析** ——
+ *   需要 `<code>` 的地方请直接用真实标签（见 mewhelp.md 的用法）。
+ */
+interface Props {
+  items: string[];
+}
+const { items } = Astro.props;
+---
+
+<ul class="limits rv">
+  {
+    items.map((it) => (
+      <li>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 9v4M12 17h.01" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+        <span set:html={it} />
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  /* 设计稿 L353–358。 */
+  .limits {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    margin-top: 6px;
+  }
+  .limits li {
+    display: flex;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px dashed var(--color-line);
+    font-size: 13.5px;
+    color: var(--color-ink2);
+    line-height: 1.75;
+  }
+  .limits li:last-child {
+    border-bottom: none;
+  }
+  .limits li svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin-top: 3px;
+    stroke: var(--color-amber);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* 无 JS 兜底：本组件无脚本，静息即终态（`.rv` 的透明度兜底在 global.css）。 */
+  :root:not(.js) .limits {
+    transition: none;
+  }
+</style>

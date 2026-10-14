@@ -1,0 +1,132 @@
+---
+title: MewHelp · 电商智能客服 Agent
+subtitle: 从一条纯对话接口起步，逐章长成一个能用的客服系统
+role: 独立完成
+nature: 课程项目 · 按章节复现并二次开发
+status: completed
+year: '2026'
+order: 1
+stack: [FastAPI, LangGraph, LangChain, Milvus, BGE-M3, Reranker, MCP, Langfuse, RoBERTa]
+metrics:
+  - { value: '10', label: '递进章节' }
+  - { value: '6727', label: '应用代码行' }
+  - { value: '48', label: '测试文件' }
+  - { value: '46', label: 'Make 任务' }
+repo: https://github.com/dream-kaii/MewHelp
+---
+
+import CaseCard from '../../components/CaseCard.astro';
+import ProjectStages from '../../components/ProjectStages.astro';
+import ProjectLimits from '../../components/ProjectLimits.astro';
+import SourceList from '../../components/SourceList.astro';
+
+## 这个项目做了什么
+
+MewHelp 是一个面向电商场景的智能客服系统。用户在聊天页问一句，后端会判断他到底想问什么，
+决定要不要去查订单、检索知识库、或者走退款流程，最后把结果组织成人话回答出来。
+
+整个项目是**按章节逐步长出来的**，不分支、不推倒重来。第一章只有一条对话接口，
+到第十章收尾时已经是完整的一套东西 —— 这也是我觉得它比「一次写完的玩具项目」更有价值的地方：
+每一章都在解决上一章暴露出来的真实问题。
+
+需要说清楚的是：这是一个**课程项目**，我按课程章节的顺序复现并在此基础上做了二次开发。
+项目的骨架与章节划分来自课程，我在每一章里补了设计文档、实现计划和评审记录，
+并在若干处（上下文分组裁剪、工具重试边界、嵌入模型进程级复用）做了自己的判断和改动。
+
+## 架构是怎么一步步长出来的
+
+每一章都因为前一章不够用才存在。下面按依赖顺序排开。
+
+<ProjectStages
+  stages={[
+    { n: 'CH01', tag: '对话', title: '先把一次对话做稳', desc: '流式输出让用户不用干等，多轮上下文让第二句话接得住第一句，历史按 token 预算裁剪避免越聊越贵。', tags: ['SSE', '多轮上下文', '结构化抽取'] },
+    { n: 'CH02', tag: '工具', title: '让它会查数据', desc: '把业务能力包装成工具，让模型自己决定调哪个。关键词查 FAQ 暴露出同义说法漏召回的问题，留给下一章。', tags: ['Function Calling', '工具注册表', 'MySQL'] },
+    { n: 'CH03', tag: '检索', title: '从关键词换成向量', desc: '文档切块、嵌入、存向量库，检索按语义而不是字面。工具对外的契约一行没改。', tags: ['BGE-M3', 'Milvus', '双写状态机'] },
+    { n: 'CH04', tag: '质量', title: '召回要宽，排序要准', desc: 'BM25 和向量双路召回后用 RRF 融合，再上重排模型精筛。配套一整套检索评估。', tags: ['BM25', 'RRF', 'Reranker', '引用溯源'] },
+    { n: 'CH05', tag: '编排', title: '把稳定的部分焊死', desc: '单轮工具调用接不住「先查订单拿单号、再查物流」这类多步任务。改成图编排：确定性骨架加一个主力 Agent 节点。', tags: ['LangGraph', 'State', 'Checkpointer'] },
+    { n: 'CH06', tag: '理解', title: '听懂人话', desc: '「它能退吗」脱离上下文毫无意义。加入指代消解、意图分流，缺订单号时弹选择器让人点，不让模型猜。', tags: ['指代消解', '意图识别', 'interrupt/resume'] },
+    { n: 'CH07', tag: '上下文', title: '聊久了不能爆', desc: '全量历史递给模型必然撑爆。改成双层：最近几轮留原文，更早的异步压成摘要。', tags: ['滑动窗口', '滚动摘要', '前缀缓存'] },
+    { n: 'CH08', tag: '工具系统', title: '工具成为生态', desc: '几个写死的工具撑不起真实业务。统一注册、校验、鉴权、执行、审计，并用 MCP 接外部工具。', tags: ['MCP', '权限分级', '审计日志'] },
+    { n: 'CH09', tag: '可观测', title: '照亮黑盒，回收问题', desc: '接 Langfuse 看每次调用的完整链路，按意图算 token 账；答不上来的问题进池子，人审后补回知识库。', tags: ['Langfuse', '成本账', '数据飞轮'] },
+    { n: 'CH10', tag: '微调', title: '该训就训', desc: '池子里的问题按 17 类主题归类，决定先补哪块知识。说法无穷、类目固定 —— 微调小模型比提示词划算。', tags: ['RoBERTa', '微调', 'ONNX 推理'] },
+  ]}
+/>
+
+## 我解决过的工程问题
+
+这一节是我觉得最有价值的部分 —— 它们不是「功能做完了」，而是「这东西真的能跑起来」。
+
+<CaseCard severity="critical" title="上下文裁剪把工具调用链拆散，导致之后每一轮请求都失败">
+  <Fragment slot="problem">多轮对话要按 token 预算裁剪历史，原实现按「一问一答」成对删除。</Fragment>
+  <Fragment slot="impact">一旦对话里有工具调用，这个假设就不成立 —— 窗口会把 <code>assistant(tool_calls)</code> 和对应的 <code>tool</code> 消息拆开。<b>超限后窗口以 tool 行开头，被上游拒收，之后每一轮都报错。</b></Fragment>
+  <Fragment slot="locate">来自最终全流程评审。根因是设计文档里写了「复用上一章的裁剪逻辑」，但那一章没有工具调用，成对裁剪在工具结构下不成立。</Fragment>
+  <Fragment slot="fix">升级为<b>分组感知裁剪</b>：一个组 = <code>user</code>，或 <code>user + assistant(tool_calls) + tool… + assistant</code>。保证窗口必然以 user 开头，当前轮永不删除。</Fragment>
+  <Fragment slot="verify">补 8 个边界用例，全量测试通过，重启服务实测多轮链路正常。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="工具超时取消不了同步调用，写操作被重试了两次">
+  <Fragment slot="problem">工具执行引擎统一做了超时加重试。但 <code>asyncio.wait_for</code> 只能取消协程，<b>取消不了跑在线程里的同步工具</b>。</Fragment>
+  <Fragment slot="impact">超时触发重试后，一个已经执行过的写操作会被<b>再执行一遍</b> —— 静默的数据重复，日志里看不出异常。</Fragment>
+  <Fragment slot="fix">引入构建期的 <code>non_retryable</code> 黑名单，把有副作用的工具排除在重试之外。读操作照旧重试，写操作绝不。</Fragment>
+  <Fragment slot="tradeoff">为什么不直接对所有工具都不重试？因为读操作超时重试是安全的，放弃重试会明显降低成功率。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="嵌入模型每轮请求重建，每轮重载几 GB 权重">
+  <Fragment slot="problem">检索链路里，嵌入模型是在每次请求时构造的。</Fragment>
+  <Fragment slot="impact">权重加载一次约十几秒，而且向量库连接会随对象一起泄漏。<b>第一个知识类问题会直接超时失败。</b></Fragment>
+  <Fragment slot="fix">改为<b>进程级复用</b>嵌入模型与向量库连接，并引入延迟连接的包装。同时把冷启动时阻塞事件循环的同步计算挪到线程池。</Fragment>
+  <Fragment slot="verify">用真实嵌入模型加向量库跑端到端冒烟，换说法的问句稳定命中。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="测试替身把 bug 藏起来了">
+  <Fragment slot="problem">模块重构后，一个调用方用的还是已被删掉的旧方法名，但我把测试里的替身对象写得<b>比真实实现更宽容</b>，所以测试全绿。</Fragment>
+  <Fragment slot="impact"><b>测试通过，但线上路径一调就崩。</b>这是最难发现的一类问题 —— 你以为有测试保护，实际上测试保护的是错的接口。</Fragment>
+  <Fragment slot="fix">把替身对象<b>重建为镜像真实实现的接口面</b>，返回类型也要一致。测试的价值在于复刻真实约束，不是模拟一个更好说话的世界。</Fragment>
+</CaseCard>
+
+## 一段关键实现
+
+工具执行的第一阶段：跨 chunk 合并工具调用，并对无法解析的调用主动失败。
+
+```python
+async def stream_first_round(model_with_tools, messages, on_delta):
+    """第一阶段：流式收集工具调用，同时逐 chunk 回调文本。"""
+    acc = None
+    parts = []
+    async for chunk in model_with_tools.astream(messages):
+        acc = chunk if acc is None else acc + chunk   # 跨 chunk 合并
+        text = _text_of(chunk)
+        if text:
+            parts.append(text); on_delta(text)
+
+    calls   = getattr(acc, "tool_calls", None) or []
+    invalid = getattr(acc, "invalid_tool_calls", None) or []
+
+    # 工具调用 JSON 无法解析时，处理不当本轮会静默无输出
+    if not calls and invalid:
+        raise ValueError(f"工具调用 JSON 无法解析：{invalid}")
+
+    return normalize(calls), "".join(parts)
+```
+
+## 已知限制
+
+主动写清楚边界，比声称「完美」更接近工程现实。
+
+<ProjectLimits
+  items={[
+    '关键词降级路径对同义表达仍会漏召回 —— 这正是引入混合检索的直接原因，但降级路径本身保持原样未升级。',
+    '<code>user_id</code> 目前没有鉴权，会话归属只按 id 过滤。这是课程项目的简化设计，不是生产形态。',
+    '会话级并发锁覆盖了同一 session 的写冲突，但没有做跨实例的分布式协调。',
+    '嵌入与重排模型绑定本机缓存路径，换环境需要重新下载权重或改配置。',
+  ]}
+/>
+
+<SourceList
+  sources={[
+    { title: 'LangGraph 官方文档 · Persistence 与 Checkpointer', url: 'https://langchain-ai.github.io/langgraph/concepts/persistence/', kind: 'official' },
+    { title: 'Milvus 官方文档 · 向量索引与检索', url: 'https://milvus.io/docs/index.md', kind: 'official' },
+    { title: 'Model Context Protocol 规范', url: 'https://modelcontextprotocol.io/specification', kind: 'official' },
+    { title: 'BAAI/bge-m3 模型卡', url: 'https://huggingface.co/BAAI/bge-m3', kind: 'official' },
+  ]}
+/>

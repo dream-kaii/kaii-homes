@@ -1,0 +1,239 @@
+---
+/**
+ * CaseCard · 项目详情页「我解决过的工程问题」单个案例卡
+ *
+ * 来源：design-mockup/project-detail-v2.html
+ *   - CSS  `.cases` 之外的单卡 `.case` / `.case-hd` / `.case h4` / `.sev`
+ *          / `.sev-c` / `.sev-i` / `.case-body` / `.ca` / `.ca dt` / `.ca dd`   →  L336–351
+ *   - HTML 四个案例卡的结构                                                 →  L604–648
+ *   - 响应式 `.case{padding:17px 17px}` / `.ca{grid-template-columns:1fr}`
+ *          / `.case-hd{flex-direction:column}`                                →  L385–387, L411–416
+ *
+ * 令牌映射：--card→var(--color-card) --line→var(--color-line) --gh→var(--color-gh)
+ *   --gd→var(--color-gd) --ink2→var(--color-ink2) --ink4→var(--color-ink4)
+ *   --line2→var(--color-line2) --rose→var(--color-rose) --amber→var(--color-amber)
+ *   --sh→0 1px 3px rgba(42,77,46,.05) --sh2→0 6px 22px -6px rgba(42,77,46,.11)
+ *   --mono→var(--font-mono)
+ *   `#FCEBE9` / `#EFC9C4` / `#FDF4E4` / `#EFDCB4` 为设计稿硬编码值，站内暂无令牌，原样保留。
+ *
+ * 与设计稿的差异：
+ *   - 设计稿每个案例的字段是手写的 `<div class="ca"><dt>问题</dt>…`，
+ *     且四个案例的字段集合并不一致（第一个有「定位」，第二个有「取舍」，第三个有「验证」，
+ *     第四个只有三个字段）。组件把字段定义收成**固定顺序、按需渲染**的六个槽位：
+ *     problem / impact / locate / fix / verify / tradeoff，缺失的槽位不渲染整行。
+ *     这样既保住了设计稿里「字段因案例而异」的信息密度，又消掉了手写结构的不一致。
+ *   - `severity` 只影响右上角标签的配色与文案，不改变卡片其他任何视觉。
+ *
+ * 用法：
+ *   <CaseCard severity="critical" title="…">
+ *     <Fragment slot="problem">…</Fragment>
+ *     <Fragment slot="impact">…</Fragment>
+ *   </CaseCard>
+ */
+interface Props {
+  severity: 'critical' | 'important';
+  title: string;
+}
+const { severity, title } = Astro.props;
+
+const SEV = {
+  critical: { text: 'CRITICAL', cls: 'sev-c' },
+  important: { text: 'IMPORTANT', cls: 'sev-i' },
+} as const;
+const sev = SEV[severity];
+
+// 字段行：只有对应 slot 提供了内容时才渲染整行。
+//
+// ⚠️ 不能用 `FIELDS.filter(...).map(f => <slot name={f.key} />)` ——
+// Astro 编译器要求 `slot[name]` **必须是静态字符串字面量**，
+// 动态的 `name={f.key}` 会在构建期直接报
+// `[CompilerError] slot[name] must be a static string`（本任务实测踩过）。
+// 所以这里显式展开六个静态 slot，每个包在自己的条件分支里。
+//
+// 用 `Astro.slots.has` 判断而不是「取内容再判空」：slot 里放的是 `<Fragment>`，
+// 先取内容再判空会拿到空字符串，导致有内容的行被误判为缺失。
+const FIELDS = [
+  { key: 'problem', label: '问题' },
+  { key: 'impact', label: '后果' },
+  { key: 'locate', label: '定位' },
+  { key: 'fix', label: '方案' },
+  { key: 'verify', label: '验证' },
+  { key: 'tradeoff', label: '取舍' },
+] as const;
+
+const has = (k: (typeof FIELDS)[number]['key']) => Astro.slots.has(k);
+---
+
+<div class="case rv">
+  <div class="case-hd">
+    <h4>{title}</h4>
+    <span class:list={['sev', sev.cls]}>{sev.text}</span>
+  </div>
+  <dl class="case-body">
+    {
+      has('problem') && (
+        <div class="ca">
+          <dt>问题</dt>
+          <dd><slot name="problem" /></dd>
+        </div>
+      )
+    }
+    {
+      has('impact') && (
+        <div class="ca">
+          <dt>后果</dt>
+          <dd><slot name="impact" /></dd>
+        </div>
+      )
+    }
+    {
+      has('locate') && (
+        <div class="ca">
+          <dt>定位</dt>
+          <dd><slot name="locate" /></dd>
+        </div>
+      )
+    }
+    {
+      has('fix') && (
+        <div class="ca">
+          <dt>方案</dt>
+          <dd><slot name="fix" /></dd>
+        </div>
+      )
+    }
+    {
+      has('verify') && (
+        <div class="ca">
+          <dt>验证</dt>
+          <dd><slot name="verify" /></dd>
+        </div>
+      )
+    }
+    {
+      has('tradeoff') && (
+        <div class="ca">
+          <dt>取舍</dt>
+          <dd><slot name="tradeoff" /></dd>
+        </div>
+      )
+    }
+  </dl>
+</div>
+
+<style>
+  /* 设计稿 L336–351。
+     注意：本组件不写 padding / margin 简写去覆盖外层 Tailwind 类（Global Constraints #1）。 */
+  .case {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-left: 3px solid var(--color-gh);
+    border-radius: 15px;
+    padding: 21px 23px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .case:hover {
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    border-left-color: var(--color-gd);
+    transform: translateX(3px);
+  }
+
+  .case-hd {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 4px;
+  }
+  .case h4 {
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: -0.016em;
+    line-height: 1.48;
+  }
+
+  .sev {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 100px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    flex: none;
+  }
+  .sev-c {
+    color: var(--color-rose);
+    background: #fcebe9;
+    border: 1px solid #efc9c4;
+  }
+  .sev-i {
+    color: var(--color-amber);
+    background: #fdf4e4;
+    border: 1px solid #efdcb4;
+  }
+
+  .case-body {
+    margin-top: 11px;
+  }
+  .ca {
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    gap: 13px;
+    padding: 8px 0;
+    font-size: 13.4px;
+    line-height: 1.72;
+  }
+  .ca + .ca {
+    border-top: 1px dashed var(--color-line2);
+  }
+  .ca dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-ink4);
+    letter-spacing: 0.06em;
+    padding-top: 3px;
+  }
+  .ca dd {
+    color: var(--color-ink2);
+    margin: 0;
+  }
+
+  /* ---------- 响应式（设计稿 L385–387 / L411–416） ---------- */
+  @media (max-width: 700px) {
+    .case {
+      padding: 16px 15px;
+    }
+    .case-hd {
+      flex-direction: column;
+      gap: 7px;
+    }
+    .sev {
+      align-self: flex-start;
+    }
+    .ca {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .ca dt {
+      padding-top: 0;
+    }
+  }
+
+  /* ---------- 减少动态效果：悬停位移直接置终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .case {
+      transition: none;
+    }
+    .case:hover {
+      transform: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底：本组件无脚本，hover 位移需静息终态 ---------- */
+  :root:not(.js) .case {
+    transition: none;
+  }
+</style>

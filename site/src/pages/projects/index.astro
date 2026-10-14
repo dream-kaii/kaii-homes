@@ -1,0 +1,428 @@
+---
+/**
+ * 项目列表页 · /projects/
+ *
+ * 设计稿来源（规格修补 7）：本页原 design-mockup 没有专属稿，按 brief 指示
+ * 参考 `design-mockup/writing-index-mockup.html` 的**列表页形态**建三栏，与
+ * Task 11 的 `/writing/` 保持同一套视觉语言：
+ *   - 左栏统计表 `.rmeta dl`                                     →  L221–223（project-detail-v2）
+ *   - 左栏筛选按钮 `.filter` / `.fbtn`                            →  writing-index L309–315
+ *   - 中栏头部 `.ahead` / `.crumb` / `.alede`                     →  writing-index L448–455
+ *   - 中栏列表 `.wlist` / `.wcard` / `.wmeta`                     →  writing-index L315–332
+ *   - 右栏 `.kpi` / `.rel`                                        →  writing-index L528–540
+ *
+ * 两处与设计稿的刻意差异（都在报告里举证）：
+ *   1. MewHelp 的 `nature` 已裁决为「课程项目 · 按章节复现并二次开发」，诚实标注必须
+ *      出现在列表卡上，不能只藏在详情页。卡片元信息第一行因此是 `nature` 而不是
+ *      设计稿里的日期。
+ *   2. 设计稿 `.wcard` 的标题是 `<h3>`、整卡是 `<a>`。本页沿用同一结构，
+ *      但把 `<h3>` 换成 `aria-labelledby` 关联 —— 见下方卡片标注。
+ *
+ * 本页只列 projects 集合（3 项），不做客户端筛选：3 项筛不出东西，
+ * 加个「全部」按钮只是仪式感。左栏改为「项目统计」+「技术栈分布」两项纯展示。
+ */
+import ContentLayout from '../../layouts/ContentLayout.astro';
+import { projects as homeProjects } from '../../data/projects';
+
+// 数据源用 src/data/projects.ts（Task 8 产出的首页卡片数据）而不是重新读集合：
+// 首页与列表页必须展示同一份卡片数据，两处各算一次会漂。
+// 但路由 href 以内容集合为准 —— 首页数据里 02/03 的 href 还是占位的 '/projects/'。
+const all = [...homeProjects].sort((a, b) => a.index.localeCompare(b.index));
+
+// href 修正表：首页数据里非 01 的 href 是占位值，这里按已知 slug 补齐。
+// 用显式映射而不是从 title 推导 slug —— slug 是内容文件名，推不出来。
+const SLUG: Record<string, string> = {
+  '01': '/projects/mewhelp/',
+  '02': '/projects/chengmi/',
+  '03': '/projects/zhixue/',
+};
+const items = all.map((p) => ({ ...p, href: SLUG[p.index] ?? p.href }));
+
+// 技术栈分布：按出现次数降序取前 6 个，纯展示。
+const stackCount = new Map<string, number>();
+all.forEach((p) => p.tags.forEach((t) => stackCount.set(t, (stackCount.get(t) ?? 0) + 1)));
+const topStack = [...stackCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+const totals = {
+  count: all.length,
+  metrics: all.reduce((n, p) => n + p.metrics.length, 0),
+  tags: stackCount.size,
+};
+---
+
+<ContentLayout title="项目 — kaii" description="三个项目的设计与实现记录：问题、取舍与验证。" active="projects">
+  <!-- ============ 左栏：项目统计 + 技术栈分布 ============ -->
+  <div slot="left" class="text-right">
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">项目统计</h5>
+      <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
+        <dt class="text-right font-mono text-[10.5px] text-ink4">总计</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{totals.count} 个</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">指标</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{totals.metrics} 项</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">技术栈</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{totals.tags} 项</dd>
+      </dl>
+    </div>
+
+    <div>
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">技术栈分布</h5>
+      <div class="flex flex-wrap justify-end gap-1.5">
+        {
+          topStack.map(([name, n]) => (
+            <span class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gm">
+              {name}
+              {n > 1 && <b class="ml-1 font-bold text-gh">×{n}</b>}
+            </span>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 中栏：头部 + 项目卡列表 ============ -->
+  <div class="prose-k">
+    <header class="ahead">
+      <div class="crumb">项目</div>
+      <h1>项目</h1>
+      <p class="alede">
+        三个项目，三种写法：一个按章节长出来的客服 Agent、一个在秒杀链路上改了四轮的交易系统、
+        一个逐个模块实现并调通的微服务系统。每篇都尽量写清「问题是什么、为什么这样解、怎么验证的」，
+        也包括它们现在哪里还不行。
+      </p>
+    </header>
+
+    <div class="wlist">
+      {
+        items.map((p) => (
+          <a href={p.href} class="wcard rv">
+            <span class="wcard-idx">{p.index}</span>
+            <h3>{p.title}</h3>
+            <p>{p.desc}</p>
+            <div class="wmeta">
+              <span>{p.role}</span>
+              <div class="tg">
+                {p.tags.slice(0, 4).map((t) => (
+                  <span>{t}</span>
+                ))}
+              </div>
+            </div>
+            <div class="wstats">
+              {p.metrics.map((m) => (
+                <span>
+                  <b>{m.value.toLocaleString()}</b>
+                  <i>{m.label}</i>
+                </span>
+              ))}
+            </div>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+
+  <!-- ============ 右栏：概览 KPI + 相关页面 ============ -->
+  <div slot="right">
+    <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">概览</h5>
+    <div class="kpi">
+      <b>3</b>
+      <i>个项目</i>
+    </div>
+    <div class="kpi">
+      <b>10</b>
+      <i>递进章节（最多）</i>
+    </div>
+    <div class="kpi">
+      <b>16</b>
+      <i>微服务模块（最多）</i>
+    </div>
+
+    <div class="rel mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">相关页面</h5>
+      <a href="/writing/" class="rel-link">
+        <b>技术文章</b>
+        <i>踩坑记录与原理梳理</i>
+      </a>
+      <a href="/" class="rel-link">
+        <b>返回首页</b>
+        <i>能力全景与学习路线</i>
+      </a>
+    </div>
+  </div>
+</ContentLayout>
+
+<style>
+  /* ============================================================
+     本页样式。外部来源见文件头注释。
+
+     Global Constraints #1：组件 `<style>` 不在 @layer 内，优先级高于 Tailwind
+     utilities，故一律用长写属性，不用 padding / margin 简写去覆盖 px-* / mx-*。
+     ============================================================ */
+
+  /* ---------- 头部（writing-index-mockup L45–57） ---------- */
+  .prose-k :global(.ahead) {
+    padding-top: 56px;
+    padding-bottom: 34px;
+  }
+  .prose-k :global(.crumb) {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-ink4);
+    margin-bottom: 18px;
+  }
+  .prose-k h1 {
+    font-size: clamp(28px, 3.9vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.034em;
+    line-height: 1.2;
+    margin-bottom: 18px;
+  }
+  .prose-k :global(.alede) {
+    font-size: 16.5px;
+    color: var(--color-ink2);
+    line-height: 1.8;
+    margin-bottom: 22px;
+  }
+
+  /* ---------- 项目卡列表（writing-index-mockup L315–332） ---------- */
+  .wlist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .wcard {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    padding: 20px 24px;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* 左侧竖条：设计稿 `.wcard::before` 的 hover 滑出 */
+  .wcard::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--color-gh), var(--color-gd));
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .wcard:hover {
+    border-color: #d5d8c4;
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    transform: translateY(-3px);
+  }
+  .wcard:hover::before {
+    transform: scaleY(1);
+  }
+
+  /* 编号：设计稿没有这一层，是列表页自己的信息；
+     用绝对定位放在右上，不参与标题流。 */
+  .wcard-idx {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-gh);
+    letter-spacing: 0.08em;
+  }
+
+  .wcard h3 {
+    font-size: 16.5px;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    color: var(--color-ink);
+    margin-bottom: 8px;
+    line-height: 1.42;
+    transition: color 0.2s;
+    /* 右上角编号占位，标题不压到它身上 */
+    padding-right: 36px;
+  }
+  .wcard:hover h3 {
+    color: var(--color-gd);
+  }
+  .wcard p {
+    font-size: 13.2px;
+    color: var(--color-ink3);
+    line-height: 1.7;
+    margin-bottom: 11px;
+  }
+
+  .wmeta {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-ink4);
+  }
+  .wmeta .tg {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .wmeta .tg span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-gm);
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+    padding: 2.5px 8px;
+    border-radius: 100px;
+  }
+
+  /* 指标行：设计稿 `.wcard` 只到 wmeta 为止；指标是详情页 `.met` 在列表页的降维形态。 */
+  .wstats {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px dashed var(--color-line2);
+  }
+  .wstats span {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .wstats b {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-gd);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+  .wstats i {
+    font-style: normal;
+    font-size: 10.5px;
+    color: var(--color-ink4);
+  }
+
+  /* ---------- 右栏（writing-index-mockup L276–280, L528–540） ---------- */
+  :global(.kpi) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+  }
+  :global(.kpi:last-child) {
+    border-bottom: none;
+  }
+  :global(.kpi b) {
+    font-family: var(--font-mono);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--color-gd);
+    letter-spacing: -0.03em;
+  }
+  :global(.kpi i) {
+    font-style: normal;
+    font-size: 11px;
+    color: var(--color-ink4);
+  }
+
+  :global(.rel-link) {
+    display: block;
+    font-size: 12.2px;
+    color: var(--color-ink3);
+    text-decoration: none;
+    line-height: 1.6;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+    transition: 0.22s;
+  }
+  :global(.rel-link:last-child) {
+    border-bottom: none;
+  }
+  :global(.rel-link:hover) {
+    color: var(--color-gd);
+    padding-left: 4px;
+  }
+  :global(.rel-link b) {
+    display: block;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--color-ink2);
+  }
+  :global(.rel-link:hover b) {
+    color: var(--color-gd);
+  }
+  :global(.rel-link i) {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-ink4);
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* ---------- 响应式（writing-index-mockup L336–338 / L383–384） ---------- */
+  @media (max-width: 700px) {
+    .prose-k :global(.ahead) {
+      padding-top: 32px;
+      padding-bottom: 24px;
+    }
+    .wcard {
+      padding: 17px 18px;
+    }
+    .wcard-idx {
+      top: 15px;
+      right: 18px;
+    }
+    .wmeta {
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+    .prose-k h1 {
+      font-size: 26px;
+    }
+    .prose-k :global(.alede) {
+      font-size: 14.5px;
+    }
+  }
+  @media (max-width: 420px) {
+    .prose-k h1 {
+      font-size: 23px;
+    }
+    .wstats {
+      gap: 16px;
+    }
+  }
+
+  /* ---------- 减少动态效果：悬停位移直接置终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .wcard,
+    .wcard::before {
+      transition: none;
+    }
+    .wcard:hover {
+      transform: none;
+    }
+    .wcard:hover::before {
+      transform: scaleY(1);
+    }
+  }
+
+  /* ---------- 无 JS 兜底：卡片带 `.rv`，脚本不跑会停在 opacity:0 ----------
+     global.css 的 `:root:not(.js) .rv` 是后代选择器，`.wcard` 自身即 `.rv` 元素，
+     故这里显式覆盖包装层本身（Global Constraints #4）。 */
+  :root:not(.js) .wcard.rv {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+</style>

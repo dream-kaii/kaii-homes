@@ -1,0 +1,110 @@
+---
+title: 智学云课堂 · 在线教育微服务系统
+subtitle: 十六个微服务模块，一个一个实现、一个一个调通
+role: 独立完成
+nature: 个人项目
+status: completed
+year: '2026'
+order: 3
+stack: [SpringCloud, Nacos, Redisson, RabbitMQ, XXL-JOB, Caffeine, MySQL, Redis]
+metrics:
+  - { value: '16', label: '微服务模块' }
+  - { value: '66', label: '完成学习目标' }
+  - { value: '12', label: '业务章节' }
+  - { value: '4', label: '分布式锁封装' }
+---
+
+import CaseCard from '../../components/CaseCard.astro';
+import ProjectStages from '../../components/ProjectStages.astro';
+import ProjectLimits from '../../components/ProjectLimits.astro';
+import SourceList from '../../components/SourceList.astro';
+
+## 这个项目做了什么
+
+智学云课堂是一个在线教育平台的后端系统。我依据课程讲义与学习目标，
+把十六个微服务模块逐个实现并调通，覆盖学习计划与进度、互动问答、点赞系统、
+积分签到、实时排行榜、优惠券管理与优惠方案推荐。
+
+和城觅不同，这个项目的重点不在某一条链路的极限性能，而在**模块之间的协作边界**：
+哪些状态该放 Redis、哪些该落库、定时任务和实时请求怎么不互相打架、
+缓存与数据库的一致性由谁来保证。
+
+## 架构怎么长出来的
+
+<ProjectStages
+  stages={[
+    { n: 'M1', tag: '骨架', title: '先把服务注册与调用跑通', desc: 'Nacos 做注册中心与配置中心，OpenFeign 做服务间调用，网关统一入口与鉴权。这一层不跑通，后面全是空中楼阁。', tags: ['Nacos', 'OpenFeign', 'Gateway'] },
+    { n: 'M2', tag: '学习', title: '计划、进度与互动', desc: '学习计划生成、进度上报、互动问答。状态变更频繁但只关心最终值，进度这类热数据放 Redis 而不是每次都写库。', tags: ['学习计划', '进度', '互动问答'] },
+    { n: 'M3', tag: '互动', title: '点赞要防重复，也要能扛读', desc: '点赞是典型的「写少读多 + 必须去重」。用 Redis Set 记录谁点过，计数走缓存，落库异步化。', tags: ['点赞', '去重', 'Caffeine'] },
+    { n: 'M4', tag: '激励', title: '积分签到与实时排行榜', desc: '签到用 BitMap 把「某月哪天签过」压进一个整数，排行榜用 Redis ZSet 实时排序，历史榜单分表落库。', tags: ['BitMap', 'ZSet', '排行榜'] },
+    { n: 'M5', tag: '交易', title: '优惠券与优惠方案推荐', desc: '券的领取、核销要防超发，用分布式锁封装统一处理；优惠方案推荐按用户已有券与订单金额算最优组合。', tags: ['优惠券', '分布式锁', '推荐'] },
+    { n: 'M6', tag: '批处理', title: '定时任务与历史数据沉降', desc: 'XXL-JOB 跑批把热点榜单沉降成历史榜单并分表持久化，减轻 Redis 与主表的长期压力。', tags: ['XXL-JOB', '分表', '沉降'] },
+  ]}
+/>
+
+## 我解决过的工程问题
+
+<CaseCard severity="critical" title="签到用「查一次再写一次」，跨月那天算错了两天">
+  <Fragment slot="problem">签到最初按「读上次签到日期 → 判断是否连续 → 更新连续天数」实现，两步之间没有原子性。</Fragment>
+  <Fragment slot="impact">用户跨零点、或跨月最后一天点签到时，两次请求都读到同一份旧状态，<b>连续天数被加了两遍，或者整月记录被重置。</b></Fragment>
+  <Fragment slot="fix">签到标记改用 <b>BitMap</b>（一个用户一个月一个整数），连续天数从 BitMap 现算而不是存状态，读改写变成幂等的位或操作。</Fragment>
+  <Fragment slot="verify">补边界用例：跨日、跨月、重复点击、断签后重签，四种场景的连续天数与位图都符合预期。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="四个模块各写了一遍分布式锁，四份都有点毛病">
+  <Fragment slot="problem">点赞去重、券领取、秒杀、签到各写了一份加锁逻辑，每份细节都不同。</Fragment>
+  <Fragment slot="impact">有的忘了 finally 释放，有的锁过期时间拍脑袋写死，有的没处理重入。<b>同一类问题被修了四次，还修得不一致。</b></Fragment>
+  <Fragment slot="fix">抽出一层<b>分布式锁封装</b>（基于 Redisson）：统一的 key 命名、统一的超时与等待策略、统一的失败返回，四个调用点只关心业务语义。</Fragment>
+  <Fragment slot="tradeoff">为什么不做成注解式 AOP？因为锁的粒度与业务强相关，注解很容易被误用到「锁了一整个方法」的位置。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="排行榜的实时榜单和历史榜单对不上">
+  <Fragment slot="problem">实时榜单在 Redis ZSet，历史榜单靠 XXL-JOB 跑批落库分表。跑批失败或重复执行时两边数据会错位。</Fragment>
+  <Fragment slot="fix">跑批做成<b>按周期幂等</b>：以周期为唯一键写入历史表，重复执行是覆盖而不是追加；实时 ZSet 只在写成功后清理，失败则保留等待下次重跑。</Fragment>
+  <Fragment slot="verify">手动中止一次跑批再重跑，验证历史表不出现重复周期记录。</Fragment>
+</CaseCard>
+
+## 一段关键实现
+
+BitMap 签到与连续天数计算：把「本月哪天签过」压进一个整数，连续天数从位图现算。
+
+```java
+/** 签到：本月第 day 天置位，返回是否首次签到（幂等） */
+public boolean signIn(Long userId, LocalDate date) {
+    String key = "sign:" + userId + ":" + date.getYear() + date.getMonthValue();
+    int offset = date.getDayOfMonth() - 1;
+
+    // setbit 返回的是「原来那一位的值」：1 说明今天已经签过
+    boolean firstTime = redis.opsForValue().setBit(key, offset, true) == false;
+    if (!firstTime) return false;
+
+    // 连续天数不存状态，直接从位图往前数，天然幂等
+    int streak = 0;
+    for (int i = offset; i >= 0; i--) {
+        if (!redis.opsForValue().getBit(key, i)) break;
+        streak++;
+    }
+    updateStreakCache(userId, streak);
+    return true;
+}
+```
+
+## 已知限制
+
+<ProjectLimits
+  items={[
+    '未接入链路追踪，一个跨五个服务的调用出问题时要靠日志时间戳人工拼链路。',
+    '优惠方案推荐是规则计算，不是模型推荐；规则数量上去以后维护成本会明显变高。',
+    '缓存与数据库的一致性用的是「先写库再删缓存」，没有处理删除失败的重试补偿。',
+    'XXL-JOB 的跑批是单机执行器，没有做分片广播，历史榜单数据量再大就只能加长执行窗口。',
+  ]}
+/>
+
+<SourceList
+  sources={[
+    { title: 'Redis 官方文档 · Bitmaps', url: 'https://redis.io/docs/latest/develop/data-types/bitmaps/', kind: 'official' },
+    { title: 'Redis 官方文档 · Sorted sets', url: 'https://redis.io/docs/latest/develop/data-types/sorted-sets/', kind: 'official' },
+    { title: 'XXL-JOB 官方文档 · 分布式任务调度', url: 'https://www.xuxueli.com/xxl-job/', kind: 'official' },
+    { title: 'Spring Cloud Alibaba · Nacos 配置与服务发现', url: 'https://sca.aliyun.com/en/docs/2023/user-guide/nacos/quick-start/', kind: 'official' },
+  ]}
+/>

@@ -1,7 +1,12 @@
 import { defineCollection, z } from 'astro:content';
+import { glob } from 'astro/loaders';
 
+// 文章正文里会嵌 Astro 组件（`<RetrievalDemo />`），所以 custom `loader` + `.mdx` 扩展。
+// 为什么不是 `type: 'content'`（glob 默认只认 `.md`）：
+//   默认的 Markdown 处理器没有组件支持，`<RetrievalDemo />` 在产物里会变成一个
+//   字面量 `<retrievaldemo>` 标签（不是组件、也不是错误）。见 task-11 报告。
 const writing = defineCollection({
-  type: 'content',
+  loader: glob({ base: './src/content/writing', pattern: '**/*.{md,mdx}' }),
   schema: z.object({
     title: z.string(),
     description: z.string(),
@@ -18,8 +23,11 @@ const writing = defineCollection({
   }),
 });
 
+// 项目切到组件化渲染的原因与 `writing` 相同（`.md` 里嵌组件会被转义成字面 HTML）。
+// 这一段**不是本任务（Task 11）的产出** —— 是并行工作的 Task 10 agent 在同一工作树里
+// 改的在途改动；这里原样保留，不做修改。
 const projects = defineCollection({
-  type: 'content',
+  loader: glob({ base: './src/content/projects', pattern: '**/*.{md,mdx}' }),
   schema: z.object({
     title: z.string(),
     subtitle: z.string(),

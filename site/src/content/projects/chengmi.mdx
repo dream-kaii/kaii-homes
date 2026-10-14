@@ -1,0 +1,110 @@
+---
+title: 城觅 · 生活服务平台
+subtitle: 高并发交易系统之上，长出一个能动手的 AI 客服
+role: 独立完成
+nature: 个人项目
+status: completed
+year: '2026'
+order: 2
+stack: [SpringBoot, Redis, Lua, Kafka, Redisson, LangChain4j, MySQL]
+metrics:
+  - { value: '1849', label: 'Agent 模块代码行' }
+  - { value: '6', label: 'Agent 工具' }
+  - { value: '0', label: '新增数据库表' }
+  - { value: '4', label: '秒杀链路迭代' }
+---
+
+import CaseCard from '../../components/CaseCard.astro';
+import ProjectStages from '../../components/ProjectStages.astro';
+import ProjectLimits from '../../components/ProjectLimits.astro';
+import SourceList from '../../components/SourceList.astro';
+
+## 这个项目做了什么
+
+城觅是一个本地生活服务平台：商户、优惠券、秒杀、订单。业务本身不新鲜，
+我想练的是**秒杀那条链路上的并发问题**，以及后来加上去的智能客服模块。
+
+这条链路我改了四轮，每一轮都因为上一轮压不住才存在：
+
+1. **阻塞队列** —— 单机内存队列削峰，服务重启就丢，多实例也不共享。
+2. **Lua 原子扣减** —— 把「查库存 → 判断 → 扣减」压成一段 Lua 脚本，在 Redis 里原子执行，超卖没了。
+3. **Redisson 分布式锁** —— 多实例下同一用户重复下单互相踩，用锁把用户维度串起来。
+4. **Kafka 异步削峰** —— 同步落库扛不住瞬时流量，改成本地消息表 + Kafka 异步消费，并处理消费幂等。
+
+## 架构怎么长出来的
+
+<ProjectStages
+  stages={[
+    { n: 'STEP 1', tag: '削峰', title: '阻塞队列扛第一波', desc: '下单请求先进内存队列，后台线程慢慢消费。问题很直接：重启即丢，多实例各排各的队。', tags: ['BlockingQueue', '单机', '可丢弃'] },
+    { n: 'STEP 2', tag: '原子性', title: '把判断和扣减压成一段 Lua', desc: '库存查询与扣减分成两步就会超卖。改成一段 Lua 脚本在 Redis 侧原子执行，超卖消失。', tags: ['Lua', 'Redis', '原子扣减'] },
+    { n: 'STEP 3', tag: '一致性', title: '锁住「同一个人」', desc: '多实例部署后，同一用户并发下单会重复扣减。用 Redisson 分布式锁按用户 id 串行化，一人一单成立。', tags: ['Redisson', '分布式锁', '一人一单'] },
+    { n: 'STEP 4', tag: '异步', title: '落库走消息，不走同步', desc: '同步写 MySQL 是整条链路的瓶颈。改为本地消息表 + Kafka 异步消费，并对消费端做幂等。', tags: ['Kafka', '本地消息表', '幂等'] },
+    { n: 'STEP 5', tag: 'AI', title: '让客服能动手', desc: '在既有交易系统上加 LangChain4j 智能客服：AI 只负责提议，用户二次确认后才执行，写操作复用既有消息链路。', tags: ['LangChain4j', 'Function Calling', '二次确认'] },
+  ]}
+/>
+
+## 我解决过的工程问题
+
+<CaseCard severity="critical" title="AI 直接调写操作：模型说「帮你退了」，其实没退">
+  <Fragment slot="problem">客服模块最初让模型直接调工具，包括取消订单、申请退款这类写操作。</Fragment>
+  <Fragment slot="impact">模型会在用户只是抱怨时提前发起写操作，也会在参数缺失时编一个订单号。<b>对话里说「已为你取消」，数据库里订单还在。</b>这比答不出来严重得多。</Fragment>
+  <Fragment slot="fix">定下<b>「AI 提议，用户确认，系统执行」</b>三段式：模型只能生成一个待确认的意图对象，前端渲染成可点的确认卡，用户点了才走既有服务方法。</Fragment>
+  <Fragment slot="tradeoff">为什么不让模型自己判断该不该确认？因为「该不该动数据」是权限问题，不是语义问题，不能交给概率模型决定。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="客服模块一行表都没加，却要读写交易库">
+  <Fragment slot="problem">最省事的做法是给 Agent 建几张会话表、工具日志表。但这样它就成了一个需要独立运维的子系统。</Fragment>
+  <Fragment slot="fix">约束自己<b>不新增任何数据库表</b>：会话上下文放 Redis 带 TTL，工具调用复用已有的服务方法与消息链路，审计落到现有日志管线。</Fragment>
+  <Fragment slot="verify">最终交付时 <code>git diff --stat</code> 里 0 张新增表的 DDL；Agent 模块 1849 行代码全在既有结构内。</Fragment>
+</CaseCard>
+
+<CaseCard severity="important" title="消息消费重试，同一笔订单扣了两次库存">
+  <Fragment slot="problem">Kafka 消费端异常会重试，但下单消息的重试不是「重放」，是<b>再执行一遍业务</b>。</Fragment>
+  <Fragment slot="impact">用户看到一次下单，库存掉了 2。这类问题只在流量起来时才暴露，本地单线程测永远测不到。</Fragment>
+  <Fragment slot="fix">消费端按<b>业务幂等键</b>（用户 + 优惠券 + 时间片）落库前查重，重复消息直接 ack 丢弃，而不是依赖 at-least-once 语义蒙混过关。</Fragment>
+</CaseCard>
+
+## 一段关键实现
+
+秒杀扣减的 Lua 脚本：把「查库存、判断是否已售罄、扣减」压进一次 Redis 原子执行。
+
+```lua
+-- seckill.lua —— 单脚本内完成判断与扣减，杜绝「查完再扣」之间的窗口
+local stockKey = KEYS[1]
+local orderKey = KEYS[2]
+local userId   = ARGV[1]
+
+-- 同一用户重复请求直接短路，不消耗库存
+if redis.call('SISMEMBER', orderKey, userId) == 1 then
+  return 2
+end
+
+local stock = tonumber(redis.call('GET', stockKey) or '-1')
+if stock <= 0 then
+  return 1   -- 已售罄
+end
+
+redis.call('DECR', stockKey)
+redis.call('SADD', orderKey, userId)
+return 0     -- 扣减成功
+```
+
+## 已知限制
+
+<ProjectLimits
+  items={[
+    'Agent 模块的工具是硬编码注册的，没有做成插件化，加第 7 个工具要改构建期代码。',
+    '会话上下文只存 Redis 且带 TTL，服务重启后超过 TTL 的历史对话不可恢复。',
+    '秒杀链路的压测是在单机 Docker 环境做的，没有真正验证多机房部署下的时钟与锁表现。',
+    'LangChain4j 的模型调用没有做降级兜底：模型服务不可用时，客服模块整体不可用而不是退化成人工话术。',
+  ]}
+/>
+
+<SourceList
+  sources={[
+    { title: 'Redis 官方文档 · Lua 脚本与 EVAL', url: 'https://redis.io/docs/latest/develop/interact/programmability/eval-intro/', kind: 'official' },
+    { title: 'Redisson 官方文档 · 分布式锁', url: 'https://redisson.pro/docs/data-and-services/locks-and-synchronizers/', kind: 'official' },
+    { title: 'Apache Kafka 官方文档 · 消费者与投递语义', url: 'https://kafka.apache.org/documentation/#semantics', kind: 'official' },
+    { title: 'LangChain4j 官方文档 · Tools (Function Calling)', url: 'https://docs.langchain4j.dev/tutorials/tools/', kind: 'official' },
+  ]}
+/>

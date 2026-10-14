@@ -1,0 +1,195 @@
+---
+/**
+ * ProjectStages · 项目详情页「架构怎么长出来的」阶段列表
+ *
+ * 来源：design-mockup/project-detail-v2.html
+ *   - CSS  `.stages` / `.stg` / `.stg::before` / `.stg:hover` / `.stg-n` / `.stg h4`
+ *          / `.stg p` / `.stg .tgs` / `.stg .tgs span`                      →  L318–334
+ *   - HTML 十个 `.stg` 节点结构（CH01…CH10）                                 →  L549–599
+ *   - 响应式 `.stg{grid-template-columns:1fr}` @700px                       →  L384, L409
+ *
+ * 令牌映射：--card→var(--color-card) --line→var(--color-line) --gh→var(--color-gh)
+ *   --gd→var(--color-gd) --ink2→var(--color-ink2) --gm→var(--color-gm)
+ *   --paper2→var(--color-paper2) --sh→0 1px 3px rgba(42,77,46,.05)
+ *   --sh2→0 6px 22px -6px rgba(42,77,46,.11) --mono→var(--font-mono)
+ *
+ * 与设计稿的差异：
+ *   - 设计稿每个 `.stg` 手写 `rv`（滚动入场）。入场由 BaseLayout 统一驱动 `.rv`，
+ *     这里在根节点上挂一次即可，子项不再各自观察。
+ *   - 设计稿的 `.stg-n` 内嵌 `<small>` 做副标题、`.stg .tgs` 的标签是手写 span。
+ *     组件把两者收成 `stages[].tag` / `stages[].tags`，结构不变。
+ *
+ * 自包含、无运行时脚本。
+ */
+interface Stage {
+  n: string;
+  tag?: string;
+  title: string;
+  desc: string;
+  tags?: string[];
+}
+interface Props {
+  stages: Stage[];
+}
+
+const { stages } = Astro.props;
+---
+
+<div class="stages rv">
+  {
+    stages.map((s) => (
+      <div class="stg">
+        <div class="stg-n">
+          {s.n}
+          {s.tag && <small>{s.tag}</small>}
+        </div>
+        <div>
+          <h4>{s.title}</h4>
+          <p>{s.desc}</p>
+          {s.tags && s.tags.length > 0 && (
+            <div class="tgs">
+              {s.tags.map((t) => (
+                <span>{t}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  /* 设计稿 L318–334。
+     注意：本组件不写 padding / margin 简写去覆盖外层 Tailwind 类（Global Constraints #1）。 */
+  .stages {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-top: 8px;
+  }
+
+  .stg {
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    gap: 17px;
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 15px;
+    padding: 16px 19px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stg::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--color-gh), var(--color-gd));
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .stg:hover {
+    transform: translateX(4px);
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    border-color: #d5d8c4;
+  }
+  .stg:hover::before {
+    transform: scaleY(1);
+  }
+
+  .stg-n {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-gd);
+    padding: 5px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+    align-self: flex-start;
+    text-align: center;
+    line-height: 1.35;
+  }
+  .stg-n small {
+    display: block;
+    font-size: 9px;
+    opacity: 0.8;
+    letter-spacing: 0.08em;
+  }
+
+  .stg h4 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.014em;
+    margin-bottom: 6px;
+  }
+  .stg p {
+    font-size: 13.2px;
+    color: var(--color-ink2);
+    line-height: 1.72;
+    margin-bottom: 9px;
+  }
+  .stg p:last-child {
+    margin-bottom: 0;
+  }
+
+  .tgs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .tgs span {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--color-gm);
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+    padding: 2.5px 8px;
+    border-radius: 100px;
+  }
+
+  /* ---------- 响应式：<=700px 收单列（设计稿 L384 / L409） ---------- */
+  @media (max-width: 700px) {
+    .stg {
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 14px 15px;
+    }
+    .stg-n {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stg-n small {
+      display: inline;
+    }
+  }
+
+  /* ---------- 减少动态效果：悬停位移直接置终态，不留中间态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .stg,
+    .stg::before {
+      transition: none;
+    }
+    .stg:hover {
+      transform: none;
+    }
+    .stg:hover::before {
+      transform: scaleY(1);
+    }
+  }
+
+  /* ---------- 无 JS 兜底：本组件无脚本，但 hover 位移需要静息终态 ---------- */
+  :root:not(.js) .stg,
+  :root:not(.js) .stg::before {
+    transition: none;
+  }
+</style>
