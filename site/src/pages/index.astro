@@ -3,11 +3,100 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import AgentCompare from '../components/AgentCompare.astro';
 import CapabilityGrid from '../components/CapabilityGrid.astro';
+import EvolutionTimeline from '../components/EvolutionTimeline.astro';
+import ProjectsSection from '../components/ProjectsSection.astro';
+import WritingSection from '../components/WritingSection.astro';
 import Glossary from '../components/Glossary.astro';
+import ContactSection from '../components/ContactSection.astro';
 ---
 <BaseLayout title="kaii — Agent 应用开发" active="home">
-  <Hero />
-  <AgentCompare />
-  <CapabilityGrid />
-  <Glossary />
+  <!-- Task 5 遗留项 1：首页需要一个主 landmark 供屏幕阅读器跳转。
+       <main> 全页只能有一个，Nav / Footer 在 BaseLayout 里，天然落在外面。 -->
+  <main id="main">
+    <Hero />
+    <AgentCompare />
+    <CapabilityGrid />
+    <EvolutionTimeline />
+    <ProjectsSection />
+
+    <WritingSection />
+    <Glossary />
+    <ContactSection />
+  </main>
 </BaseLayout>
+
+<script>
+  // ============================================================
+  // 首页数字滚动（设计稿 index-v9.html L1404–1421 的 countUp / ioN）
+  // 作用对象：项目卡里的 [data-count]（终值写在 data-count，初值 0 写死在模板里）。
+  // 与设计稿的两处差异：
+  //   1. reduce 下不注册 IntersectionObserver，直接把每个数字写成终态 ——
+  //      设计稿没有这条分支，动画在减少动态效果偏好下仍会「跑」；
+  //      本站口径是「reduce = 直接呈现终态」（见 Hero / CapabilityGrid / Glossary）。
+  //   2. 无 JS 时数字会停在 0，故 CSS 侧另有 :root:not(.js) 兜底（见下方 <style>）。
+  // ============================================================
+  const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = document.querySelectorAll<HTMLElement>('[data-count]');
+
+  const finalize = (el: HTMLElement) => {
+    const target = parseFloat(el.dataset.count ?? '0');
+    el.textContent = target.toLocaleString() + (el.dataset.suffix || '');
+  };
+
+  function countUp(el: HTMLElement) {
+    const target = parseFloat(el.dataset.count ?? '0');
+    const suffix = el.dataset.suffix || '';
+    const dur = 1300;
+    const t0 = performance.now();
+    (function step(now: number) {
+      const p = Math.min((now - t0) / dur, 1);
+      const e = p === 1 ? 1 : 1 - Math.pow(2, -10 * p);
+      el.textContent = Math.round(target * e).toLocaleString() + suffix;
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target.toLocaleString() + suffix;
+    })(t0);
+  }
+
+  if (rm) {
+    els.forEach(finalize);
+  } else {
+    const ioN = new IntersectionObserver(
+      (es) => {
+        es.forEach((e) => {
+          if (e.isIntersecting) {
+            countUp(e.target as HTMLElement);
+            ioN.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+    els.forEach((el) => ioN.observe(el));
+  }
+</script>
+
+<style is:global>
+  /* ============================================================
+     无 JS 兜底：数字的终值只由脚本写入，脚本不跑就会永远停在模板里的 0。
+     「0 递进章节 / 0 应用代码行」是假数据，比留白更糟，所以必须直接呈现终值。
+     用 :global 是因为 <script>/<style> 写在页面里，目标元素 [data-count] 由子组件渲染
+     （Astro 的 <style> 默认作用域隔离，非 global 的选择器匹配不到子组件的元素）。
+
+     实现要点：不能只把元素自己的字号压成 0 再靠 ::after 画数字 —— 那样视觉对了，
+     但 DOM 里的文本节点仍是「0」，读屏与文本复制拿到的还是假数据（本任务实测到
+     `textContent === '0'`、`font-size: 0px`）。所以改成：
+       1) 元素文本节点用 `font-size: 0` 从**可访问性树**里摘除（font-size:0 的内容
+          不参与渲染，也不再被读屏朗读；这是无 JS 场景下唯一纯 CSS 能做的隐藏方式，
+          且不需要额外标记节点）；
+       2) ::after 用 attr(data-count) 呈现终值，也参与可访问性树，
+          读屏读到的是真实终值 6,727 而不是 0。
+     有 JS 时这段选择器整段不生效（:root 上有 .js 类），脚本负责一切。
+     ============================================================ */
+  :root:not(.js) [data-count] {
+    font-size: 0;
+  }
+  :root:not(.js) [data-count]::after {
+    content: attr(data-count);
+    font-size: 23px;
+  }
+</style>

@@ -1,0 +1,90 @@
+---
+// ProjectsSection —— 首页「精选项目」区块（区块头 + 三张项目卡）
+// 区块头结构与样式搬运自 design-mockup/index-v9.html L941–944（HTML）/ L303–310（CSS）；
+// 与 CapabilityGrid / Glossary 共用同一套 .kick / .sec-h / 容器宽度口径（max-w-[1180px] px-8）。
+import ProjectCard from './ProjectCard.astro';
+import { projects } from '../data/projects';
+---
+
+<section id="projects" class="projs-sec mx-auto max-w-[1180px] px-8">
+  <div class="sec-h rv">
+    <span class="kick">PROJECTS</span>
+    <h2>精选项目</h2>
+    <p>上面那些环节，我在自己的项目里一条条写过。三个项目连起来，是从 Java 后端到 AI 应用的一条路。</p>
+  </div>
+
+  <div class="projs">
+    {
+      projects.map((p, i) => (
+        <div class="rv" data-d={String(i + 1)}>
+          <ProjectCard {...p} />
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  /* 区块容器：设计稿 .wrap{max-width:1180px;padding:0 32px}（index-v9.html:27）
+     与 section{padding:86px 0}（L304）。只写纵向 padding，横向交给模板上的 px-8 ——
+     组件 <style> 不在 @layer 内、优先级高于 Tailwind utilities，写 `padding:86px 0`
+     简写会把横向清零，左边缘从 162px 漂到 130px。
+     设计稿此处还有一个 `padding-bottom:0`：因为下一个区块（文章）的 section 自己
+     带着 86px 上边距，两个区块间距仍是 86px，与其它相邻区块一致。 */
+  .projs-sec {
+    padding-top: 86px;
+    padding-bottom: 0;
+  }
+
+  /* 卡片纵向间距 22px（设计稿 .projs{gap:22px}）。 */
+  .projs {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  /* ---------- 区块通用（设计稿 L303–310，与 CapabilityGrid 同一份口径） ---------- */
+  .kick {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-gm);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+  .kick::before {
+    content: '';
+    width: 22px;
+    height: 2px;
+    background: var(--color-gh);
+    border-radius: 2px;
+  }
+  .sec-h {
+    margin-bottom: 46px;
+  }
+  .sec-h h2 {
+    font-size: clamp(25px, 3.3vw, 32px);
+    font-weight: 750;
+    letter-spacing: -0.028em;
+    margin-bottom: 11px;
+    line-height: 1.25;
+  }
+  .sec-h p {
+    color: var(--color-ink2);
+    font-size: 14.5px;
+    max-width: 660px;
+    line-height: 1.78;
+  }
+
+  @media (max-width: 700px) {
+    .projs-sec {
+      padding-top: 62px; /* 设计稿 @media(max-width:700px) section{padding:62px 0} */
+      padding-bottom: 0;
+      padding-left: 18px; /* 设计稿 .wrap{padding:0 18px}（需压过 px-8 的 32px） */
+      padding-right: 18px;
+    }
+  }
+</style>

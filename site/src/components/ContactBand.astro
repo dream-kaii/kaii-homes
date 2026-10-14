@@ -1,0 +1,147 @@
+---
+// ContactBand —— 首页「联系」深绿渐变横条
+// 结构与样式搬运自 design-mockup/index-v9.html L1111–1125（HTML）/ L479–500（CSS）；
+// 令牌映射：--rL(22px)→rounded-[22px] --sh3→0 18px 52px -14px rgba(42,77,46,.20)
+// --sh→0 1px 3px rgba(42,77,46,.05) --gk→var(--color-gk) --gd→var(--color-gd)
+//
+// 与设计稿的唯一差异：标题与副标题接入 site.available（Task 5 遗留项 2）。
+// `available === true` 时逐字用设计稿文案；为 false 时去掉「开放」字样并换一组
+// 仍然通顺的措辞——设计稿里这两行字就是「开放实习机会」的开关本体。
+import { site } from '../data/site';
+
+const heading = site.available ? '开放实习机会' : '欢迎交流';
+const sub = site.available
+  ? '欢迎交流 Agent 应用开发和后端相关的话题'
+  : '欢迎就 Agent 应用开发和后端相关的话题交流讨论';
+---
+
+<div class="band flex flex-wrap items-center justify-between gap-8 rounded-[22px] px-[42px] py-[46px]">
+  <div class="bt">
+    <h3 class="mb-[7px] text-[22px] font-bold tracking-[-.02em] text-white">{heading}</h3>
+    <p class="m-0 text-[13.5px] text-white/82">{sub}</p>
+  </div>
+  <div class="ba flex flex-wrap gap-3">
+    <a href={`mailto:${site.email}`} class="cbtn cbtn-g">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h16v14H4z"></path>
+        <path d="M4 6l8 6 8-6"></path>
+      </svg>
+      发送邮件
+    </a>
+    <a href={site.github} target="_blank" rel="noopener" class="cbtn cbtn-w">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.9a3.4 3.4 0 0 0-1-2.6c3.2-.4 6.5-1.6 6.5-7A5.4 5.4 0 0 0 13 3.8a5 5 0 0 0-.1-3.7"
+        ></path>
+      </svg>
+       GitHub
+    </a>
+  </div>
+</div>
+
+<style>
+  /* ---------- 横条本体（设计稿 .band L480–482） ---------- */
+  .band {
+    background: linear-gradient(150deg, #2a4d2e 0%, #3e6b3f 55%, #4e8a4a 100%);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 18px 52px -14px rgba(42, 77, 46, 0.2); /* 设计稿 var(--sh3) */
+  }
+  /* 右上橄榄色光斑（设计稿 .band::before L484–485） */
+  .band::before {
+    content: '';
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(181, 202, 77, 0.32), transparent 68%);
+    top: -160px;
+    right: -70px;
+    pointer-events: none;
+  }
+  /* 左下金黄色光斑（设计稿 .band::after L486–487） */
+  .band::after {
+    content: '';
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232, 184, 75, 0.2), transparent 70%);
+    bottom: -130px;
+    left: -60px;
+    pointer-events: none;
+  }
+
+  .bt,
+  .ba {
+    position: relative;
+    z-index: 1; /* 压在两个光斑之上（设计稿 L488 / L491） */
+  }
+
+  /* ---------- 按钮（设计稿 .btn / .btn-w / .btn-g L493–500） ----------
+     与 Hero 的 .btn 同名但视觉不同（Hero 的是 .btn-p/.btn-w 的实心组合），
+     故用独立前缀 cbtn-*，避免 Astro 作用域编译后出现同名前缀的两套语义。 */
+  .cbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.24s, background 0.24s;
+  }
+  .cbtn-w {
+    background: rgba(255, 255, 255, 0.93);
+    color: var(--color-gd);
+    border-color: #fff;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    backdrop-filter: blur(8px);
+  }
+  .cbtn-w:hover {
+    transform: translateY(-2px);
+    background: #fff;
+  }
+  .cbtn-g {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.32);
+    backdrop-filter: blur(8px);
+  }
+  .cbtn-g:hover {
+    background: rgba(255, 255, 255, 0.26);
+    transform: translateY(-2px);
+  }
+  .cbtn svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* 窄屏：内边距收窄（设计稿 @media(max-width:700px) `.band{padding:32px 24px}`） */
+  @media (max-width: 700px) {
+    .band {
+      padding-left: 24px;
+      padding-right: 24px;
+      padding-top: 32px;
+      padding-bottom: 32px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cbtn {
+      transition: none;
+    }
+    .cbtn-w:hover,
+    .cbtn-g:hover {
+      transform: none;
+    }
+  }
+</style>

@@ -2,6 +2,9 @@
 import { site } from '../data/site';
 
 const githubLabel = site.github.replace(/^https?:\/\//, '');
+// 徽章文案由 site.available 驱动（Task 5 遗留项 2：该字段此前全仓库零引用）。
+// available 为 false 时不出现「开放」字样，改用中性的「欢迎交流」。
+const badgeText = site.available ? '开放实习机会' : '欢迎交流';
 ---
 
 <section class="hero" id="hero">
@@ -12,7 +15,7 @@ const githubLabel = site.github.replace(/^https?:\/\//, '');
     <div class="hero-grid" id="hero-grid">
       <!-- 左：文案 -->
       <div class="hero-left">
-        <span class="badge"><span class="dot"></span>开放实习机会</span>
+        <span class="badge"><span class="dot"></span>{badgeText}</span>
 
         <h1>你好，我是 <span class="hl">{site.name}</span></h1>
 

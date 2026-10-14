@@ -1,0 +1,90 @@
+---
+// PostRow —— 首页「技术文章」列表的一行
+// 结构与样式搬运自 design-mockup/index-v9.html L1041–1060（HTML）/ L451–478（CSS）；
+// 令牌映射：--line2→var(--color-line2) --ink4→var(--color-ink4) --ink→var(--color-ink)
+// --gd→var(--color-gd) --line→var(--color-line) --paper2→var(--color-paper2) --gh→var(--color-gh)
+// 设计稿的 `.post::before`（左侧 3px 竖条）保留。
+interface Props {
+  category: string;
+  title: string;
+  href: string;
+  tags: string[];
+  planned?: boolean;
+}
+const { category, title, href, tags, planned = false } = Astro.props;
+---
+
+<a
+  href={href}
+  data-planned={planned ? 'true' : undefined}
+  class="post-row group grid grid-cols-[104px_1fr_auto] items-center gap-6 border-b border-line2 px-[30px] py-4.5 text-inherit no-underline transition last:border-b-0 hover:bg-[#FCFCF6] hover:pl-9"
+>
+  <span class="post-bar" aria-hidden="true"></span>
+  <span class="font-mono text-[12px] text-ink4">{category}</span>
+  <span class="text-[15px] font-medium text-ink transition group-hover:text-gd">{title}</span>
+  <span class="flex gap-1.5">
+    {
+      tags.map((t) => (
+        <span class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gd">
+          {t}
+        </span>
+      ))
+    }
+  </span>
+</a>
+
+<style>
+  /* 行内左内边距：设计稿 `.post{padding:18px 30px}`，hover 时 `padding-left:38px`。
+     只写纵向 padding 与横向长写属性 —— 模板已有 Tailwind 的 px-[30px] py-4.5 与
+     hover:pl-9，若这里用 `padding:18px 30px` 简写会把 hover 的横向位移一并清掉。 */
+  .post-row {
+    padding-top: 18px;
+    padding-bottom: 18px;
+    position: relative;
+  }
+
+  /* ---------- 左侧竖条（设计稿 .post::before L455–456） ---------- */
+  .post-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--color-gh);
+    transform: scaleY(0);
+    transition: transform 0.28s;
+  }
+  .post-row:hover .post-bar {
+    transform: scaleY(1);
+  }
+
+  /* 窄屏单列，标签组隐藏（设计稿 @media(max-width:700px) L577–579）：
+     `.post{grid-template-columns:1fr;gap:7px;padding:16px 20px}` + `.ptg{display:none}`。
+     横向 padding 用长写属性压过模板的 px-[30px]。 */
+  @media (max-width: 700px) {
+    .post-row {
+      grid-template-columns: 1fr;
+      gap: 7px;
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+    .post-row:hover {
+      padding-left: 20px; /* 窄屏不做横向位移，避免标签隐藏后右边留白忽大忽小 */
+    }
+    .post-row > span:last-child {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .post-row,
+    .post-bar {
+      transition: none;
+    }
+    .post-row:hover .post-bar {
+      transform: scaleY(1);
+    }
+  }
+</style>

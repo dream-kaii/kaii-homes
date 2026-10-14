@@ -2,7 +2,7 @@
 import { site } from '../data/site';
 ---
 <footer class="mt-14 border-t border-line2 pb-12 pt-8">
-  <div class="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-6 px-10">
+  <div class="foot-in mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 px-8">
     <span class="flex items-center gap-2.5 font-mono text-[12.5px] text-ink3">
       <img src="/avatar.jpg" alt="" width="21" height="21"
            class="rounded-full border-[1.5px] border-white object-cover"
@@ -19,3 +19,14 @@ import { site } from '../data/site';
     </div>
   </div>
 </footer>
+
+<style>
+  /* Task 5 遗留项 3：与 Nav / Hero / 首页各区块统一为 max-w-[1180px] px-8
+     （设计稿 .wrap{max-width:1180px;padding:0 32px}，index-v9.html:27）。 */
+  @media (max-width: 700px) {
+    .foot-in {
+      padding-left: 18px; /* 设计稿 @media(max-width:700px) `.wrap,.nav-in{padding:0 18px}` */
+      padding-right: 18px;
+    }
+  }
+</style>

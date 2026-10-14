@@ -1,0 +1,163 @@
+---
+// WritingSection —— 首页「技术文章」区块（区块头 + 卡片列表 + 「查看全部」）
+// 结构与样式搬运自 design-mockup/index-v9.html L1038–1074（HTML）/ L451–478（CSS）。
+// 数据来自 writing 集合：按 date 倒序取前 8 条交给 PostRow 渲染 —— 列表页（Task 11）
+// 用同一份集合、同一套排序，本区块只做 slice，标题因此与列表页逐字一致。
+//
+// 不过滤 status：设计稿的首页 8 条与列表页 8 条是同一批（L1041–1060 八行），
+// 而 Task 11 的 8 篇里有 7 篇 status:planned。若在这里 filter(published)，
+// 首页只会剩 1 条 —— 与设计稿的 8 条直接冲突，也会让「查看全部 N 篇」的 N 变成 1。
+// 列表页对 planned 的处理是「卡片加『即将发布』徽标 + 链到自身详情页」，不隐藏，
+// 所以首页与列表页保持同一份列表才是一致的。`planned` 的标记在 PostRow 的 title 上以
+// data 属性透出，供列表页/详情页复用同一语义（本组件不做额外视觉标记，与设计稿一致）。
+import { getCollection } from 'astro:content';
+import PostRow from './PostRow.astro';
+
+const posts = (await getCollection('writing'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const shown = posts.slice(0, 8);
+const catLabel: Record<string, string> = { agent: 'Agent', java: 'Java', algo: '算法' };
+---
+
+<section id="writing" class="writing-sec mx-auto max-w-[1180px] px-8">
+  <div class="sec-h rv">
+    <span class="kick">WRITING</span>
+    <h2>技术文章</h2>
+    <p>先把 Agent 相关的写扎实，再回来补 Java 基础。都是自己啃过一遍才动手写的东西。</p>
+  </div>
+
+  <div class="wr-list rv" data-d="1">
+    {
+      shown.map((p) => (
+        <PostRow
+          category={catLabel[p.data.category] ?? p.data.category}
+          title={p.data.title}
+          href={`/writing/${p.slug}/`}
+          tags={p.data.tags}
+          planned={p.data.status === 'planned'}
+        />
+      ))
+    }
+  </div>
+
+  <div class="more-row rv" data-d="2">
+    <a href="/writing/" class="more-link">
+      查看全部 {posts.length} 篇文章
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 12h14M13 6l6 6-6 6"></path>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<style>
+  /* 区块容器与 section{padding:86px 0}：与 CapabilityGrid / ProjectsSection 同一口径。
+     Glossary 自身只带 padding-bottom:20px，所以这里照常写满 86px 上下边距。 */
+  .writing-sec {
+    padding-top: 86px;
+    padding-bottom: 86px;
+  }
+
+  /* ---------- 列表外壳（设计稿 .posts L451–452） ---------- */
+  .wr-list {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+  }
+
+  /* ---------- 「查看全部」（设计稿 .more-row / .more-link L466–476） ---------- */
+  .more-row {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .more-row .more-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-gd);
+    text-decoration: none;
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    padding: 10px 20px;
+    border-radius: 100px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.26s, border-color 0.26s;
+  }
+  .more-row .more-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    border-color: var(--color-gh);
+  }
+  .more-row .more-link svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.26s;
+  }
+  .more-row .more-link:hover svg {
+    transform: translateX(3px);
+  }
+
+  /* ---------- 区块通用（设计稿 L303–310） ---------- */
+  .kick {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-gm);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+  .kick::before {
+    content: '';
+    width: 22px;
+    height: 2px;
+    background: var(--color-gh);
+    border-radius: 2px;
+  }
+  .sec-h {
+    margin-bottom: 46px;
+  }
+  .sec-h h2 {
+    font-size: clamp(25px, 3.3vw, 32px);
+    font-weight: 750;
+    letter-spacing: -0.028em;
+    margin-bottom: 11px;
+    line-height: 1.25;
+  }
+  .sec-h p {
+    color: var(--color-ink2);
+    font-size: 14.5px;
+    max-width: 660px;
+    line-height: 1.78;
+  }
+
+  @media (max-width: 700px) {
+    .writing-sec {
+      padding-top: 62px;
+      padding-bottom: 62px;
+      padding-left: 18px; /* 设计稿 .wrap{padding:0 18px} */
+      padding-right: 18px;
+    }
+  }
+
+  /* ---------- 无 JS 兜底 ----------
+     `.rv` 的兜底已在 global.css（:root:not(.js) .rv）；这里补的是本区块自己的
+     交互态：无 JS 时卡片列表与「查看全部」都是静息终态。 */
+  :root:not(.js) .more-row .more-link {
+    transition: none;
+  }
+</style>

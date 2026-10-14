@@ -133,9 +133,19 @@ body::before {
 .rv[data-d="1"] { transition-delay: .08s; }
 .rv[data-d="2"] { transition-delay: .16s; }
 .rv[data-d="3"] { transition-delay: .24s; }
+/* 设计稿 index-v9.html:34–35 另有 data-d="4"/"5"/"6"（.32s/.40s/.48s）。
+   首页项目卡是三张错峰入场（data-d 1/2/3），Task 9 的时间轴若需要更长错峰可直接用。 */
+.rv[data-d="4"] { transition-delay: .32s; }
+.rv[data-d="5"] { transition-delay: .40s; }
+.rv[data-d="6"] { transition-delay: .48s; }
 @media (prefers-reduced-motion: reduce) {
   .rv { opacity: 1 !important; transform: none !important; }
 }
+
+/* `main` 在 UA 样式表里对 <main> 没有任何 margin —— 设计稿的 `*{margin:0;padding:0}`
+   在这里由 body 的默认 margin（8px）替代，会造出左右各 8px 的空槽。
+   显式清零，与设计稿的整页边距口径一致。 */
+main { display: block; margin: 0; }
 
 /* 无 JS 兜底：`.rv` 的入场由 BaseLayout 的脚本驱动，脚本不跑就永远停在 opacity:0。
    兜底必须落在 `.rv` 自己身上 —— 只给子元素写兜底会造出「子元素已可见、包装层还藏着」的假象

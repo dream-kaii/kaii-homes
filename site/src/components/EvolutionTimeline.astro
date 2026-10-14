@@ -1,0 +1,564 @@
+---
+// EvolutionTimeline —— 首页「Agent 应用的十步演进」时间轴 + 详情面板
+// 结构与样式搬运自 design-mockup/index-v9.html：
+//   CSS  L370–392（.tlwrap/.tlscroll/.tl/.tlfill/.nd/.nd-dot/.nd-lb/.nd-t）
+//   CSS  L393–414（.tlpanel/.tph/.tpst/.tpd/.tpg/.tpcol）
+//   HTML L915–941（<div class="wrap" id="evolution"> 整段）
+//   渲染函数 renderT(i) L1286–1300，切换时序/淡入手法照搬
+// 变量名按 site 令牌映射：--gh→var(--color-gh) --gd→var(--color-gd) --line→var(--color-line)
+// --ink→var(--color-ink) --ink2/3/4→var(--color-ink2/3/4) --card→var(--color-card)
+// --paper2→var(--color-paper2) --sun→var(--color-amber) --rL→var(--radius-lg)
+// --sh→0 1px 3px rgba(42,77,46,.05) --mono→var(--font-mono)
+// 数据来自 src/data/evolution.ts（10 条，Task 2 产出，已逐字核对与设计稿 ST 数组一致）。
+// 节点与详情全部由数据渲染，模板里没有硬编码的步骤文案。
+//
+// 与设计稿的差异（4 处，逐条说明理由）：
+//   1. 详情面板由「每次切换重写 innerHTML」改为「服务端预渲染 10 个 <article>，切换只切 hidden」。
+//      设计稿的 renderT 把内容写进 #tp.innerHTML —— DOM 里从头到尾只存在一份，
+//      无 JS 时面板必然空白，违反「无 JS 必须看到 10 个节点与第一条详情」。
+//      预渲染后内容从第一帧就在 HTML 里，切换只改可见性，无 JS 路径天然成立。
+//   2. 节点按钮补 `aria-pressed`，与 `.act` 类同步 —— `.act` 只是视觉态，读屏用户读不到。
+//      没有采用 role="tablist"：设计要求「悬停即切换」，hover 切 tab 会让 role 语义
+//      与实际行为不符（tab 应由用户显式激活），故用 toggle button 语义。
+//   3. 进度线由 `width:<px>` 改为 `transform:scaleX()`。视觉等价（scaleX 会同步缩放
+//      2px 的线宽，s×2px），但 width 动画每帧跑 layout，scaleX 走合成层；
+//      比例端点由节点实测中心点算出，与设计稿的绝对 px 口径一一对应（见脚本 syncFill）。
+//   4. 详情内容外层多包一层 `.tp-view`，由它承担显隐，`.fade` 动画也落在它身上。
+//      设计稿把 `hidden`（display 翻转）与 animation 放在同一个 #tp 上，
+//      display:none→block 的同帧加类，动画不会重放。拆开后「显隐」与「重放」互不干扰。
+import { evolution } from '../data/evolution';
+---
+
+<div id="evolution" class="evo-sec mx-auto max-w-[1180px] px-8">
+  <section>
+    <div class="sec-h rv">
+      <span class="kick">EVOLUTION</span>
+      <h2>Agent 应用的十步演进</h2>
+      <p>从一条对话接口到一个可运维的系统，中间要补的能力按依赖顺序排开。点任意节点可以看细节。</p>
+    </div>
+
+    <div class="tlwrap rv" data-d="1">
+      <div class="tlscroll">
+        <div class="tl" id="evo-tl">
+          <div class="tlfill" id="evo-tlfill"></div>
+          {
+            evolution.map((s, i) => (
+              <button
+                type="button"
+                class={i === 0 ? 'nd act' : 'nd'}
+                data-i={i}
+                aria-pressed={i === 0 ? 'true' : 'false'}
+                aria-controls="evo-tp"
+              >
+                <span class="nd-dot" />
+                <span class="nd-lb">{s.n}</span>
+                <span class="nd-t">{s.title}</span>
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="tlpanel">
+        <div class="tpin" id="evo-tp">
+          {
+            evolution.map((s, i) => (
+              <article class="tp-view" data-p={i} hidden={i !== 0}>
+                <div class="tph">
+                  <span class="tpst">STEP {s.n}</span>
+                  <h4>
+                    {s.title}
+                    <em>{s.en}</em>
+                  </h4>
+                </div>
+                <p class="tpd">{s.desc}</p>
+                <div class="tpg">
+                  <div class="tpcol">
+                    <h5>要做成什么样</h5>
+                    <ul>
+                      {s.items.map((x) => (
+                        <li>{x}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div class="tpcol dark">
+                    <h5>容易踩在哪儿</h5>
+                    <ul>
+                      {s.pitfalls.map((x) => (
+                        <li>{x}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  /* ============================================================
+     区块容器
+     设计稿 .wrap{max-width:1180px;padding:0 32px}（index-v9.html:27）——
+     与 Hero / AgentCompare / CapabilityGrid / Glossary 同宽同边距，左边缘对齐。
+     只写纵向 padding：横向留给模板上的 Tailwind `px-8`。
+     若用 `padding:` / `margin:` 简写会把横向清零（组件 <style> 不在 @layer 内，
+     优先级高于 Tailwind utilities），左边缘会漂移 32px。
+     ============================================================ */
+  .evo-sec {
+    padding-top: 86px; /* 设计稿 section{padding:86px 0} */
+  }
+  @media (max-width: 700px) {
+    .evo-sec {
+      padding-top: 62px; /* 设计稿 @media(max-width:700px) section{padding:62px 0} */
+      padding-left: 18px; /* 设计稿 .wrap{padding:0 18px}（需压过 px-8 的 32px） */
+      padding-right: 18px;
+    }
+  }
+
+  /* ---------- 区块通用（设计稿 L303–310，与 CapabilityGrid 同一套） ---------- */
+  .kick {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-gm);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+  .kick::before {
+    content: '';
+    width: 22px;
+    height: 2px;
+    background: var(--color-gh);
+    border-radius: 2px;
+  }
+  .sec-h {
+    margin-bottom: 46px;
+  }
+  .sec-h h2 {
+    font-size: clamp(25px, 3.3vw, 32px);
+    font-weight: 750;
+    letter-spacing: -0.028em;
+    margin-bottom: 11px;
+    line-height: 1.25;
+  }
+  .sec-h p {
+    color: var(--color-ink2);
+    font-size: 14.5px;
+    max-width: 660px;
+    line-height: 1.78;
+  }
+
+  /* ---------- 时间轴轨道（设计稿 L370–392） ---------- */
+  .tlwrap {
+    position: relative;
+  }
+  /* 横向滚动来自设计稿：轨道定宽 min-width:1180px，在 <=1260px 的视口下一定超出，
+     这是设计稿的既定行为，不是溢出缺陷 —— 滚动发生在 .tlscroll 内部，
+     不参与 document.scrollWidth。 */
+  .tlscroll {
+    overflow-x: auto;
+    padding: 36px 8px 28px;
+    scrollbar-width: thin;
+  }
+  .tlscroll::-webkit-scrollbar {
+    height: 7px;
+  }
+  .tlscroll::-webkit-scrollbar-track {
+    background: var(--color-paper2);
+    border-radius: 10px;
+  }
+  .tlscroll::-webkit-scrollbar-thumb {
+    background: #cfd3b8;
+    border-radius: 10px;
+  }
+  .tl {
+    display: flex;
+    position: relative;
+    min-width: 1180px; /* 设计稿定宽：10 个节点各占 flex:1 */
+    padding: 0 8px;
+  }
+  /* 底轨（浅色） */
+  .tl::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 33px;
+    height: 2px;
+    background: var(--color-line);
+  }
+  /* 进度线（深色，随选中节点填充）。
+     设计稿写 `width:<px>` + `transition:width .6s cubic-bezier(.22,1,.36,1)`；
+     这里用等价的 `transform:scaleX()`，比例端点由节点实测中心点算出（见脚本 syncFill）。
+     `width:100%` 必须显式写 —— 块级元素在绝对定位下会 shrink-to-fit，
+     不写则宽度为 0，`scaleX(s)` 永远算不出内容宽度。 */
+  .tlfill {
+    position: absolute;
+    left: 0;
+    top: 33px;
+    height: 2px;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    background: linear-gradient(90deg, var(--color-gh), var(--color-gd));
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .nd {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    padding: 0 5px;
+    background: none;
+    border: none;
+    font-family: inherit;
+  }
+  .nd-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2.5px solid var(--color-line);
+    transition: all 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin-top: 25px;
+  }
+  .nd:hover .nd-dot {
+    border-color: var(--color-gh);
+    transform: scale(1.22);
+  }
+  .nd.act .nd-dot {
+    background: var(--color-gd);
+    border-color: var(--color-gd);
+    transform: scale(1.34);
+    box-shadow: 0 0 0 5px rgba(62, 107, 63, 0.15);
+  }
+  .nd-lb {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--color-ink4);
+    margin-top: 12px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    transition: color 0.28s;
+  }
+  .nd.act .nd-lb {
+    color: var(--color-gd);
+  }
+  .nd-t {
+    font-size: 11.5px;
+    color: var(--color-ink3);
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.42;
+    max-width: 106px;
+    font-weight: 550;
+    transition: color 0.28s;
+  }
+  .nd.act .nd-t {
+    color: var(--color-ink);
+  }
+
+  /* ---------- 详情面板（设计稿 L393–414） ---------- */
+  .tlpanel {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    padding: 30px 32px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    margin-top: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tlpanel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle at top right, rgba(181, 202, 77, 0.14), transparent 68%);
+  }
+  .tpin {
+    position: relative;
+    z-index: 1;
+  }
+  .tph {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .tpst {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-gd);
+    padding: 3.5px 12px;
+    border-radius: 100px;
+    letter-spacing: 0.07em;
+  }
+  .tpin h4 {
+    font-size: 19px;
+    font-weight: 750;
+    letter-spacing: -0.022em;
+  }
+  .tpin h4 em {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-ink3);
+    margin-left: 8px;
+  }
+  .tpd {
+    font-size: 13.5px;
+    color: var(--color-ink2);
+    line-height: 1.8;
+    margin-bottom: 18px;
+    max-width: 780px;
+  }
+  .tpg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 26px;
+  }
+  .tpcol h5 {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-ink4);
+    letter-spacing: 0.11em;
+    font-weight: 700;
+    margin-bottom: 11px;
+  }
+  .tpcol ul {
+    list-style: none;
+  }
+  .tpcol li {
+    font-size: 13px;
+    color: var(--color-ink2);
+    line-height: 1.72;
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .tpcol li::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 9px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--color-gh);
+  }
+  /* 设计稿色令牌 --sun（琥珀）→ --color-amber */
+  .tpcol.dark li::before {
+    background: var(--color-amber);
+  }
+
+  /* 详情切换的淡入（设计稿 L411–413 的 `@keyframes fade`，改名加组件前缀 tl-） */
+  .tp-view {
+    display: block;
+  }
+  .tp-view[hidden] {
+    display: none;
+  }
+  .tp-view.fade {
+    animation: tl-fade 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes tl-fade {
+    from {
+      opacity: 0;
+      transform: translateY(9px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ---------- 响应式 ----------
+     设计稿没有为本区块写断点，而两栏 .tpg 在窄屏会挤成每行 4–5 字的窄柱。
+     收成单栏是唯一能让「每行仍是完整短句」的读法；断点沿用设计稿的 700px 刻度。 */
+  @media (max-width: 700px) {
+    .tpg {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .tlpanel {
+      padding: 22px 18px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接呈现终态 ----------
+     进度线的 `transition: transform .6s` 由 global.css 的
+     `@media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition-duration:.01ms !important } }`
+     压平。本组件不得对 .tlfill 声明作者级 !important 的 transition-duration，
+     否则会盖掉全局兜底；这里只做「本组件自己的过渡清零」，与 CapabilityGrid 同一口径。 */
+  @media (prefers-reduced-motion: reduce) {
+    .tlfill,
+    .nd-dot,
+    .nd-lb,
+    .nd-t {
+      transition: none;
+    }
+    .nd:hover .nd-dot {
+      transform: none;
+    }
+    .tp-view.fade {
+      animation: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底 ----------
+     脚本不跑时轨道与面板都是服务端预渲染的静态内容：第 1 个节点带 `.act`、
+     面板第 1 个 <article> 非 hidden，因此 10 个节点 + 第一条详情天然可见
+     （`.rv` 的兜底在 global.css，覆盖的是包装层本身）。
+     这里补的是「进度线不得停在 0 宽」：脚本负责把它 scaleX 到节点 1 中心轴，
+     脚本缺席时退化为与底轨等长的实色线，避免轨道看起来是断的。 */
+  :root:not(.js) .tlfill {
+    transform: none;
+    transition: none;
+  }
+</style>
+
+<script>
+  // 作用域限定在本区块内（Task 4 的「串号」教训：任何 DOM 查询先取容器，
+  // 禁止用全局 getElementById / querySelectorAll 直接找 .nd、#tlFill 这类短名字）。
+  const root = document.getElementById('evolution');
+
+  if (root) {
+    const tl = root.querySelector<HTMLElement>('#evo-tl');
+    const fill = root.querySelector<HTMLElement>('#evo-tlfill');
+    const tp = root.querySelector<HTMLElement>('#evo-tp');
+    const nds = Array.from(root.querySelectorAll<HTMLButtonElement>('.nd'));
+    const views = Array.from(root.querySelectorAll<HTMLElement>('.tp-view'));
+
+    let cur = 0;
+    const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /**
+     * 把进度线拉到节点 i。
+     * 设计稿：`width = nds[i].offsetLeft + nds[i].offsetWidth / 2`（绝对像素）。
+     * 因为节点全部是 `.tl` 的 flex 子项、`.tlfill` 与它们共享同一个 padding 参考系，
+     * 所以设计稿那条表达式的几何含义就是「进度线左缘 = 0（padding 框左缘）」。
+     * 等价换到 `transform:scaleX(s)` 时，把绝对像素归一化到 [0,1] 即可：
+     *   s = 节点 i 中心 / (节点 10 中心 − 节点 01 中心) × (节点 10 中心 / 节点 10 中心) …
+     * 直接展开写更清楚 —— 进度线的 `width:100%` 等于节点 01 中心到节点 10 中心跨度的
+     * 1.0073 倍（末端半个节点宽 8px 落在中心之后，被 .tl 裁掉）：
+     *   s = (节点 i 中心 − 8) / (节点 10 中心 − 8)
+     * 实测（1440px，节点 01 中心 = 65、节点 10 中心 = 1102，padding-left = 8）：
+     *   i=0 → 57/1094 = 0.0521 ；i=9 → 1094/1094 = 1.0000
+     * 与设计稿的 65px / 1102px 口径逐位对应（差值恰为 padding-left）。
+     */
+    function syncFill(i: number) {
+      if (!fill || nds.length < 2) return;
+      const first = nds[0];
+      const last = nds[nds.length - 1];
+      const target = nds[i];
+      if (!first || !last || !target) return;
+
+      const start = tl ? parseFloat(getComputedStyle(tl).paddingLeft) || 0 : 0;
+      const cN = last.offsetLeft + last.offsetWidth / 2;
+      const denom = cN - start;
+      if (denom <= 0) return;
+      const s = (target.offsetLeft + target.offsetWidth / 2 - start) / denom;
+      fill.style.transform = `scaleX(${Math.max(0, Math.min(1, s)).toFixed(4)})`;
+    }
+
+    /**
+     * 直接呈现终态：面板切到第 i 条、节点标记 .act、进度线到位。
+     * `instant=true`（reduce）时进度线不加过渡、面板不加淡入动画 —— 与 AgentCompare 的
+     * `showFinalState()` 同一口径：reduce 下绝不走带过渡的路径。
+     */
+    function showState(i: number, instant: boolean) {
+      if (i < 0 || i >= nds.length) return;
+      cur = i;
+
+      views.forEach((v, k) => {
+        const on = k === i;
+        v.hidden = !on;
+        v.classList.remove('fade');
+        // 重放淡入：移除类 → 强制回流 → 再加回来。
+        // 设计稿 renderT 用同一手法（`classList.remove('fade'); void p.offsetWidth; classList.add('fade')`）。
+        if (on && !instant) {
+          void v.offsetWidth;
+          v.classList.add('fade');
+        }
+      });
+
+      nds.forEach((n, k) => {
+        const on = k === i;
+        n.classList.toggle('act', on);
+        n.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+
+      if (fill) {
+        if (instant) {
+          // reduce 路径：显式绕开过渡直接写终值，不依赖全局兜底的加载顺序。
+          fill.style.transition = 'none';
+          syncFill(i);
+          requestAnimationFrame(() => fill.style.removeProperty('transition'));
+        } else {
+          fill.style.removeProperty('transition');
+          syncFill(i);
+        }
+      }
+
+      if (tl) tl.dataset.cur = String(i);
+      tp?.setAttribute('data-cur', String(i));
+    }
+
+    // 设计稿：点击与悬停都切换（见 L1301–1304）。click 同时覆盖键盘 ——
+    // <button> 原生在 Enter / Space 上派发 click，不需要额外的 keydown 分支。
+    nds.forEach((n, i) => {
+      n.addEventListener('click', () => showState(i, rm));
+      n.addEventListener('mouseenter', () => showState(i, rm));
+    });
+
+    // 横向轨道用左右方向键更顺手（Tab 10 次要按 10 下）。不写也不算缺陷，属于增量。
+    tl?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const next = Math.max(0, Math.min(nds.length - 1, cur + (e.key === 'ArrowRight' ? 1 : -1)));
+      if (next === cur) return;
+      e.preventDefault();
+      showState(next, rm);
+      nds[next]?.focus();
+    });
+
+    // Tab 聚焦到视口外的节点时把它带进视野（窄屏横向滚动场景）
+    root.addEventListener(
+      'focusin',
+      (e) => {
+        const t = e.target as HTMLElement | null;
+        if (!t?.classList.contains('nd')) return;
+        t.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: rm ? 'auto' : 'smooth' });
+      },
+      true,
+    );
+
+    // 字体加载完成后节点宽度会变，进度线端点跟着重算（否则终点偏几 px）
+    document.fonts?.ready.then(() => showState(cur, true));
+
+    let raf = 0;
+    addEventListener('resize', () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => showState(cur, true));
+    });
+
+    // 硬要求：reduce 下任何切换都直接置终态，不得出现过渡中间态。
+    showState(0, rm);
+  }
+</script>

@@ -12,7 +12,7 @@ const items = [
 ---
 <nav class="sticky top-0 z-60 border-b border-line2"
      style="background:rgba(250,249,242,.87);backdrop-filter:blur(16px)">
-  <div class="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-10">
+  <div class="nav-in mx-auto flex h-16 max-w-[1180px] items-center justify-between px-8">
     <a href="/" class="flex items-center gap-2.5 text-ink no-underline">
       <img src="/avatar.jpg" alt="" width="31" height="31"
            class="rounded-full border-2 border-white object-cover"
@@ -32,3 +32,19 @@ const items = [
     </div>
   </div>
 </nav>
+
+<style>
+  /* Task 5 遗留项 3：容器宽度跨任务不一致。
+     Nav / Footer 原为 max-w-[1440px] px-10，首页各区块为 max-w-[1180px] px-8，
+     1440px 视口下左边缘 120px vs 162px，错开 42px（窄视口更多）。
+     设计稿 L46 与 L27 本就同宽同边距：
+       .nav-in{max-width:1180px;padding:0 32px;height:64px}
+       .wrap  {max-width:1180px;padding:0 32px}
+     故统一为 max-w-[1180px] px-8。 */
+  @media (max-width: 700px) {
+    .nav-in {
+      padding-left: 18px; /* 设计稿 @media(max-width:700px) `.wrap,.nav-in{padding:0 18px}` */
+      padding-right: 18px;
+    }
+  }
+</style>

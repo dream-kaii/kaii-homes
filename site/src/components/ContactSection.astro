@@ -1,0 +1,26 @@
+---
+// ContactSection —— 首页「联系」区块的容器
+// 容器与间距搬运自 design-mockup/index-v9.html L1109–1110：一个 .wrap + `section{padding-top:0}`。
+// 单独拆出容器组件的原因：Glossary 自身带了 padding-bottom:20px（设计稿内联样式），
+// 联系区必须接住这 20px 而不重复给上边距，否则两区块之间会空出 86+20 的双份间距。
+import ContactBand from './ContactBand.astro';
+---
+
+<section class="contact-sec mx-auto max-w-[1180px] px-8">
+  <div class="rv">
+    <ContactBand />
+  </div>
+</section>
+
+<style>
+  .contact-sec {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  @media (max-width: 700px) {
+    .contact-sec {
+      padding-left: 18px; /* 设计稿 @media(max-width:700px) .wrap{padding:0 18px} */
+      padding-right: 18px;
+    }
+  }
+</style>
