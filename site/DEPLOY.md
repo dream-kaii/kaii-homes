@@ -7,20 +7,18 @@
 
 ---
 
-## ⚠️ 上线前必须替换的 2 处占位
+## 域名
 
-站内目前用 `https://example.com` 当占位域名。**正式上线前，把下面两处都换成你的真实域名**：
+本站域名：**https://kaii.homes**（已配置）
 
-| # | 文件 | 位置 | 当前值 → 改为 |
-|---|---|---|---|
-| 1 | `site/astro.config.mjs` | 第 8 行 `site:` | `'https://example.com'` → `'https://你的域名'` |
-| 2 | `site/public/robots.txt` | 最后一行 `Sitemap:` | `https://example.com/sitemap-index.xml` → `https://你的域名/sitemap-index.xml` |
+域名写在两处，改域名时**两处都要改**：
 
-这两处必须**同时**改，否则 sitemap / RSS 里的链接会指向错误域名（SEO 会吃亏）。
+| # | 文件 | 位置 |
+|---|---|---|
+| 1 | `site/astro.config.mjs` | `site: 'https://kaii.homes'`（决定 sitemap / RSS / canonical 的绝对地址）|
+| 2 | `site/public/robots.txt` | 末行 `Sitemap: https://kaii.homes/sitemap-index.xml` |
 
-> 补充：两处都改完后跑一次 `pnpm build`，检查 `dist/sitemap-0.xml` 里的 `<loc>` 是否已是新域名。
-
----
+改完后跑一次构建，检查 `dist/sitemap-0.xml` 里的 `<loc>` 是否已是新域名。
 
 ## 一、首次部署（Cloudflare Pages 控制台）
 

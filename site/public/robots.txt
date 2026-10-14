@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
 
-# Sitemap 地址。⚠️ 上线前需与 astro.config.mjs 的 `site` 同步替换为真实域名。
-# 当前为占位 example.com（详见 DEPLOY.md「上线前必须替换的占位」）。
-Sitemap: https://example.com/sitemap-index.xml
+# 与 astro.config.mjs 的 `site` 保持一致；改域名时两处都要改。
+Sitemap: https://kaii.homes/sitemap-index.xml

@@ -5,7 +5,9 @@ import mdx from '@astrojs/mdx';
 import rehypeHeadingIds, { recmaHeadingIds } from './src/plugins/rehype-heading-ids.mjs';
 
 export default defineConfig({
-  site: 'https://example.com',   // 待用户提供新域名后替换
+  // 生产域名。此值决定 sitemap / RSS / canonical 链接里的绝对地址（SEO 用），
+  // 改完需重新部署才生效。
+  site: 'https://kaii.homes',
 
   // MDX 集成：文章正文要能嵌 Astro 组件（`<RetrievalDemo />`）。
   // 默认的 Markdown 处理器没有组件支持 —— `<RetrievalDemo />` 会被当成一段字面 HTML
