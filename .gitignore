@@ -1,0 +1,30 @@
+# ---- macOS ----
+.DS_Store
+._*
+
+# ---- 依赖与构建产物 ----
+node_modules/
+dist/
+.astro/
+.pnpm-store/
+
+# ---- 编辑器 / IDE ----
+.vscode/
+.idea/
+*.swp
+
+# ---- 日志与临时文件 ----
+*.log
+*.tmp
+
+# ---- 环境变量（绝不提交）----
+.env
+.env.*
+!.env.example
+
+# ---- Superpowers SDD 工作区（本地流程产物，不属于站点源码）----
+# 计划、brief、报告、证据都留在本地；若想随仓库保留，删掉下面这两行即可。
+.superpowers/sdd/
+
+# ---- Lighthouse / 验收产物 ----
+dsh-verify-out/
