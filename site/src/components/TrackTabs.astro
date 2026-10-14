@@ -1,0 +1,271 @@
+---
+// TrackTabs —— 学习路线的 Tab 切换栏 + 三个面板
+// 结构与样式搬运自 design-mockup/learning-path-mockup.html 的 `.lp-tabs` / `.tab` / `.panel`
+// （CSS L307–326、L389–402，HTML L537–552 + 三个 `.panel`）。
+// 变量名按 site 令牌映射：--card→var(--color-card) --line/-line2→var(--color-line/-line2)
+// --ink2/3/4→var(--color-ink2/3/4) --gh/-gm/-gd→var(--color-gh/-gm/-gd)
+// --paper2→var(--color-paper2) --mono→var(--font-mono)
+//
+// 与设计稿的两处刻意差异：
+//   1. 设计稿的 Tab 是 `<button>` 但没有任何 ARIA 语义，面板切换完全靠脚本。
+//      这里保留 <button>（原生支持 Enter/Space），补 `aria-selected` 与
+//      `aria-controls`；**没有**上 `role="tablist"`/`role="tab"` —— 一旦声明 tab 角色，
+//      ARIA 就要求方向键在 tab 之间移动焦点、且 tab 与 tabpanel 成对出现，
+//      而本页的左栏切换器（`.ser`）也要驱动同一套面板，语义上更像两个控件
+//      控制同一块区域的「显式激活」模式。用 `<section aria-labelledby>` 承载面板，
+//      读屏仍能读到「哪个面板、标题是什么」。
+//   2. 面板内容由页面传入（默认 slot），全部服务端预渲染（不是 innerHTML 重写）。
+//      ⚠️ 为什么面板不在组件内 for 循环渲染：Astro 要求 `<slot name={...}>` 的 name 是
+//      **静态字符串**，动态 slot 名会在 `astro build` 阶段直接报
+//      「slot[name] must be a static string」（`astro check` 不报，只有 build 报）。
+//      所以三个 `<section class="panel" data-track-panel>` 由页面用静态 slot 之外的
+//      默认 slot 内容提供，组件只负责 Tab 栏 + 面板容器。
+//      无 JS 时用 `:root:not(.js)` 兜底让**第一条路线**完整可见（Global Constraints #4），
+//      而不是三个面板全 `display:none` 的白屏。
+
+interface TrackTab {
+  key: string;
+  label: string;
+  subtitle: string;
+}
+interface Props {
+  tabs: TrackTab[];
+  /** 初始激活的路线 key，必须命中 tabs 里的某一项 */
+  active: string;
+}
+
+const { tabs, active } = Astro.props;
+// 图标沿用设计稿三个内联 SVG（L540 / L544 / L548），按 key 取。
+const ICONS: Record<string, string> = {
+  agent: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',
+  algo: '<path d="M8 3v4M16 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M9 14l2 2 4-4"/>',
+  backend:
+    '<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+};
+---
+
+<div class="lp-tabs" data-track-tabs>
+  <div class="tab-in">
+    {
+      tabs.map((t) => (
+        <button
+          type="button"
+          class="tab"
+          data-track-tab={t.key}
+          aria-pressed={t.key === active ? 'true' : 'false'}
+          aria-controls={`panel-${t.key}`}
+        >
+          <span class="tab-ic">
+            <svg viewBox="0 0 24 24" aria-hidden="true" set:html={ICONS[t.key] ?? ICONS.agent} />
+          </span>
+          <span class="tab-tx">
+            <b>{t.label}</b>
+            <i>{t.subtitle}</i>
+          </span>
+        </button>
+      ))
+    }
+  </div>
+</div>
+
+<div class="lp-panels" data-track-panels>
+  <slot />
+</div>
+
+<style>
+  /* ============================================================
+     Tab 栏（设计稿 .lp-tabs L307–323）
+     设计稿 top:64px 贴住导航条下沿；`background` 用 rgba 而非令牌，
+     因为要在毛玻璃下透出纸色（令牌是不透明的 #FAF9F2）。
+     ============================================================ */
+  .lp-tabs {
+    position: sticky;
+    top: 64px;
+    z-index: 50;
+    background: rgba(250, 249, 242, 0.93);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--color-line2);
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 6px;
+  }
+  .tab-in {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .tab {
+    background: var(--color-card);
+    border: 1.5px solid var(--color-line);
+    border-radius: 13px;
+    padding: 12px 15px;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      background 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .tab:hover {
+    border-color: var(--color-gh);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+  }
+  .tab.on {
+    border-color: var(--color-gd);
+    background: linear-gradient(140deg, #f4f9e6, #eaf2ce);
+  }
+  .tab:focus-visible {
+    outline: 2px solid var(--color-gm);
+    outline-offset: 2px;
+  }
+  .tab-ic {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+  }
+  .tab.on .tab-ic {
+    background: #fff;
+    border-color: var(--color-gh);
+  }
+  .tab-ic svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--color-ink3);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .tab.on .tab-ic svg {
+    stroke: var(--color-gd);
+  }
+  .tab-tx b {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--color-ink2);
+    letter-spacing: -0.012em;
+  }
+  .tab.on .tab-tx b {
+    color: var(--color-gd);
+  }
+  .tab-tx i {
+    display: block;
+    font-style: normal;
+    font-size: 10.5px;
+    color: var(--color-ink4);
+    margin-top: 2px;
+  }
+
+  /* ============================================================
+     面板（设计稿 .panel L324–326）
+     `hidden` 属性是显隐的**唯一**开关（服务端也用它），`.on` 只负责动画。
+     设计稿的 `@keyframes fadeUp` 改名加组件前缀 `lp-`（Global Constraints #6）。
+     ============================================================ */
+  .panel[hidden] {
+    display: none;
+  }
+  .panel.on {
+    display: block;
+    animation: lp-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes lp-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* ---------- 响应式（设计稿 L389–395） ---------- */
+  @media (max-width: 1080px) {
+    .tab-in {
+      grid-template-columns: 1fr;
+      gap: 7px;
+    }
+    .tab {
+      padding: 11px 13px;
+    }
+    /* 设计稿 `@media(max-width:1080px){.lp-tabs{position:static}}`：
+       窄屏三行 Tab 已经很高，再 sticky 会吃掉半屏。 */
+    .lp-tabs {
+      position: static;
+    }
+  }
+  @media (max-width: 700px) {
+    .tab-tx b {
+      font-size: 13px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接呈现终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .tab {
+      transition: none;
+    }
+    .tab:hover {
+      transform: none;
+    }
+    .panel.on {
+      animation: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底（Global Constraints #4） ----------
+     脚本不在时，`hidden` 会把三个面板全部藏起来 —— 页面只剩 Tab 栏。
+     这里强制第一条路线可见：`:root:not(.js) .panel[hidden]:first-of-type` 命中
+     「服务端标记为 hidden 的第一个面板」，也就是 tabs[0]（agent）。
+     `!important` 是必需的：`hidden` 的 UA 样式是 `display:none`，
+     而 `.panel[hidden]{display:none}` 与本规则同权重，靠后者胜出不稳定；
+     用 `:root:not(.js)` 提权后仍然需要 `!important` 压过 UA + 自身规则的组合。
+     兜底落在**包装层 `.lp-panels` 与面板本身**：`.rv` 的兜底只覆盖它自己，
+     这里的 `hidden` 是另一条独立路径。 */
+  :root:not(.js) .lp-panels .panel[hidden]:first-of-type {
+    display: block !important;
+  }
+  :root:not(.js) .panel.on {
+    animation: none;
+  }
+
+</style>
+
+<script>
+  // @ts-nocheck —— 浏览器运行时 JS；astro check 的 strict 对 DOM 查询结果过严。
+  //
+  // ⚠️ 不能用 `document.currentScript` 取组件根：Astro 把 <script> 编译成 **ESM 模块**，
+  // 模块脚本里 `document.currentScript` 恒为 null（模块没有当前脚本的概念）——
+  // 实测这样做会让整个切换逻辑静默失效（面板永不切换）。改用全局 querySelector 定位。
+  // 页面上只有一个学习路线 Tab 组件，选择器无歧义。
+  const ttBar = document.querySelector('[data-track-tabs]');
+  const ttWrap = document.querySelector('[data-track-panels]');
+  if (ttBar && ttWrap) {
+    const ttTabs = Array.from(ttBar.querySelectorAll('[data-track-tab]'));
+    const ttPanels = Array.from(ttWrap.querySelectorAll('[data-track-panel]'));
+    const ttSync = (key) => {
+      ttTabs.forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.trackTab === key)));
+      ttPanels.forEach((p) => (p.hidden = p.dataset.trackPanel !== key));
+    };
+    ttBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-track-tab]');
+      if (btn && btn.dataset.trackTab) {
+        ttSync(btn.dataset.trackTab);
+        document.dispatchEvent(new CustomEvent('track-change', { bubbles: true, detail: { key: btn.dataset.trackTab } }));
+      }
+    });
+    // 接收来自左栏切换器的事件（双向联动）。bubbles 到 document，这里统一收口。
+    document.addEventListener('track-change', (e) => ttSync(e.detail.key));
+  }
+</script>

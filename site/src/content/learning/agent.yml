@@ -1,0 +1,90 @@
+# 学习路线 · 01 Agent 应用开发
+# 文案逐字来自 design-mockup/learning-path-mockup.html 的 data-p="agent" 面板
+# （L554–729），以及左栏切换器 L517 的 label / subtitle。
+# schema 见 src/content/config.ts:45 —— track 必须是 z.enum 里的合法值。
+track: agent
+label: Agent 应用开发
+subtitle: 主线 · 正在走
+intro: 很多人一上来就问「用哪个框架」，这是错的问题。Anthropic 在他们的工程博客里给过一个很清楚的区分 —— 大多数场景用固定的 workflow 就够了，硬上 Agent 只会换来更慢、更贵、更难调。建议先花十分钟把概念理清，再决定要不要上「Agent」这个词。
+stages:
+  - { n: STEP 01, title: 能对话, desc: 模型调用、流式输出、多轮上下文 }
+  - { n: STEP 02, title: 能动手, desc: Function Calling，模型自己选工具 }
+  - { n: STEP 03, title: 有知识, desc: RAG：切块、嵌入、检索、重排 }
+  - { n: STEP 04, title: 有骨架, desc: 图编排、上下文、人工确认 }
+  - { n: STEP 05, title: 能上线, desc: 工具系统、观测、评估、飞轮 }
+steps:
+  - id: a1
+    title: 先读概念，别急着写代码
+    duration: 半天
+    body: 动手前先把「Workflow 和 Agent 到底差在哪」搞清楚。这不是学术问题 —— 它直接决定你的架构选型。Anthropic 那篇是业内被引用最多的入门材料，讲清了五种 workflow 模式，也明确说了什么时候不该用 Agent。
+    tips:
+      - 重点看这两句：「Workflows 是预定义代码路径编排 LLM 和工具」「Agents 是 LLM 动态决定自己的流程」。想清楚你的场景属于哪一种。
+    article:
+      status: planned
+      title: 我用一个客服场景讲清 Workflow 和 Agent 的分界
+    docs:
+      - { label: Building Effective Agents ↗, url: https://www.anthropic.com/engineering/building-effective-agents }
+
+  - id: a2
+    title: 把一次对话调通
+    duration: 1-2 天
+    body: 不要用框架起步。建议先直接用模型 API，很多模式几行代码就能实现。你需要亲手写一遍 HTTP 调用、处理流式返回、拼装多轮消息，才能理解框架在替你做什么。
+    tips:
+      - 目标很朴素：能用 curl 或十几行 Python 拿到一次流式回复，并让第二句话接得住第一句的上下文。
+    warn: 各家上游现在基本都兼容 OpenAI 协议。把 base_url、model、api_key 全放进环境变量，之后换供应商就不用改代码。
+    article:
+      status: planned
+      title: 从零跑通一次流式对话：那些框架替你做的事
+
+  - id: a3
+    title: 让模型会调工具
+    duration: 3-5 天
+    body: Function Calling 是 Agent 的分水岭。核心只有一件事：你把可用的函数描述给模型，它自己决定什么时候调、传什么参数。框架会帮你把「模型要调工具 → 执行 → 结果回灌 → 生成回答」这个循环封起来。
+    tips:
+      - Anthropic 有个反直觉的观察：他们做 SWE-bench 的 Agent 时，花在优化工具定义上的时间比优化提示词还多。工具的命名、参数、描述，就是模型的世界观。
+    article:
+      status: planned
+      title: 工具调用的三个工程问题：超时、幂等与重试边界
+    docs:
+      - { label: LangChain · Tools ↗, url: https://docs.langchain.com/oss/python/langchain/tools }
+      - { label: Agents ↗, url: https://docs.langchain.com/oss/python/langchain/agents }
+
+  - id: a4
+    title: 给模型接上自己的知识
+    duration: 1-2 周
+    body: RAG 是这条路上坑最多的一站。顺序别乱：先切块 → 再嵌入 → 存向量库 → 检索 → 加引用。很多人一上来就纠结用哪个向量库，其实切块策略对效果的影响远大于换个数据库。
+    article:
+      status: published
+      title: 从关键词到语义：为什么 RAG 一定要做混合检索
+      href: /writing/rag-hybrid-retrieval/
+
+  - id: a5
+    title: 用图编排把稳定部分焊死
+    duration: 1 周
+    body: 到这一步你会发现：光靠提示词约束不住模型。像「知识类问题必须先检索」「投诉不要进 Agent」这种规则，写在提示词里模型随时可以不听 —— 要用确定性的流程节点把它固定下来。
+    article:
+      status: planned
+      title: 为什么我用 LangGraph 而不是纯 Agent 循环
+    docs:
+      - { label: LangGraph 概览 ↗, url: https://docs.langchain.com/oss/python/langgraph/overview }
+      - { label: Interrupts ↗, url: https://docs.langchain.com/oss/python/langgraph/interrupts }
+
+  - id: a6
+    title: 接外部工具生态
+    duration: 3-5 天
+    body: MCP 是这两年被推得最广的一套协议，本质是「让 Agent 统一地接上外部工具和数据源」。官方文档把它类比成 USB-C：一份实现，到处能插。自己写一个 MCP Server 是最快的理解方式。
+    article:
+      status: planned
+      title: 手写一个 MCP Server：比读规范快十倍的理解方式
+    docs:
+      - { label: MCP 官方文档 ↗, url: https://modelcontextprotocol.io/ }
+
+  - id: a7
+    title: 让它能被运维
+    duration: 持续
+    body: 这一步最容易被跳过，但它是「玩具」和「系统」的分界线：可观测（每次调用的完整链路）、评估（检索和回答质量怎么量化）、成本（钱花在哪类问题上）、数据飞轮（答不上来的问题怎么变知识）。
+    tips:
+      - Anthropic 的三条原则里有一条就是：优先透明，显式展示 Agent 的规划步骤。可观测不只是排障手段，也是设计要求。
+    article:
+      status: planned
+      title: 从玩具到系统：Agent 上生产前必须补的四件事

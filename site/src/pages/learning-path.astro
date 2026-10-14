@@ -1,0 +1,288 @@
+---
+/**
+ * 学习路线页 · /learning-path/
+ *
+ * 设计稿来源：design-mockup/learning-path-mockup.html（HTML L535–552 的 Tab 栏 + 三个面板、
+ * L517 左栏路线切换器、L431–476 左栏进度/概览、L585–606 右栏目录）。
+ * 数据：src/content/learning/{agent,algo,backend}.yml（Task 12 schema，track ∈ agent/algo/backend）。
+ *
+ * 三栏沿用 ContentLayout（中栏即 <main>，已统一）。本页交互：
+ *   - 中栏 Tab 栏（TrackTabs）与左栏「路线切换器」（.ser）双向联动，共同驱动三个面板显隐；
+ *   - 右栏目录随当前路线变化（每线独立的 step 列表，锚点 hash 到对应 step id）；
+ *   - 无 JS 时第一条路线（agent）完整可见（TrackTabs 的 :root:not(.js) 兜底已覆盖面板）。
+ */
+import { getCollection } from 'astro:content';
+import ContentLayout from '../layouts/ContentLayout.astro';
+import TrackTabs from '../components/TrackTabs.astro';
+import StepCard from '../components/StepCard.astro';
+import TocList from '../components/TocList.astro';
+import ProgressRing from '../components/ProgressRing.astro';
+import { site } from '../data/site';
+
+// schema 强制 track ∈ {agent,algo,backend}，拼错会 build 失败；这里按固定顺序排。
+const ORDER = ['agent', 'algo', 'backend'] as const;
+const all = await getCollection('learning');
+const byKey = new Map(all.map((e) => [e.data.track, e.data]));
+const tracks = ORDER.map((k) => {
+  const d = byKey.get(k)!;
+  return { key: k, label: d.label, subtitle: d.subtitle, data: d };
+});
+const activeKey = 'agent';
+
+// 把 schema 里的单 article 归一化成数组（StepCard 接收 articles[]），组件层再做 href 兜底。
+const toArticles = (step: any) =>
+  step.article ? [{ status: step.article.status, title: step.article.title, href: step.article.href }] : [];
+
+// 右栏目录：随当前路线变化，每步一个锚点（hash 到 step.id）。
+const toc = tracks
+  .find((t) => t.key === activeKey)!
+  .data.steps.map((s) => ({ href: `#${s.id}`, label: s.title }));
+---
+
+<ContentLayout
+  title="学习路线 — kaii"
+  description="从后端到 Agent 应用开发：Agent / 算法 / 后端三条可落地的学习路线。"
+  active="learning"
+>
+  <!-- ============ 左栏：进度环 + 路线概览 + 文章状态 + 路线切换器 ============ -->
+  <div slot="left" class="text-right">
+    <ProgressRing />
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">路线概览</h5>
+      {
+        tracks.map((t) => (
+          <div class="mb-1.5 flex items-center justify-end gap-2">
+            <span class="text-[12.5px] font-medium text-ink2">{t.label}</span>
+            <span class="font-mono text-[10.5px] text-ink4">{t.subtitle}</span>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">已发布文章</h5>
+      <div class="kpi"><b>1</b><i>已完成</i></div>
+      <div class="kpi"><b>7</b><i>规划中</i></div>
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">切换路线</h5>
+      <div class="flex flex-col gap-0.5" data-track-switch>
+        {
+          tracks.map((t) => (
+            <button
+              type="button"
+              class="ser"
+              data-track-key={t.key}
+              aria-pressed={t.key === activeKey ? 'true' : 'false'}
+            >
+              <span class="sn">→</span>
+              <span class="st">{t.label}</span>
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div>
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</h5>
+      <div class="flex flex-col gap-0.5">
+        <a href="/" class="ser"><span class="sn">→</span><span class="st">首页</span></a>
+        <a href="/projects/" class="ser"><span class="sn">→</span><span class="st">我的项目</span></a>
+        <a href="/writing/" class="ser"><span class="sn">→</span><span class="st">技术文章</span></a>
+        <a href="/about/" class="ser"><span class="sn">→</span><span class="st">关于我</span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 中栏：Tab 切换的三条路线 ============ -->
+  <header class="lp-head">
+    <h1>学习路线</h1>
+    <p class="lp-sub">
+      我不相信「收藏即学会」。这三条路线是给自己排的优先级 —— 从后端底子走到 Agent 应用，
+      每一站都标了「先做什么、坑在哪、什么时候该停」。
+    </p>
+  </header>
+
+  <TrackTabs tabs={tracks.map((t) => ({ key: t.key, label: t.label, subtitle: t.subtitle }))} active={activeKey}>
+    {
+      /* 三个面板作为默认 slot 内容传进 TrackTabs。
+         为什么由页面渲染而不是组件内 for 循环：Astro 的 `<slot name>` 必须是静态字符串，
+         动态 slot 名会让 `astro build` 报「slot[name] must be a static string」。
+         `hidden` 由服务端按 activeKey 决定初始状态，客户端脚本负责后续切换。 */
+      tracks.map((t) => (
+        <section
+          class="panel"
+          id={`panel-${t.key}`}
+          data-track-panel={t.key}
+          aria-label={`${t.label} 学习路线`}
+          hidden={t.key !== activeKey}
+        >
+          <p class="lp-intro">{t.data.intro}</p>
+          <div class="lp-stages">
+            {t.data.stages.map((s) => (
+              <div class="lp-stage">
+                <span class="lp-stage-n">{s.n}</span>
+                <span class="lp-stage-t">{s.title}</span>
+                <span class="lp-stage-d">{s.desc}</span>
+              </div>
+            ))}
+          </div>
+          <div class="lp-steps">
+            {t.data.steps.map((s, i) => (
+              <StepCard step={s} articles={toArticles(s)} index={i + 1} track={t.key} />
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </TrackTabs>
+
+  <!-- ============ 右栏：当前路线目录 + 文章进度 + 相关 ============ -->
+  <div slot="right">
+    <TocList items={toc} heading="本页目录" />
+
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</h5>
+      <div class="kpi"><b>Agent</b><i>主线 · 正在走</i></div>
+      <div class="kpi"><b>7 站</b><i>路线步骤</i></div>
+      <div class="kpi"><b>{site.available ? '实习' : '交流'}</b><i>{site.available ? '开放中' : '欢迎打扰'}</i></div>
+    </div>
+
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</h5>
+      <a href="/projects/mewhelp/" class="rel-link">
+        <b>MewHelp 客服 Agent</b>
+        <i>主线项目 · 10 章</i>
+      </a>
+      <a href="/projects/chengmi/" class="rel-link">
+        <b>城觅 · 生活服务平台</b>
+        <i>高并发 + AI</i>
+      </a>
+      <a href="/projects/zhixue/" class="rel-link">
+        <b>智学云课堂</b>
+        <i>16 个微服务模块</i>
+      </a>
+    </div>
+  </div>
+</ContentLayout>
+
+<script>
+  // @ts-nocheck —— 浏览器运行时 JS（理由同 TrackTabs.astro）。
+  // 左栏路线切换器（[data-track-key]）与中栏 Tab 双向联动：
+  //   点击左栏 → 更新自身 aria-pressed + 在 document 广播 track-change（TrackTabs 切面板）；
+  //   监听 document 上的 track-change → 同步自身高亮（中栏点 Tab 时左栏也跟随）。
+  const sw = document.querySelector('[data-track-switch]');
+  if (sw) {
+    const btns = Array.from(sw.querySelectorAll('[data-track-key]'));
+    const paint = (key) => btns.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.trackKey === key)));
+    sw.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-track-key]');
+      if (!b || !b.dataset.trackKey) return;
+      paint(b.dataset.trackKey);
+      document.dispatchEvent(new CustomEvent('track-change', { bubbles: true, detail: { key: b.dataset.trackKey } }));
+    });
+    // 中栏 Tab 点击也会广播同一事件 —— 左栏跟随高亮，保持两个控件状态一致。
+    document.addEventListener('track-change', (e) => paint(e.detail.key));
+  }
+</script>
+
+<style>
+  /* ============================================================
+     Global Constraints #1：组件 <style> 不在 @layer 内，优先级高于 Tailwind utilities，
+     一律用长写属性（padding-top/bottom/left/right、margin-*），绝不用
+     `padding:` / `margin:` 简写覆盖模板上的 px-* / mx-*。
+     ============================================================ */
+
+  /* ---------- 头部 ---------- */
+  .lp-head {
+    padding-bottom: 6px;
+  }
+  .lp-head h1 {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+  }
+  .lp-sub {
+    margin-top: 12px;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--color-ink2);
+  }
+
+  /* ---------- 路线导语 ---------- */
+  .lp-intro {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--color-ink2);
+    padding-top: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-line2);
+  }
+
+  /* ---------- 阶段条（设计稿 .lp-stages） ---------- */
+  .lp-stages {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .lp-stage {
+    background: var(--color-card);
+    border: 1.5px solid var(--color-line);
+    border-radius: 13px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-left: 13px;
+    padding-right: 13px;
+  }
+  .lp-stage-n {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-gh);
+  }
+  .lp-stage-t {
+    display: block;
+    margin-top: 4px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+  .lp-stage-d {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--color-ink3);
+  }
+
+  /* ---------- 减少动态效果 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .lp-intro,
+    .lp-stage,
+    .ser {
+      transition: none;
+    }
+  }
+
+  /* ---------- 响应式：阶段条在窄屏降列 ---------- */
+  @media (max-width: 1080px) {
+    .lp-stages {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (max-width: 700px) {
+    .lp-stages {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .lp-head h1 {
+      font-size: 26px;
+    }
+  }
+</style>

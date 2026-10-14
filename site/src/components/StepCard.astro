@@ -1,0 +1,403 @@
+---
+// StepCard —— 学习路线里的单步卡片
+// 结构与样式搬运自 design-mockup/learning-path-mockup.html 的 `.step` / `.step-card`
+// （CSS L343–402，HTML L576–597 等）。
+// 变量名按 site 令牌映射：--card→var(--color-card) --line→var(--color-line)
+// --line2→var(--color-line2) --ink2/3/4→var(--color-ink2/3/4) --gh→var(--color-gh)
+// --gm→var(--color-gm) --gd→var(--color-gd) --paper2→var(--color-paper2)
+// --amber→var(--color-amber) --mono→var(--font-mono)
+//
+// 三条线的步骤点色（设计稿 .step-dot.agent/.algo/.back，L383–385）用 `data-track` 区分。
+//
+// 与设计稿的差异（逐条说明理由）：
+//   1. 设计稿允许一步挂多条 `.step-link`（`#c6` 挂了 2 条），所以模板里对
+//      `article` 用数组渲染。数据层 schema 的 `article` 是单对象，本组件接收的
+//      `articles` 是页面已经归一化好的数组（1 条或 0 条），形状与设计稿对齐。
+//   2. `article.href` 的组件层兜底 —— 见下方渲染处的注释，这是 brief 明确点名的要求。
+//   3. `warn` 提示用琥珀色 callout，`tips` 用绿色 callout：设计稿把两类混在 `.co-tip`
+//      与 `.co-warn` 里，数据层 schema 只给了 `tips[]` 与 `warn`，这里按语义一一对应。
+
+interface StepArticle {
+  status: 'published' | 'planned';
+  title: string;
+  href?: string;
+}
+interface Props {
+  step: {
+    id: string;
+    title: string;
+    duration: string;
+    body: string;
+    tips: string[];
+    warn?: string;
+    docs: { label: string; url: string }[];
+  };
+  /** 归一化后的文章链接列表：0 条 → 不渲染；1 条 → 渲染一行 */
+  articles: StepArticle[];
+  /** 该步在路线里的序号（从 1 开始），用于左侧步骤点 */
+  index: number;
+  track: 'agent' | 'algo' | 'backend';
+}
+
+const { step, articles, index, track } = Astro.props;
+
+// 设计稿的步骤点色类名：agent / algo / back（backend 在设计稿里缩写为 back）
+const DOT: Record<string, string> = { agent: 'agent', algo: 'algo', backend: 'back' };
+---
+
+<div class="step" id={step.id} data-step-track={track}>
+  <div class="step-rail">
+    <span class={`step-dot ${DOT[track] ?? 'agent'}`}>{String(index).padStart(2, '0')}</span>
+  </div>
+  <div class="step-card">
+    <h4>
+      {step.title} <em>{step.duration}</em>
+    </h4>
+    <p>{step.body}</p>
+
+    {step.tips.map((t) => (
+      <div class="callout co-tip">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.8.5 1.1v1h6v-1c0-.3.1-.8.5-1.1A6 6 0 0 0 12 3z" />
+          <path d="M10 20h4" />
+        </svg>
+        <span>{t}</span>
+      </div>
+    ))}
+
+    {step.warn && (
+      <div class="callout co-warn">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 9v4M12 17h.01" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+        <span>{step.warn}</span>
+      </div>
+    )}
+
+    {
+      articles.map((a) => (
+        /*
+          文章链接的组件层兜底（brief Step 2 / Review Focus #1）：
+          schema 里 `article.href` 是 `.optional()`，无法用 Zod 强制
+          「status: published 时必填」。所以这里**必须**把两个条件**同时**判断，
+          缺 href 就降级成 <span> 的「待写」样式 —— 直接渲染 <a href={a.href}>
+          在 href 缺失时会产出 `href="undefined"`，点进去是 404。
+          `status: planned` 且带 href 的异常数据同样落到「待写」分支，
+          宁可少一个链接，也不要多一个死链。
+        */
+        a.status === 'published' && a.href ? (
+          <a href={a.href} class="step-link" data-step-link="published">
+            <span class="st">已有</span>
+            {a.title}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </a>
+        ) : (
+          <span class="step-link step-link--todo" data-step-link="planned">
+            <span class="st todo">待写</span>
+            {a.title}
+          </span>
+        )
+      ))
+    }
+
+    {
+      step.docs.length > 0 && (
+        <div class="extlinks">
+          <span class="el">文档</span>
+          {step.docs.map((d) => (
+            <a href={d.url} target="_blank" rel="noopener noreferrer">
+              {d.label}
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</div>
+
+<style>
+  /* ============================================================
+     步骤列表（设计稿 .steps / .step / .step::before L343–350 / L387）
+     ============================================================ */
+  .step {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 18px;
+    position: relative;
+    padding-bottom: 22px;
+    /* 右栏目录点锚点时，标题不能被 64px 的 sticky 导航条 + tabs 压住 */
+    scroll-margin-top: 150px;
+  }
+  .step:last-child {
+    padding-bottom: 0;
+  }
+  /* 竖向连接线：从左数第 27px 起（56px 步骤点列的居中轴） */
+  .step::before {
+    content: '';
+    position: absolute;
+    left: 27px;
+    top: 48px;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--color-line2);
+  }
+  .step:last-child::before {
+    display: none;
+  }
+
+  .step-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5px;
+    z-index: 1;
+  }
+  .step-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--color-card);
+    border: 1.5px solid var(--color-line);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-ink3);
+    transition: background 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+      border-color 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+      color 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  /* 三条线的步骤点配色（设计稿 L383–385） */
+  .step-dot.agent {
+    background: #eaf2ce;
+    border-color: #d6e2b0;
+    color: var(--color-gd);
+  }
+  .step-dot.algo {
+    background: #fdf0d0;
+    border-color: #f0dfb0;
+    color: #8a6410;
+  }
+  .step-dot.back {
+    background: #e4eef6;
+    border-color: #c6dcea;
+    color: #2a5a78;
+  }
+  .step:hover .step-dot {
+    background: var(--color-gd);
+    border-color: var(--color-gd);
+    color: #fff;
+  }
+
+  .step-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 15px;
+    padding: 17px 20px;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1), transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .step:hover .step-card {
+    border-color: #d5d8c4;
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    transform: translateX(3px);
+  }
+  .step-card h4 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  .step-card h4 em {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--color-gm);
+    background: #eaf2ce;
+    border: 1px solid #d6e2b0;
+    padding: 2.5px 8px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .step-card p {
+    font-size: 13.3px;
+    color: var(--color-ink2);
+    line-height: 1.76;
+    margin-bottom: 11px;
+  }
+  .step-card p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ---------- 文章链接 ----------
+     设计稿 `.step-link` 是 `display:inline-flex`，`[已有]` 分支是可点的 <a>，
+     `[待写]` 分支在产物里是 <span>（设计稿也是 <a href="#">，但那是死链，
+     本页不制造死链），所以两者共用同一套视觉但只给 <a> 加 hover 反馈。 */
+  .step-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--color-line);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-gd);
+    text-decoration: none;
+    transition: gap 0.22s;
+    /* 长标题在窄屏不得撑破卡片 */
+    overflow-wrap: anywhere;
+  }
+  .step-link:hover {
+    gap: 11px;
+  }
+  .step-link svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: none;
+  }
+  .step-link .st {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 100px;
+    background: #eaf2ce;
+    border: 1px solid #d6e2b0;
+    color: var(--color-gm);
+    flex: none;
+  }
+  .step-link .st.todo {
+    background: var(--color-paper2);
+    border-color: var(--color-line);
+    color: var(--color-ink4);
+  }
+  /* [待写] 不是链接：不加 pointer、不加 hover 位移 */
+  .step-link--todo {
+    color: var(--color-ink3);
+    cursor: default;
+  }
+  .step-link--todo:hover {
+    gap: 7px;
+  }
+
+  /* ---------- 外部文档链接（设计稿 .extlinks L369–373） ---------- */
+  .extlinks {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    align-items: center;
+  }
+  .extlinks .el {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--color-ink4);
+    letter-spacing: 0.07em;
+  }
+  .extlinks a {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-ink3);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-line);
+    overflow-wrap: anywhere;
+  }
+  .extlinks a:hover {
+    color: var(--color-gm);
+  }
+
+  /* ---------- 提示块（设计稿 .callout L374–379） ---------- */
+  .callout {
+    display: flex;
+    gap: 11px;
+    padding: 13px 16px;
+    border-radius: 11px;
+    margin-top: 12px;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .callout svg {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    margin-top: 2px;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .co-tip {
+    background: #f4f9e6;
+    border: 1px solid #dce6c6;
+    color: var(--color-ink2);
+  }
+  .co-tip svg {
+    stroke: var(--color-gd);
+  }
+  .co-warn {
+    background: #fdf6e8;
+    border: 1px solid #f0e0bc;
+    color: var(--color-ink2);
+  }
+  .co-warn svg {
+    stroke: var(--color-amber);
+  }
+
+  /* ---------- 响应式（设计稿 L396–402） ---------- */
+  @media (max-width: 700px) {
+    .step {
+      grid-template-columns: 40px 1fr;
+      gap: 12px;
+    }
+    .step::before {
+      left: 19px;
+      top: 44px;
+    }
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      font-size: 10px;
+      border-radius: 8px;
+    }
+    .step-card {
+      padding-top: 15px;
+      padding-bottom: 15px;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接呈现终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .step-dot,
+    .step-card,
+    .step-link {
+      transition: none;
+    }
+    .step:hover .step-card,
+    .step:hover .step-dot {
+      transform: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底：静态内容，只关掉悬停位移 ---------- */
+  :root:not(.js) .step-card,
+  :root:not(.js) .step-dot,
+  :root:not(.js) .step-link {
+    transition: none;
+  }
+</style>

@@ -1,0 +1,78 @@
+# 学习路线 · 03 Java 后端
+# 文案逐字来自 design-mockup/learning-path-mockup.html 的 data-p="backend" 面板
+# （L872–1034），以及左栏切换器 L519 的 label / subtitle。
+# brief 指定的顺序：语言基础 → MySQL → 框架 → Redis → 分布式与中间件 → JVM 与深度。
+track: backend
+label: Java 后端
+subtitle: 工程基础
+intro: 先把会用变成懂原理，再谈分布式。后端的路线我建议这样走：语言基础 → MySQL → 框架 → Redis → 分布式与中间件 → 最后回到 JVM 底层。把 JVM 放最后不是因为不重要，而是因为它解释的是「前面这些为什么会有性能问题」—— 没有前面的实践，硬啃内存模型和 GC 只会变成背结论。
+stages:
+  - { n: STEP 01, title: 语言基础, desc: Java 语法、集合、面向对象 }
+  - { n: STEP 02, title: MySQL, desc: SQL、索引、事务 }
+  - { n: STEP 03, title: 框架, desc: Spring / SpringBoot / MyBatis }
+  - { n: STEP 04, title: Redis, desc: 数据结构、缓存、并发 }
+  - { n: STEP 05, title: 分布式与中间件, desc: MQ、分布式锁、微服务 }
+  - { n: STEP 06, title: JVM 与深度, desc: 内存结构、GC、并发原理 }
+steps:
+  - id: c1
+    title: 语言基础：从「会用」到「知道它怎么实现」
+    duration: 1-2 周
+    body: 先打牢 Java 语法、面向对象、异常处理这些基本功，然后重点啃集合框架。面试最爱问的也是这里 —— 但别背「HashMap 默认容量是 16」这种结论，要能讲清为什么。
+    tips:
+      - 为什么用数组 + 链表 + 红黑树？为什么扩容是 2 倍？为什么负载因子是 0.75？这几个问题背后是同一件事：在时间、空间和哈希冲突之间找平衡。
+    article:
+      status: planned
+      title: HashMap 的每个设计决策，背后的权衡是什么
+
+  - id: c2
+    title: MySQL：先会写，再懂它为什么慢
+    duration: 1-2 周
+    body: 从能写 SQL、能设计表开始，然后吃透索引。核心是两个问题：B+ 树为什么适合做索引（矮胖、范围查询友好、磁盘 IO 次数少），以及什么情况下索引会失效。
+    tips:
+      - 事务部分要能讲清四种隔离级别分别解决了什么问题，以及 MVCC 是怎么让「读不加锁」成为可能的。
+      - 检验标准：给你一条慢 SQL，你能用 EXPLAIN 看出它为什么没走索引。
+    article:
+      status: planned
+      title: 从一条慢 SQL 说起：索引为什么失效
+
+  - id: c3
+    title: 框架：先会用，再理解它替你做了什么
+    duration: 1-2 周
+    body: 从 SpringBoot 起步最容易上手 —— 但不要停在「能跑起来」。依赖注入、AOP、自动配置这三块是 Spring 的骨架，理解了它们，你才知道为什么加个注解就能生效。
+    tips:
+      - 建议顺序：先能写出一个完整的分层 CRUD，再回头读 SpringBoot 的自动配置原理。有了实践再看原理，理解会快很多。
+    article:
+      status: planned
+      title: Spring 的依赖注入到底解决了什么问题
+
+  - id: c4
+    title: Redis：重点不在会用，在知道会怎么坏
+    duration: 1 周
+    body: 先学会五种基础数据结构各自的适用场景，然后重点理解缓存会怎么出问题：穿透、击穿、雪崩分别是什么、怎么防，以及缓存和数据库的一致性该怎么做。
+    tips:
+      - 这几个问题最好的练法，是自己写一个秒杀功能 —— 库存扣减、一人一单、防超卖，这些需求会逼着你把 Redis 的原子操作真正搞明白。可对照「城觅」项目的秒杀链路。
+    article:
+      status: planned
+      title: 缓存穿透、击穿、雪崩：三种病，三种药
+
+  - id: c5
+    title: 分布式与中间件：多个进程怎么协作
+    duration: 2-3 周
+    body: 到这里要处理的问题变成「多个进程之间怎么协作」：消息队列解决削峰和异步解耦，分布式锁解决跨进程的互斥，再往上就是微服务的拆分、网关与链路追踪。
+    tips:
+      - 这一层最关键的概念是幂等：消息可能重复投递，所以你的消费逻辑必须能被执行多次而不出错。这是从「会用」到「能上生产」的分界线。
+    warn: 最忌讳只背概念。建议找一条真实链路（下单 → 扣库存 → 发消息 → 通知）完整走通一遍，比看十篇文章都管用。
+    article:
+      status: planned
+      title: 为什么消息队列一定要考虑幂等
+
+  - id: c6
+    title: JVM 与深度原理：回头解释前面的一切
+    duration: 2-3 周
+    body: 放到最后不是因为它不重要，而是因为它是对前面所有内容的统一解释。有了秒杀、缓存、微服务的实践之后再来学 JVM，你会不断产生「原来当初那个问题是这个原因」的感觉。
+    tips:
+      - 重点不是记住分代的名字，而是理解「为什么这样分」：大多数对象朝生夕死，所以新生代用复制算法；老年代存活率高，所以用标记整理。
+      - 能讲清「一次 Young GC 的完整过程」和「什么情况下对象会晋升到老年代」，这一块就算过关。
+    article:
+      status: planned
+      title: JVM 内存结构详解 / 垃圾回收算法详解

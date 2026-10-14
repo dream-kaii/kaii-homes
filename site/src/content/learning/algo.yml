@@ -1,0 +1,74 @@
+# 学习路线 · 02 算法 / 面试
+# 文案逐字来自 design-mockup/learning-path-mockup.html 的 data-p="algo" 面板
+# （L731–870），以及左栏切换器 L518 的 label / subtitle。
+# track 取值必须是小写 algo，不是 algorithm（config.ts:48 的 z.enum）。
+track: algo
+label: 算法 / 面试
+subtitle: LeetCode 路线
+intro: 刷题不是刷数量，是按题型建立反射。建议先把题型分类过一遍，再按分类集中攻克，而不是从第 1 题顺着做到第 100 题。同一类题连做 5-8 道，才能形成「看到这类问题就知道用什么套路」的反射。
+stages:
+  - { n: 第 1 轮, title: 数组 · 字符串 · 哈希, desc: 建立基本手感，别贪难 }
+  - { n: 第 2 轮, title: 双指针 · 滑动窗口, desc: 最高频的面试题型 }
+  - { n: 第 3 轮, title: 链表 · 栈 · 队列, desc: 考指针操作，套路固定 }
+  - { n: 第 4 轮, title: 树 · DFS · BFS, desc: 递归思维的分水岭 }
+  - { n: 第 5 轮, title: DP · 贪心, desc: 放到最后，别硬啃 }
+steps:
+  - id: b1
+    title: 先建地图，再开始走
+    duration: 1 天
+    body: 开始刷之前先看一眼按题型组织的路线图，知道整个版图有多大、哪些是主干。这样你每做一道题都知道它属于哪一类，而不是零散地记题。
+    warn: 不要一开始就按题库编号刷。按题型集中攻克的效率，比顺序刷高得多。
+    article:
+      status: planned
+      title: 我是怎么规划刷题顺序的：按题型而不是按题号
+    docs:
+      - { label: NeetCode Roadmap ↗, url: https://neetcode.io/roadmap }
+
+  - id: b2
+    title: Hash 表：从「我会写」到「我秒懂」
+    duration: 3 天
+    body: 这是性价比最高的一类。核心只有一句话：用空间换时间，把查找从 O(n) 降到 O(1)。掌握之后，两数之和、字母异位词、最长连续序列这些都变成同一个套路。
+    tips:
+      - 判断标准：看到「是否存在」「有没有重复」「配对」这类字眼，你应该下意识想到 Hash。
+    article:
+      status: planned
+      title: Hot 100 哈希专题：识别信号再用套路
+
+  - id: b3
+    title: 双指针与滑动窗口
+    duration: 1 周
+    body: 面试出现频率最高的一类。两种形态要分清：双指针解决「有序数组里找配对」，滑动窗口解决「连续子串/子数组满足某条件」。
+    article:
+      status: planned
+      title: 滑动窗口题型的统一思路
+
+  - id: b4
+    title: 链表：考的是指针操作
+    duration: 3 天
+    body: 套路非常固定：哑结点（dummy）简化边界、快慢指针找中点/判环、反转用三指针。把这几招练熟，链表题基本不会挂。
+    tips:
+      - 做链表题一定要画图。在纸上画出指针的移动过程，比在脑子里想快十倍，而且不容易错。
+    article:
+      status: planned
+      title: 链表题的指针套路整理
+
+  - id: b5
+    title: 树与图：递归思维的分水岭
+    duration: 1-2 周
+    body: 树题看起来多，其实都是同一个模板：「这个问题，我的左右子树分别是什么答案？」把递归的「定义」想清楚，代码自然就出来了。
+    tips:
+      - BFS 用队列、DFS 用递归或栈 —— 这两句话能覆盖绝大多数图的遍历题。
+    article:
+      status: planned
+      title: 二叉树遍历：把递归的「定义」想清楚
+
+  - id: b6
+    title: 动态规划：最后再碰
+    duration: 2-3 周
+    body: DP 是最容易劝退的一类，建议放到最后。前面的基础没打牢时硬啃 DP，只会打击信心。
+    tips:
+      - 入门后有固定思考顺序：① 定义状态 ② 找转移方程 ③ 确定初始条件 ④ 考虑空间优化。关键是第 ① 步 —— 把状态定义说清楚，题就解了一半。
+    warn: 如果一道题卡了 30 分钟还没思路，直接看题解。刷题的目的是学会套路，不是证明自己聪明。
+    article:
+      status: planned
+      title: 动态规划入门：先学会定义状态
