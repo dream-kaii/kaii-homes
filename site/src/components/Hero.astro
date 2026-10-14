@@ -84,7 +84,15 @@ const badgeText = site.available ? '开放实习机会' : '欢迎交流';
      ============================================================ */
   .hero {
     position: relative;
-    overflow: hidden;
+    /* 用 `clip` 而不是 `hidden`：`.hero-art` 是带 `inset:-6% -4%` + `scale(1.05)` 的装饰层，
+       在 1180–1269px 的视口区间它的右边缘比视口宽 5–45px。`overflow-x:hidden` 只裁剪绘制，
+       **不会**把这段溢出从可滚动溢出链里摘掉 —— `.hero` 自身 scrollWidth 仍大于 clientWidth，
+       并继续冒泡到 body / html（html 的 overflow-x 是 visible），
+       最终表现为 document.scrollWidth > clientWidth（实测 1180px 下 1225 > 1180）。
+       `clip` 是「连滚动容器都不创建」的裁剪，溢出不再参与祖先的 scrollWidth 计算，
+       视觉结果与 `hidden` 完全一致（都是硬裁切，本区块也没有需要滚动的内容）。
+       更早的溢出扫描没发现它：采样点从 1280 直接跳到 1100，正好跨过了这个区间。 */
+    overflow: clip;
     background: linear-gradient(165deg, #d2e284 0%, #b5ca4d 34%, #8fa84e 68%, #6b9149 100%);
   }
   .hero-art {
