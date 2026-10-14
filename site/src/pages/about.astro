@@ -1,0 +1,742 @@
+---
+/**
+ * 关于页 · /about/
+ *
+ * 设计稿来源：design-mockup/about-mockup.html（单文件完整页面，视觉真相来源）
+ *   - 头部 .ahead（头像 + 姓名 + 定位 + 介绍 + 四格事实表）  HTML L480–497 / CSS L307–316
+ *   - §01 我的路径（三段时间线）                            HTML L498–521 / CSS L318–328
+ *   - §02 技术栈（四组标签）                                HTML L522–555 / CSS L330–337
+ *   - §03 联系方式（三行联系卡）                            HTML L556–581 / CSS L339–348
+ *   - 左栏（进度环 / 基本情况 / 关键词 / 操作 / 快速跳转）   HTML L431–476 / CSS L219–252
+ *   - 右栏（本页目录 / 现在在做什么 / 看看我的作品）         HTML L585–606 / CSS L254–280
+ * 变量名映射：--ink3→var(--color-ink3) --ink4→var(--color-ink4) --card→var(--color-card)
+ *   --line→var(--color-line) --line2→var(--color-line2) --paper2→var(--color-paper2)
+ *   --gh→var(--color-gh) --gm→var(--color-gm) --gd→var(--color-gd) --mono→var(--font-mono)
+ *
+ * 三处与设计稿的刻意差异：
+ *   1. 中栏容器由 ContentLayout 的 `<main class="mid">` 承担，本页只写排版，
+ *      不再叠一层 `.mid`（设计稿的 `.mid .ahead{padding-top:0}` 已由 `.ahead` 自身承担）。
+ *   2. 左栏「状态」与 §03 首句随 `site.available` 双态切换 ——
+ *      设计稿写死「开放实习」，本页把它变成数据驱动的布尔值。见 `statusLabel` / `contactLead`。
+ *   3. 右栏 `.rel a` 的 href 指向站内真实路由，设计稿里是 `#` / `project-detail-v2.html`。
+ */
+import ContentLayout from '../layouts/ContentLayout.astro';
+import TocList from '../components/TocList.astro';
+import ProgressRing from '../components/ProgressRing.astro';
+import { site } from '../data/site';
+
+// 本页目录：三个锚点与中栏 h2 的 id 一一对应。
+const toc = [
+  { href: '#sec1', label: '我的路径' },
+  { href: '#sec2', label: '技术栈' },
+  { href: '#sec3', label: '联系方式' },
+];
+
+// 「我的路径」三段时间线 —— **逐字搬自设计稿 L504–520，不改写**（brief Step 1 明确要求）。
+const PATH = [
+  {
+    when: '第一步 · Java 工程基础',
+    title: '高并发与分布式系统',
+    body:
+      '基于 SpringBoot 的生活服务平台，在秒杀主链路上完成了四轮演进：阻塞队列 → Redis + Lua 原子扣减 → Redisson 分布式锁 → Kafka 异步削峰。理解了「并发安全」不只是加锁。',
+    now: false,
+  },
+  {
+    when: '第二步 · 微服务架构',
+    title: '16 模块的在线教育系统',
+    body:
+      '按模块独立实现并调试完整的微服务体系：网关、鉴权、消息、交易、促销、搜索。覆盖 Redis BitMap、XXL-JOB 跑批、RabbitMQ 可靠消息、CompletableFuture 并发编排。',
+    now: false,
+  },
+  {
+    when: '第三步 · 正在做',
+    title: 'Agent 应用工程化',
+    body:
+      '从给现有 Java 系统加一个 AI 客服模块开始，到独立完成一个多章节递进的客服 Agent 项目。关注点从「能不能跑通」转向「断不断、幂不幂等、降不降级」。',
+    now: true,
+  },
+];
+
+// 技术栈四组标签 —— 逐字搬自设计稿 L523–553，`hot` 是设计稿标注的重点项。
+const SKILLS = [
+  {
+    label: 'AGENT / LLM',
+    tags: [
+      { text: 'LangChain', hot: true },
+      { text: 'LangGraph', hot: true },
+      { text: 'Function Calling', hot: true },
+      { text: 'RAG', hot: true },
+      { text: 'Milvus', hot: false },
+      { text: 'BGE-M3', hot: false },
+      { text: 'Reranker', hot: false },
+      { text: 'MCP', hot: false },
+      { text: 'Langfuse', hot: false },
+      { text: 'DeepSeek', hot: false },
+    ],
+  },
+  {
+    label: 'BACKEND',
+    tags: [
+      { text: 'Java', hot: true },
+      { text: 'SpringBoot', hot: false },
+      { text: 'SpringCloud', hot: false },
+      { text: 'MyBatis-Plus', hot: false },
+      { text: 'FastAPI', hot: false },
+      { text: 'MySQL', hot: false },
+      { text: 'Python 3.12', hot: false },
+    ],
+  },
+  {
+    label: 'INFRA',
+    tags: [
+      { text: 'Redis', hot: false },
+      { text: 'Kafka', hot: false },
+      { text: 'RabbitMQ', hot: false },
+      { text: 'Redisson', hot: false },
+      { text: 'XXL-JOB', hot: false },
+      { text: 'Nacos', hot: false },
+      { text: 'Docker', hot: false },
+    ],
+  },
+  {
+    label: 'PRACTICE',
+    tags: [
+      { text: 'TDD', hot: false },
+      { text: '设计文档驱动', hot: false },
+      { text: '代码评审', hot: false },
+      { text: 'CI / GitHub Actions', hot: false },
+      { text: 'Astro', hot: false },
+    ],
+  },
+];
+
+// 键要求的第 4 条：状态展示必须消费 `site.available`。
+// `false` 分支**绝不能出现「开放」字样**，否则双态实测（「开放」出现 0 次）会失败。
+const statusLabel = site.available ? '开放实习' : '欢迎交流';
+const contactLead = site.available
+  ? '目前开放实习机会，欢迎交流 Agent 应用开发和后端相关的话题。'
+  : '目前欢迎交流 Agent 应用开发和后端相关的话题，也欢迎实习与项目上的交流。';
+
+// 照片：与 Nav / Footer 用同一张 /avatar.jpg。
+const avatarAlt = `${site.name} 的头像`;
+---
+
+<ContentLayout
+  title="关于 — kaii"
+  description="kaii：软件工程专业在读，从 Java 后端走到 Agent 应用开发。"
+  active="about"
+>
+  <!-- ============ 左栏：进度环 + 基本情况 + 关键词 + 操作 + 快速跳转（设计稿 L431–476） ============ -->
+  <div slot="left" class="text-right">
+    <ProgressRing />
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">基本情况</h5>
+      <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
+        <dt class="text-right font-mono text-[10.5px] text-ink4">专业</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">软件工程</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">届别</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">2028 届</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">方向</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">Agent 开发</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">状态</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2" data-status>{statusLabel}</dd>
+      </dl>
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">关键词</h5>
+      <div class="flex flex-wrap justify-end gap-1.5">
+        {
+          ['Agent', 'RAG', 'Java', '后端', '检索'].map((k) => (
+            <span class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gm">
+              {k}
+            </span>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">操作</h5>
+      <div class="flex flex-col items-end gap-2">
+        <a href={`mailto:${site.email}`} class="ract">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M4 6l8 6 8-6"></path>
+          </svg>
+          <span>发邮件</span>
+        </a>
+        <a href="#top" class="ract">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 19V5M5 12l7-7 7 7"></path>
+          </svg>
+          <span>回到顶部</span>
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">快速跳转</h5>
+      <div class="flex flex-col gap-0.5">
+        <a href="/" class="ser"><span class="sn">→</span><span class="st">首页</span></a>
+        <a href="/projects/" class="ser"><span class="sn">→</span><span class="st">我的项目</span></a>
+        <a href="/writing/" class="ser"><span class="sn">→</span><span class="st">技术文章</span></a>
+        <a href="/learning-path/" class="ser"><span class="sn">→</span><span class="st">学习路线</span></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 中栏：头部 + §01 + §02 + §03（设计稿 L480–581） ============ -->
+  <header class="ahead">
+    <img src="/avatar.jpg" alt={avatarAlt} width="88" height="88" class="avatar-lg" />
+    <h1>{site.name}</h1>
+    <p class="role">{site.role}</p>
+    <p class="alede">
+      软件工程专业在读，方向是把 AI 能力落到可维护的生产系统里。
+      底子是 Java 后端 —— 高并发、分布式、微服务；现在在做 Agent 应用开发，
+      也真的踩过工具编排、上下文管理、检索降级这些工程坑。
+    </p>
+
+    <div class="facts">
+      <div class="fact">
+        <dt>专业</dt>
+        <dd>软件工程</dd>
+      </div>
+      <div class="fact">
+        <dt>届别</dt>
+        <dd>2028 届</dd>
+      </div>
+      <div class="fact">
+        <dt>主攻方向</dt>
+        <dd>Agent 应用开发</dd>
+      </div>
+      <div class="fact">
+        <dt>技术底座</dt>
+        <dd>Java / SpringCloud</dd>
+      </div>
+    </div>
+  </header>
+
+  <h2 id="sec1"><span class="num">01</span>我的路径</h2>
+  <p>
+    我的学习路径是<b>从后端往 AI 方向走</b>，而不是从脚本开始。这个顺序影响了我做 Agent 的方式：
+    我会先问「这条链路在生产上会不会断」，再问「效果好不好」。
+  </p>
+
+  <div class="tl">
+    {
+      PATH.map((s) => (
+        <div class:list={['tli', s.now && 'now']}>
+          <div class="tw">{s.when}</div>
+          <h4>{s.title}</h4>
+          <p>{s.body}</p>
+        </div>
+      ))
+    }
+  </div>
+
+  <h2 id="sec2"><span class="num">02</span>技术栈</h2>
+  <div class="skills">
+    {
+      SKILLS.map((row) => (
+        <div class="srow">
+          <div class="sl">{row.label}</div>
+          <div class="stags">
+            {row.tags.map((t) => (
+              <span class:list={[t.hot && 'hot']}>{t.text}</span>
+            ))}
+          </div>
+        </div>
+      ))
+    }
+  </div>
+
+  <h2 id="sec3"><span class="num">03</span>联系方式</h2>
+  <p data-contact-lead>{contactLead}</p>
+
+  <div class="contacts">
+    <a href={`mailto:${site.email}`} class="crow">
+      <span class="cl">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 5h16v14H4z"></path>
+          <path d="M4 6l8 6 8-6"></path>
+        </svg>
+        邮箱
+      </span>
+      <span class="cv">{site.email}</span>
+    </a>
+    <a href={site.github} rel="noopener" target="_blank" class="crow">
+      <span class="cl">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.9a3.4 3.4 0 0 0-1-2.6c3.2-.4 6.5-1.6 6.5-7A5.4 5.4 0 0 0 13 3.8a5 5 0 0 0-.1-3.7"></path>
+        </svg>
+        GitHub
+      </span>
+      <span class="cv">dream-kaii</span>
+    </a>
+    <a href="/rss.xml" class="crow">
+      <span class="cl">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 11a9 9 0 0 1 9 9"></path>
+          <path d="M4 4a16 16 0 0 1 16 16"></path>
+          <circle cx="5" cy="19" r="1.4"></circle>
+        </svg>
+        RSS 订阅
+      </span>
+      <span class="cv">/rss.xml</span>
+    </a>
+  </div>
+
+  <!-- ============ 右栏：本页目录 + 现在在做什么 + 看看我的作品（设计稿 L585–606） ============ -->
+  <div slot="right">
+    <TocList items={toc} heading="本页目录" />
+
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">现在在做什么</h5>
+      <div class="kpi"><b>Agent</b><i>主攻方向</i></div>
+      <div class="kpi"><b>10 章</b><i>客户项目</i></div>
+      <div class="kpi"><b>{site.available ? '实习' : '交流'}</b><i>{site.available ? '开放中' : '欢迎打扰'}</i></div>
+    </div>
+
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">看看我的作品</h5>
+      <a href="/projects/mewhelp/" class="rel-link">
+        <b>MewHelp 客服 Agent</b>
+        <i>主线项目 · 10 章</i>
+      </a>
+      <a href="/projects/chengmi/" class="rel-link">
+        <b>城觅 · 生活服务平台</b>
+        <i>高并发 + AI</i>
+      </a>
+      <a href="/projects/zhixue/" class="rel-link">
+        <b>智学云课堂</b>
+        <i>16 个微服务模块</i>
+      </a>
+    </div>
+  </div>
+</ContentLayout>
+
+<style>
+  /* ============================================================
+     本页样式。外部来源见文件头注释。
+
+     Global Constraints #1：组件 `<style>` 不在 @layer 内，优先级高于 Tailwind
+     utilities，故一律用长写属性（padding-top/bottom/left/right、margin-*），
+     绝不用 `padding:` / `margin:` 简写去覆盖模板上的 px-* / mx-*。
+     ============================================================ */
+
+  /* ---------- 头部（设计稿 L307–316） ---------- */
+  .ahead {
+    padding-bottom: 8px;
+  }
+  .avatar-lg {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 22px; /* 图片自身无 Tailwind 间距，可用简写 */
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px var(--color-gh), 0 10px 30px -8px rgba(42, 77, 46, 0.28);
+  }
+  .ahead h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.034em;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+  }
+  .role {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    color: var(--color-gd);
+    font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .alede {
+    font-size: 16.5px;
+    color: var(--color-ink2);
+    line-height: 1.85;
+    margin-bottom: 0;
+  }
+
+  /* ---------- 四格事实表（设计稿 L312–316） ----------
+     2×2 网格，1px 缝隙透出 --line2 当分隔线，外层 overflow:hidden + 14px 圆角。 */
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--color-line2);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 26px;
+  }
+  .fact {
+    background: var(--color-card);
+    padding: 16px 19px;
+  }
+  .fact dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-ink4);
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+  .fact dd {
+    font-size: 13.5px;
+    color: var(--color-ink);
+    font-weight: 550;
+    margin-bottom: 0;
+  }
+
+  /* ---------- 三段时间线（设计稿 L318–328） ---------- */
+  .tl {
+    position: relative;
+    padding-left: 24px;
+    margin-top: 8px;
+  }
+  /* 竖线：从上方的 gh 渐变到 line 再消失 */
+  .tl::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 1.5px;
+    background: linear-gradient(180deg, var(--color-gh), var(--color-line) 70%, transparent);
+  }
+  .tli {
+    position: relative;
+    padding-bottom: 24px;
+  }
+  .tli:last-child {
+    padding-bottom: 0;
+  }
+  /* 圆点：空心 gh 环 */
+  .tli::before {
+    content: '';
+    position: absolute;
+    left: -23px;
+    top: 7px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-paper);
+    border: 2px solid var(--color-gh);
+  }
+  /* 「正在做」的那一段：实心 + 光晕 */
+  .tli.now::before {
+    background: var(--color-gd);
+    border-color: var(--color-gd);
+    box-shadow: 0 0 0 4px rgba(62, 107, 63, 0.14);
+  }
+  .tw {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-ink4);
+    letter-spacing: 0.05em;
+    margin-bottom: 5px;
+  }
+  .tli h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.014em;
+    color: var(--color-ink);
+  }
+  .tli p {
+    font-size: 13.3px;
+    color: var(--color-ink2);
+    line-height: 1.76;
+    margin-bottom: 0;
+    overflow-wrap: break-word;
+  }
+
+  /* ---------- 技术栈四组（设计稿 L330–337） ---------- */
+  .skills {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 8px;
+  }
+  .srow {
+    display: grid;
+    grid-template-columns: 104px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  .sl {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-ink4);
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    padding-top: 5px;
+  }
+  .stags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .stags span {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-ink2);
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    padding: 5px 11px;
+    border-radius: 100px;
+    transition: border-color 0.22s, color 0.22s, transform 0.22s;
+  }
+  .stags span:hover {
+    border-color: var(--color-gh);
+    color: var(--color-gd);
+    transform: translateY(-1px);
+  }
+  /* 重点项：淡绿渐变底 + 加粗 */
+  .stags span.hot {
+    color: var(--color-gd);
+    background: linear-gradient(140deg, #f4f9e6, #eaf2ce);
+    border-color: #d6e2b0;
+    font-weight: 600;
+  }
+
+  /* ---------- 联系方式三行（设计稿 L339–348） ---------- */
+  .contacts {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--color-line2);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .crow {
+    background: var(--color-card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 21px;
+    text-decoration: none;
+    transition: background 0.22s;
+    gap: 16px;
+  }
+  .crow:hover {
+    background: var(--color-paper2);
+  }
+  .cl {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-size: 13.5px;
+    color: var(--color-ink2);
+    font-weight: 550;
+  }
+  .cl svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--color-ink3);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .crow:hover .cl svg {
+    stroke: var(--color-gd);
+  }
+  .cv {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-ink4);
+    overflow-wrap: anywhere;
+  }
+  .crow:hover .cv {
+    color: var(--color-gd);
+  }
+
+  /* ---------- 左栏操作按钮（设计稿 .rshare a L235–239） ---------- */
+  .ract {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 100px;
+    padding: 7px 14px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-ink3);
+    text-decoration: none;
+    transition: border-color 0.24s, color 0.24s, transform 0.24s;
+  }
+  .ract:hover {
+    border-color: var(--color-gh);
+    color: var(--color-gd);
+    transform: translateX(-3px);
+  }
+  .ract svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ---------- 左栏快速跳转（设计稿 .ser L243–252） ---------- */
+  .ser {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 9px;
+    align-items: baseline;
+    text-decoration: none;
+    padding: 8px 10px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    transition: background 0.24s, border-color 0.24s;
+    text-align: left;
+  }
+  .ser:hover {
+    background: var(--color-paper2);
+    border-color: var(--color-line);
+  }
+  .sn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-gh);
+  }
+  .st {
+    font-size: 12.3px;
+    color: var(--color-ink3);
+    font-weight: 550;
+    line-height: 1.5;
+  }
+  .ser:hover .st {
+    color: var(--color-gd);
+  }
+
+  /* ---------- 右栏：KPI 与作品链接（设计稿 .kpi L276–280 / .rel a L265–273） ---------- */
+  :global(.kpi) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+  }
+  :global(.kpi:last-child) {
+    border-bottom: none;
+  }
+  :global(.kpi b) {
+    font-family: var(--font-mono);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--color-gd);
+    letter-spacing: -0.03em;
+  }
+  :global(.kpi i) {
+    font-style: normal;
+    font-size: 11px;
+    color: var(--color-ink4);
+  }
+
+  :global(.rel-link) {
+    display: block;
+    font-size: 12.2px;
+    color: var(--color-ink3);
+    text-decoration: none;
+    line-height: 1.6;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+    transition: color 0.22s, padding-left 0.22s;
+  }
+  :global(.rel-link:last-child) {
+    border-bottom: none;
+  }
+  :global(.rel-link:hover) {
+    color: var(--color-gd);
+    padding-left: 4px;
+  }
+  :global(.rel-link b) {
+    display: block;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--color-ink2);
+  }
+  :global(.rel-link:hover b) {
+    color: var(--color-gd);
+  }
+  :global(.rel-link i) {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-ink4);
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* ---------- 响应式（设计稿 L350–353、L381–384、L408–413） ---------- */
+  @media (max-width: 700px) {
+    .facts {
+      grid-template-columns: 1fr;
+    }
+    .srow {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .sl {
+      padding-top: 0;
+    }
+    .ahead h1 {
+      font-size: 26px;
+    }
+    .alede {
+      font-size: 14.5px;
+    }
+    .crow {
+      padding: 14px 15px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+    .cv {
+      font-size: 11px;
+    }
+    .stags span {
+      font-size: 10px;
+    }
+  }
+  @media (max-width: 420px) {
+    .ahead h1 {
+      font-size: 23px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接置终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .stags span,
+    .crow,
+    .ract,
+    .ser,
+    :global(.rel-link) {
+      transition: none;
+    }
+    .stags span:hover,
+    .ract:hover {
+      transform: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底 ----------
+     本页没有自带脚本；`.rv` 的兜底在 global.css（`:root:not(.js) .rv`）。
+     这里补的是「无 JS 时交互态也不假装可动」。 */
+  :root:not(.js) .ract,
+  :root:not(.js) .stags span {
+    transition: none;
+  }
+</style>

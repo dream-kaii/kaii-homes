@@ -1,0 +1,60 @@
+---
+/**
+ * 404 页 · 站内任意未匹配路径
+ *
+ * 结构来源：task-13-brief.md Step 2 给的片段（逐字保留），仅做三处必要的加固：
+ *   1. 用 BaseLayout（**不含 `<main>`**，全页只有本片段这 1 个 `<main>`，已实测确认）；
+ *   2. `py-32` 与窄屏冲突 —— 390px 下 8rem 的上下留白会把内容顶出首屏，
+ *      加一条 `<=700px` 的纵向 padding 覆盖（Global Constraints #1：必须用长写属性）；
+ *   3. 补 `aria-labelledby` 之外的最小语义：大号 404 是装饰性数字，标 `aria-hidden`
+ *      让读屏先念标题而不是「四零四」。
+ *
+ * 为什么用 BaseLayout 而不是 ContentLayout：404 不是三栏内容页，没有目录、
+ * 没有左右栏，套三栏只会凭空造出两个空 `<aside>`。
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="页面未找到 — kaii" description="这个页面不存在，可能是链接过期了，或者地址输错了。">
+  <main class="mx-auto flex max-w-[600px] flex-col items-center px-6 py-32 text-center" id="main">
+    <p class="nf-code font-mono text-[64px] font-bold text-gh" aria-hidden="true">404</p>
+    <h1 class="mt-4 text-2xl font-bold text-ink">这个页面不存在</h1>
+    <p class="mt-3 text-[14.5px] leading-relaxed text-ink2">
+      可能是链接过期了，或者地址输错了。
+    </p>
+    <div class="mt-8 flex gap-3">
+      <a
+        href="/"
+        class="rounded-full bg-gk px-6 py-3 text-[14px] font-semibold text-white no-underline transition hover:bg-gd"
+        >回首页</a
+      >
+      <a
+        href="/writing/"
+        class="rounded-full border border-line bg-card px-6 py-3 text-[14px] font-semibold text-gd no-underline transition hover:border-gh"
+        >看文章</a
+      >
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  /* Global Constraints #1：组件 `<style>` 不在 @layer 内，优先级高于 Tailwind
+     utilities，所以这里用长写属性覆盖 `py-32`，绝不能写 `padding: ...` 简写
+     （会把 `px-6` 的横向 padding 一起清零）。 */
+  @media (max-width: 700px) {
+    main {
+      padding-top: 64px;
+      padding-bottom: 64px;
+    }
+    .nf-code {
+      font-size: 52px;
+    }
+  }
+
+  /* 减少动态效果：本页无动画，只把 hover 过渡关掉（Global Constraints #3）。 */
+  @media (prefers-reduced-motion: reduce) {
+    main a {
+      transition: none;
+    }
+  }
+</style>
