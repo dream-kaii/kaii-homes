@@ -44,7 +44,7 @@ const catLabel: Record<string, string> = { agent: 'Agent', java: 'Java', algo: '
             <PostRow
               category={catLabel[p.data.category] ?? p.data.category}
               title={p.data.title}
-              href={`/writing/${p.slug}/`}
+              href={`/writing/${p.id}/`}
               tags={p.data.tags}
               planned={p.data.status === 'planned'}
             />

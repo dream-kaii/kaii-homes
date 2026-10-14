@@ -151,3 +151,336 @@ main { display: block; margin: 0; }
    兜底必须落在 `.rv` 自己身上 —— 只给子元素写兜底会造出「子元素已可见、包装层还藏着」的假象
    （Task 6 踩过这个坑）。`.rv` 是全站共用类，故兜底写在全局，任何新组件直接受益。 */
 :root:not(.js) .rv { opacity: 1; transform: none; }
+
+/* ============================================================
+   双宽度排版（插图突破正文宽度）
+   迁移自 design-mockup/article-mockup.html:79–80 的 `.art` / `.art-wide`：
+     .art{max-width:760px}        —— 正文窄
+     .art-wide{max-width:1000px}  —— 插图宽
+   设计稿里 760/1000 是页面级容器（带 `margin:0 auto;padding:0 32px`）；
+   搬到本站后容器由 ContentLayout 的中栏承担（1440px 下 740px 列宽），
+   所以这里只保留「宽度上限」这一层语义。
+
+   两个类都是**共用**的：文章正文用 `.art`，`<RetrievalDemo />` 这类插图用 `.art-wide`；
+   Task 10 的项目详情页同样可复用。放全局而不是组件 `<style>` 里，原因同 `.term`：
+   Astro 的 `<style>` 默认作用域隔离，同一个类名在不同组件里会编译成不同的
+   `[data-astro-cid-xxx]`，跨组件共享不了。
+   ============================================================ */
+.art {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.art-wide {
+  max-width: 1000px;
+  margin-inline: auto;
+}
+/* 窄屏一律收满可用宽度，不再做「宽于父级」的突破 ——
+   700px 以下视口本身就比 1000px 窄，留着 max-width 只会凭空造出横向溢出。 */
+@media (max-width: 1080px) {
+  .art,
+  .art-wide {
+    max-width: 100%;
+  }
+}
+
+/* ============================================================
+   正文排版 `.prose-k`（跨页面共用）
+   迁移自 design-mockup/article-mockup.html:99–121 的 `.prose`：
+   h2 / h2 .num / h3 / p / b / ul / ol / code / a / strong。
+   消费方：文章详情页（`<article class="prose-k art">`）与项目详情页，
+   故此处保持通用，不塞任何「文章专属」假设。
+
+   与设计稿的三处刻意差异：
+   1. 选择器由 `.prose` 改名 `.prose-k`（避开 Tailwind 的 `prose` 插件语义，
+      也让「这是本站自定义排版」在 HTML 里一眼可见）。
+   2. `.prose-k h2` **不再固定 `display:flex`**：h2 由 Markdown 渲染成纯文本，
+      `display:flex` 会把标题里唯一的匿名弹性项摆放得与设计稿不同，
+      对含行内 `code` 的标题更会拆成两项。改成块级 + `.num` 负边距悬挂，
+      视觉与设计稿一致，且对「没有 `.num` 的 h2」安全。
+   3. 补齐 code 块 / 引用块 / 表格 / 图片 —— WRITING.md 承诺这些语法可用，
+      设计稿只覆盖了前七种，不补会让裸 UA 样式撑破正文列。
+   ============================================================ */
+.prose-k h2 {
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.026em;
+  line-height: 1.3;
+  margin-top: 46px;
+  margin-bottom: 16px;
+  /* 项目详情页也复用这条：点右栏目录跳锚点时，标题不能被 64px 高的 sticky
+     导航条压住（64 + 20 呼吸位）。 */
+  scroll-margin-top: 84px;
+}
+.prose-k h2 .num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-gh);
+  font-weight: 700;
+  /* 悬挂式序号：序号不占正文列宽，标题文本仍与段落左对齐。
+     行内元素上的负 margin-left 不会撑破容器（不产生横向溢出）。 */
+  margin-right: 9px;
+  margin-left: -2.55em;
+}
+.prose-k h3 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  margin-top: 32px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  scroll-margin-top: 84px;
+}
+.prose-k p {
+  font-size: 15.5px;
+  color: var(--color-ink2);
+  line-height: 1.9;
+  margin-bottom: 17px;
+  overflow-wrap: break-word;
+}
+.prose-k p b,
+.prose-k li b {
+  color: var(--color-gd);
+  font-weight: 650;
+}
+.prose-k ul,
+.prose-k ol {
+  margin-top: 0;
+  margin-bottom: 18px;
+  padding-left: 0;
+  list-style: none;
+}
+.prose-k ul li,
+.prose-k ol li {
+  font-size: 15.5px;
+  color: var(--color-ink2);
+  line-height: 1.85;
+  padding-left: 22px;
+  position: relative;
+  margin-bottom: 8px;
+  overflow-wrap: break-word;
+}
+.prose-k ul li::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-gh);
+}
+.prose-k ol {
+  counter-reset: o;
+}
+.prose-k ol li {
+  counter-increment: o;
+}
+.prose-k ol li::before {
+  content: counter(o);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-gh);
+  width: 18px;
+}
+.prose-k code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--color-paper2);
+  border: 1px solid var(--color-line);
+  padding: 1.5px 6px;
+  border-radius: 5px;
+  color: var(--color-gd);
+  overflow-wrap: break-word;
+}
+.prose-k a {
+  color: var(--color-gd);
+  text-decoration: underline;
+  text-decoration-color: var(--color-gh);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: background 0.2s, color 0.2s;
+}
+.prose-k a:hover {
+  background: #eaf2ce;
+}
+.prose-k strong {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+/* 深色代码块（设计稿 .codewrap / pre，L131–141）
+   Markdown 的 ``` 代码块渲染成 `<pre class="astro-code …"><code>`，
+   没有设计稿那层 `.codewrap` 外壳，所以整套深色样式直接落在 `pre` 上。 */
+.prose-k pre {
+  background: #1b241a;
+  border: 1px solid #2c3a29;
+  border-radius: 14px;
+  padding: 16px 19px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: #d6e0ce;
+  margin-bottom: 22px;
+  box-shadow: 0 12px 32px -12px rgba(27, 36, 26, 0.4);
+}
+.prose-k pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+/* 引用块（设计稿 .box-quote L126–130 的简化版：正文里的 `>` 引文） */
+.prose-k blockquote {
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-gh);
+  border-radius: 13px;
+  padding: 16px 19px;
+  margin-bottom: 20px;
+  color: var(--color-ink2);
+  font-size: 14px;
+  line-height: 1.82;
+}
+.prose-k blockquote p:last-child {
+  margin-bottom: 0;
+}
+/* 表格（WRITING.md 承诺 Markdown 表格可用，设计稿未出现） */
+.prose-k table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: var(--color-ink2);
+}
+.prose-k th,
+.prose-k td {
+  border: 1px solid var(--color-line);
+  padding: 8px 11px;
+  text-align: left;
+  line-height: 1.7;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.prose-k th {
+  background: var(--color-paper2);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.prose-k img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+  display: block;
+  margin: 22px auto;
+}
+
+@media (max-width: 700px) {
+  .prose-k h2 {
+    font-size: 20px;
+    margin-top: 36px;
+    margin-bottom: 13px;
+    scroll-margin-top: 76px;
+  }
+  .prose-k h2 .num {
+    margin-right: 8px;
+    margin-left: 0;
+  }
+  .prose-k h3 {
+    font-size: 16.5px;
+  }
+  .prose-k p,
+  .prose-k ul li,
+  .prose-k ol li {
+    font-size: 14.8px;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ============================================================
+   插图容器宽度的突破（`.rd-wrap` 等）
+   `.prose-k` 正文列是 760px，插图要能宽到 1000px。做法：
+     1) 容器自身撑到 1000px；
+     2) 用「父级中点对齐」把它从正文列的中心拉出来
+        （负 margin 会让它在窄屏把祖先 scrollWidth 撑大，所以用
+         `left:50%` + `translateX(-50%)` —— 位移不参与祖先的滚动尺寸计算）；
+     3) 越界部分由 `overflow-x: clip` 裁掉，不再向外冒泡。
+        `clip` 而非 `hidden`：不创建滚动容器，溢出不参与祖先 scrollWidth。
+
+   为什么必须放在 global.css 而不是组件 `<style>`：
+     Astro 的 `<style>` 默认作用域隔离，会编译成 `.rd-wrap[data-astro-cid-xxx]`。
+     一旦带上属性选择器，父级 `.mid` 的 `min-width:0` 就不再被这个容器的
+     内容宽度撑开 —— 实测 1440px 下容器被压到 740px，双宽度彻底失效。
+     放全局（无 scope 属性）才能让 `width:1000px` 真正生效。
+   消费方：文章详情页的 `<RetrievalDemo />`；Task 10 的项目详情页复用同一套类。
+   ============================================================ */
+.art-wide {
+  position: relative;
+  left: 50%;
+  width: 1000px;
+  max-width: none;
+  transform: translateX(-50%);
+  overflow-x: clip;
+}
+/* 窄屏：视口本身就比 1000px 窄，取消突破，收满可用宽度 */
+@media (max-width: 1080px) {
+  .art-wide {
+    position: static;
+    left: auto;
+    width: 100%;
+    transform: none;
+    overflow-x: visible;
+  }
+}
+
+/* ============================================================
+   代码块语法高亮配色（Shiki `css-variables` 主题）
+   为什么需要：设计稿的代码块是深绿底（`#1B241A`，article-mockup.html:132），
+   而 Shiki 默认主题 `github-dark` 会把背景写进 `<pre>` 的内联 style ——
+   内联优先级高于 `.prose-k pre`，CSS 压不住（实测 computed 仍是 rgb(36,41,46)）。
+   改用 `css-variables` + `defaultColor:false` 后不再输出内联色，
+   但代价是也要自己提供这套 CSS 变量，否则代码块无高亮。
+   配色取自设计稿 pre 的调色板（article-mockup.html:139–141）：
+     .cm 注释 / .kw 关键字 / .st 字符串 / .fn2 函数 / .ok 成功 / .num 数字
+   `.prose-k pre` 的兜底色（--astro-code-foreground）也已按设计稿设为 #D6E0CE。
+   ============================================================ */
+:root {
+  --astro-code-foreground: #d6e0ce;
+  --astro-code-background: #1b241a;
+  --astro-code-token-comment: #6e7c68;
+  --astro-code-token-keyword: #c2a0e0;
+  --astro-code-token-string: #e0c070;
+  --astro-code-token-function: #8fb8e0;
+  --astro-code-token-string-expression: #a8d880;
+  --astro-code-token-constant: #e0a870;
+  --astro-code-token-number: #e0a870;
+  --astro-code-token-punctuation: #b6c0ae;
+  --astro-code-token-operator: #c2a0e0;
+  --astro-code-token-parameter: #d6e0ce;
+  --astro-code-token-variable: #d6e0ce;
+  --astro-code-token-builtin: #8fb8e0;
+  --astro-code-token-tag: #c2a0e0;
+  --astro-code-token-attribute: #e0c070;
+  --astro-code-token-inserted: #a8d880;
+  --astro-code-token-deleted: #c4685c;
+  --astro-code-token-important: #c4685c;
+  --astro-code-token-selector: #c2a0e0;
+  --astro-code-token-symbol: #e0a870;
+  --astro-code-token-regexp: #e0c070;
+  --astro-code-token-class: #8fb8e0;
+  --astro-code-token-interface: #8fb8e0;
+  --astro-code-token-namespace: #c2a0e0;
+}
+
+/* ============================================================
+   无 JS 兜底：代码块内的行容器
+   `css-variables` 主题下每行是 `<span class="line">`，样式由 Shiki 的内联 style
+   负责；关掉内联色后需要自己保证行内文本可见。
+   ============================================================ */
+.prose-k pre .line {
+  display: inline;
+}

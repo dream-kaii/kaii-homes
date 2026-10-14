@@ -1,0 +1,507 @@
+---
+// 文章列表页 `/writing/`
+// 结构与样式搬运自 design-mockup/writing-index-mockup.html：
+//   HTML L400–560（三栏）、CSS L243–266（`.wcol`…`.wcard`）
+// 三栏骨架由 ContentLayout 提供，本页只负责左/中/右三栏的内容。
+//
+// 与设计稿的差异（都写在对应位置的注释里）：
+//   1. 文章数据来自 `writing` 集合（按 date 倒序），不是写死的 8 张卡；
+//   2. 分类筛选器的计数由真实数据算出；
+//   3. 占位文章（status: planned）额外挂「即将发布」徽标 —— 设计稿没有这个概念，
+//      但 brief Step 4 明确要求，且它指向自身详情页（不产生 404）；
+//   4. 中栏列表只为「已发布」的文章渲染 `.rv` 入场 ——
+//      `.rv` 初始 opacity:0，靠 IntersectionObserver 加 `.in`。若占位卡也带 `.rv`，
+//      筛选时它们被 `display:none` 后又被显示回来，会停在 opacity:0 变成「空白条」。
+import { getCollection } from 'astro:content';
+import ContentLayout from '../../layouts/ContentLayout.astro';
+
+const CATS = [
+  { key: 'all', label: '全部' },
+  { key: 'agent', label: 'Agent' },
+  { key: 'java', label: 'Java' },
+  { key: 'algo', label: '算法' },
+] as const;
+
+const posts = (await getCollection('writing')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+if (posts.length === 0) throw new Error('writing 内容集合为空，至少需要 1 篇文章');
+
+const countOf = (key: string) =>
+  key === 'all' ? posts.length : posts.filter((p) => p.data.category === key).length;
+
+const publishedCount = posts.filter((p) => p.data.status === 'published').length;
+const plannedCount = posts.length - publishedCount;
+
+// 热门标签：按出现次数排序取前 6 个（设计稿写死 6 个，这里是同一份数据的真实统计）
+const tagCount = new Map<string, number>();
+posts.forEach((p) => p.data.tags.forEach((t) => tagCount.set(t, (tagCount.get(t) ?? 0) + 1)));
+const hotTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+const featured = posts.slice(0, 3);
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+---
+
+<ContentLayout
+  title="技术文章 — kaii"
+  description="Agent 应用开发、Java 后端与算法题解的技术文章列表。"
+  active="writing"
+>
+  <!-- ============ 左栏：分类筛选 + 文章统计 + 热门标签（设计稿 L406–435） ============ -->
+  <div slot="left" class="text-right">
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">文章统计</h5>
+      <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
+        <dt class="text-right font-mono text-[10.5px] text-ink4">总计</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{posts.length} 篇</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">Agent</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{countOf('agent')} 篇</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">Java</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{countOf('java')} 篇</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">算法</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{countOf('algo')} 篇</dd>
+      </dl>
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5" data-writing-filter>
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">分类筛选</h5>
+      <div class="flex flex-col gap-[7px]">
+        {
+          CATS.map((c, i) => (
+            <button
+              type="button"
+              data-cat={c.key}
+              aria-pressed={i === 0 ? 'true' : 'false'}
+              class:list={['fbtn', i === 0 && 'on']}
+            >
+              <span>{c.label}</span>
+              <i>{countOf(c.key)}</i>
+            </button>
+          ))
+        }
+      </div>
+    </div>
+
+    <div>
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">热门标签</h5>
+      <div class="flex flex-wrap justify-end gap-1.5">
+        {
+          hotTags.map(([t]) => (
+            <a
+              href="/writing/"
+              class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gm no-underline transition hover:border-gh hover:bg-[#EAF2CE] hover:text-gd"
+            >
+              {t}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 中栏：文章卡片列表（设计稿 L437–515） ============ -->
+  <header class="ahead">
+    <div class="crumb">文章</div>
+    <h1>技术文章</h1>
+    <p class="alede">
+      先把 Agent 相关的写扎实，再回来补 Java 基础和算法题。
+      每篇都尽量讲清「为什么这样设计」和「我实际踩到什么坑」，而不是罗列名词。
+    </p>
+  </header>
+
+  <div class="wlist" data-writing-list>
+    {
+      posts.map((p) => {
+        const planned = p.data.status === 'planned';
+        return (
+          <a
+            href={`/writing/${p.id}/`}
+            class:list={['wcard', !planned && 'rv']}
+            data-cat={p.data.category}
+            data-planned={planned ? 'true' : undefined}
+          >
+            {planned && <span class="wbadge">即将发布</span>}
+            <h3>{p.data.title}</h3>
+            <p>{p.data.description}</p>
+            <div class="wmeta">
+              <span>{iso(p.data.date)}</span>
+              <span>约 {p.data.minutes} 分钟</span>
+              <span class="tg">
+                {p.data.tags.map((t) => (
+                  <span>{t}</span>
+                ))}
+              </span>
+            </div>
+          </a>
+        );
+      })
+    }
+  </div>
+  <p class="emptymsg" data-writing-empty>这个分类下暂时还没有文章。</p>
+
+  <!-- ============ 右栏：推荐阅读 + 写作计划 + 按主题浏览（设计稿 L518–554） ============ -->
+  <div slot="right">
+    <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">推荐阅读</h5>
+    <ol class="m-0 list-none">
+      {
+        featured.map((p, i) => (
+          <li class="py-[3px]">
+            <a
+              href={`/writing/${p.id}/`}
+              class:list={[
+                'flex gap-2.5 border-l-2 border-line2 py-1 pl-3 text-[12.3px] leading-relaxed text-ink3 no-underline transition hover:border-gh hover:pl-3.5 hover:text-gd',
+                i === 0 && 'border-gd font-semibold text-gd',
+              ]}
+            >
+              <span class="flex-none pt-0.5 font-mono text-[10px] font-bold text-gh">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <span>{p.data.title}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">写作计划</h5>
+      <div class="kpi"><b>{publishedCount}</b><i>已发布</i></div>
+      <div class="kpi"><b>{plannedCount}</b><i>计划中</i></div>
+      <div class="kpi"><b>Agent</b><i>优先方向</i></div>
+    </div>
+
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">按主题浏览</h5>
+      <a href="/writing/" class="rel-link"><b>Agent 工程化</b><i>检索 · 工具 · 编排</i></a>
+      <a href="/writing/" class="rel-link"><b>Java 基础</b><i>并发 · JVM · 集合</i></a>
+      <a href="/writing/" class="rel-link"><b>算法题解</b><i>Hot 100 分类整理</i></a>
+    </div>
+  </div>
+</ContentLayout>
+
+<script>
+  // ============================================================
+  // 分类筛选（设计稿 L564–577 的 fbtn 逻辑）
+  // 作用域：整个筛选器 + 列表都在本页，但读写一律走 `[data-*]` 容器查询，
+  // 不用全局 id（Global Constraints #2）。
+  // 无 JS 时：全部 8 张卡照常显示，筛选按钮是静息态 —— 不会出现空白页。
+  // ============================================================
+  const root = document.querySelector<HTMLElement>('main');
+  if (root) {
+    const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-cat]')].filter((b) =>
+      b.classList.contains('fbtn')
+    );
+    const cards = [...root.querySelectorAll<HTMLElement>('.wcard')];
+    const empty = root.querySelector<HTMLElement>('[data-writing-empty]');
+
+    btns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const cat = btn.dataset.cat ?? 'all';
+        btns.forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+
+        let shown = 0;
+        cards.forEach((c) => {
+          const ok = cat === 'all' || c.dataset.cat === cat;
+          c.hidden = !ok;
+          if (ok) {
+            shown += 1;
+            // 保险：被隐藏再显示回来的卡如果带 .rv，可能停在 opacity:0
+            c.classList.add('in');
+          }
+        });
+        empty?.classList.toggle('on', shown === 0);
+      });
+    });
+  }
+</script>
+
+<style>
+  /* ============================================================
+     中栏页头（设计稿 .ahead L74–90；`.mid .ahead{padding-top:0}` L211）
+     容器由 ContentLayout 的 `.mid` 承担，这里只写排版。
+     ============================================================ */
+  .ahead {
+    padding-bottom: 34px;
+  }
+  .crumb {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-ink4);
+    margin-bottom: 18px;
+  }
+  .ahead h1 {
+    font-size: clamp(28px, 3.9vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.034em;
+    line-height: 1.2;
+    margin-bottom: 18px;
+    overflow-wrap: anywhere;
+  }
+  .alede {
+    font-size: 16.5px;
+    color: var(--color-ink2);
+    line-height: 1.8;
+  }
+
+  /* ---------- 列表与卡片（设计稿 .wlist / .wcard L256–274） ---------- */
+  .wlist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .wcard {
+    display: block;
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    padding: 20px 24px;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .wcard::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--color-gh), var(--color-gd));
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .wcard:hover {
+    border-color: #d5d8c4;
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    transform: translateY(-3px);
+  }
+  .wcard:hover::before {
+    transform: scaleY(1);
+  }
+  .wcard h3 {
+    font-size: 16.5px;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    color: var(--color-ink);
+    margin-bottom: 8px;
+    line-height: 1.42;
+    transition: color 0.2s;
+    /* 超长中文标题不得撑破卡片（plan Review Focus #3） */
+    overflow-wrap: anywhere;
+    padding-right: 76px; /* 给右上角的「即将发布」徽标让位 */
+  }
+  .wcard:hover h3 {
+    color: var(--color-gd);
+  }
+  .wcard p {
+    font-size: 13.2px;
+    color: var(--color-ink3);
+    line-height: 1.7;
+    margin-bottom: 11px;
+    overflow-wrap: anywhere;
+  }
+  .wmeta {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-ink4);
+  }
+  .wmeta .tg {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .wmeta .tg span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-gm);
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+    padding: 2.5px 8px;
+    border-radius: 100px;
+  }
+
+  /* ---------- 占位文章徽标（brief Step 4 要求；设计稿无此元素） ----------
+     `status: planned` 的文章在列表里要一眼看出还没写完，
+     但 href 仍指向自身详情页（那里会渲染「还在写」的正文），不产生 404。 */
+  .wbadge {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-amber);
+    background: #fdf6e8;
+    border: 1px solid #f0e0bc;
+    padding: 3px 9px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+
+  /* ---------- 空结果提示（设计稿 .emptymsg L275–277） ---------- */
+  .emptymsg {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    text-align: center;
+    color: var(--color-ink4);
+    font-size: 13.5px;
+    display: none;
+  }
+  .emptymsg.on {
+    display: block;
+  }
+
+  /* ---------- 左栏筛选按钮（设计稿 .fbtn L245–252） ---------- */
+  .fbtn {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 9px 13px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-ink3);
+    cursor: pointer;
+    transition: border-color 0.24s, color 0.24s, transform 0.24s, background 0.24s;
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .fbtn:hover {
+    border-color: var(--color-gh);
+    color: var(--color-gd);
+    transform: translateX(3px);
+  }
+  .fbtn.on {
+    background: linear-gradient(140deg, #f4f9e6, #eaf2ce);
+    border-color: var(--color-gd);
+    color: var(--color-gd);
+  }
+  .fbtn:focus-visible {
+    outline: 2px solid var(--color-gm);
+    outline-offset: 2px;
+  }
+  .fbtn i {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    opacity: 0.75;
+  }
+
+  /* ---------- 右栏 KPI（设计稿 .kpi L379–383） ---------- */
+  .kpi {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+  }
+  .kpi:last-child {
+    border-bottom: none;
+  }
+  .kpi b {
+    font-family: var(--font-mono);
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--color-gd);
+    letter-spacing: -0.03em;
+  }
+  .kpi i {
+    font-style: normal;
+    font-size: 11px;
+    color: var(--color-ink4);
+  }
+
+  /* ---------- 右栏「按主题浏览」（设计稿 .toc2 .rel a L400–412） ---------- */
+  .rel-link {
+    display: block;
+    font-size: 12.2px;
+    color: var(--color-ink3);
+    text-decoration: none;
+    line-height: 1.6;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+    transition: color 0.22s, padding-left 0.22s;
+  }
+  .rel-link:last-child {
+    border-bottom: none;
+  }
+  .rel-link:hover {
+    color: var(--color-gd);
+    padding-left: 4px;
+  }
+  .rel-link b {
+    display: block;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--color-ink2);
+  }
+  .rel-link:hover b {
+    color: var(--color-gd);
+  }
+  .rel-link i {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-ink4);
+    display: block;
+    margin-top: 3px;
+  }
+
+  @media (max-width: 700px) {
+    .wcard {
+      padding-top: 17px; /* 设计稿 .wcard{padding:17px 18px} */
+      padding-bottom: 17px;
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+    .wbadge {
+      top: 15px;
+      right: 15px;
+    }
+    .wcard h3 {
+      padding-right: 70px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接置终态 ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .wcard,
+    .wcard::before,
+    .wcard h3,
+    .fbtn,
+    .rel-link {
+      transition: none;
+    }
+    .wcard:hover,
+    .fbtn:hover {
+      transform: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底 ----------
+     `.rv` 的兜底在 global.css（:root:not(.js) .rv）。
+     这里补的是页面自己的交互态：筛选按钮不能看起来「可点但点了没用」。 */
+  :root:not(.js) .fbtn {
+    cursor: default;
+    transition: none;
+  }
+</style>

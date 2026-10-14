@@ -1,0 +1,444 @@
+---
+/**
+ * RetrievalDemo · 召回结果对比器
+ *
+ * 来源：design-mockup/article-mockup.html —— HTML L560–583（`.demo-card`）、
+ *       CSS L111–131（`.demo-card`/`.demo-hd`/`.demo-bd`/`.seg`/`.hitrow`/`.bar`/`.score`）、
+ *       数据与渲染脚本 L713–724。
+ *
+ * 与设计稿的关系：
+ *   - 视觉逐条搬运，令牌名按站点映射（--card→var(--color-card) 等）。
+ *   - 行为重写：设计稿用**全局 `getElementById('seg')` / `#hits` / `#hint`**，
+ *     这在「一个页面可能出现两个实例」和「同页多组件」下都会串号。
+ *     这里改成容器作用域：`root.querySelector('[data-rd-hits]')`（Global Constraints #2）。
+ *   - 动画 keyframes 统一 `rd-` 前缀（Global Constraints #6）。
+ *   - 设计稿把分数写进内联 `style="width:X%"`，无 JS 时是一排空条。
+ *     这里改由 CSS 变量 + `:root:not(.js)` 兜底把宽度直接写成终值（Global Constraints #4）。
+ *
+ * 双宽度：本组件是「插图」，外层 `.art-wide` 允许它突破正文的 760px 到 1000px
+ * （设计稿 `.art`/`.art-wide` 双宽度，article-mockup.html:79–80）。
+ * 超出正文列的部分靠 `.rd-wide` 的 `overflow-x: clip` 裁掉，不产生横向滚动。
+ */
+interface Hit {
+  t: string;
+  s: string;
+  v: number;
+}
+interface ModeData {
+  hits: Hit[];
+  hint: string;
+}
+interface Props {
+  heading?: string;
+  /** 初始模式；无 JS 时展示的就是这个模式的内容 */
+  initial?: 'kw' | 'vec' | 'hyb';
+}
+
+const { heading = '召回结果对比 · 同一个问题', initial = 'kw' } = Astro.props;
+
+// 数据内联在组件里（brief Step 3a 逐字给定）
+const DATA: Record<'kw' | 'vec' | 'hyb', ModeData> = {
+  kw: {
+    hits: [
+      { t: '退货政策 · 七天无理由', s: 'doc:退货政策.md', v: 0 },
+      { t: '售后手册 · 联系方式', s: 'doc:售后手册.md', v: 0 },
+    ],
+    hint: 'BM25 拿「邮费」去比对，但文档里写的是「运费」。两个字对不上 —— 正确答案「运费说明」压根没有被召回。注意系统不会报错，只会说「没找到」。',
+  },
+  vec: {
+    hits: [
+      { t: '运费怎么算？', s: 'doc:运费说明.md', v: 0.72 },
+      { t: '配送范围与时效', s: 'doc:运费说明.md', v: 0.61 },
+      { t: '会员包邮权益', s: 'doc:会员权益.md', v: 0.58 },
+    ],
+    hint: '向量检索认得「邮费 ≈ 运费」，正确条目被召回了。但也把两条不太相关的一起拉进来 —— 因为它只看语义接近，不区分是不是真在问你这个问题。',
+  },
+  hyb: {
+    hits: [
+      { t: '运费怎么算？', s: 'doc:运费说明.md', v: 0.94 },
+      { t: '会员包邮权益', s: 'doc:会员权益.md', v: 0.71 },
+      { t: '配送范围与时效', s: 'doc:运费说明.md', v: 0.66 },
+    ],
+    hint: 'BM25 和向量各召回一批，用 RRF 融合后再让重排模型精排。正确答案稳稳排在第一位，且分数和其他拉开了明显差距 —— 这个差距就是「可以放心作答」的信号。',
+  },
+};
+
+const MODES: { id: 'kw' | 'vec' | 'hyb'; label: string }[] = [
+  { id: 'kw', label: '关键词 BM25' },
+  { id: 'vec', label: '向量检索' },
+  { id: 'hyb', label: '混合 + 重排' },
+];
+
+// 分数条的宽度：与设计稿一致 —— 0 分也留 3% 的底条，避免「分数为 0」看起来像渲染失败。
+const barPct = (v: number) => Math.max(v * 100, 3);
+const scoreText = (v: number) => (v > 0 ? v.toFixed(2) : '—');
+const init = DATA[initial];
+---
+
+<div class="art-wide">
+  <div class="demo-card rv" data-retrieval-demo data-mode={initial}>
+    <div class="demo-hd">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#5E8A4E"
+        stroke-width="2"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.5-3.5"></path>
+      </svg>
+      <span class="t">{heading}</span>
+      <span class="hint">点击切换</span>
+    </div>
+    <div class="demo-bd">
+      <div class="seg" role="tablist" aria-label="检索方式">
+        {
+          MODES.map((m) => (
+            <button
+              type="button"
+              role="tab"
+              data-rd-mode={m.id}
+              aria-selected={m.id === initial ? 'true' : 'false'}
+              class:list={['rd-tab', m.id === initial && 'on']}
+            >
+              {m.label}
+            </button>
+          ))
+        }
+      </div>
+
+      <div data-rd-hits>
+        {
+          init.hits.map((h) => (
+            <div class="hitrow">
+              <div class="hit-t">
+                <b>{h.t}</b>
+                <i>{h.s}</i>
+              </div>
+              <div class="bar">
+                <span style={`--rd-w:${barPct(h.v)}%`} />
+              </div>
+              <div class="score">{scoreText(h.v)}</div>
+            </div>
+          ))
+        }
+      </div>
+
+      <p class="rd-hint" data-rd-hint>{init.hint}</p>
+    </div>
+  </div>
+</div>
+
+<!-- 三种模式的数据在这里交给客户端脚本，避免「模板一份、脚本一份」的漂移。
+     放在本组件内部（而不是 BaseLayout）以保持自包含；`<script>` 读的是它后面的 DOM，
+     而 Astro 的 `<script>` 输出在 </body> 前，顺序成立。 -->
+<script
+  id="rd-data"
+  type="application/json"
+  is:inline
+  set:html={JSON.stringify(DATA)}
+/>
+
+<script>
+  // ============================================================
+  // 模式切换（设计稿 L712–724 的 render / click 逻辑，重写为容器作用域）
+  // 数据来自构建期内联的 `<script id="rd-data" type="application/json">`。
+  // ============================================================
+  type Mode = 'kw' | 'vec' | 'hyb';
+  interface Hit {
+    t: string;
+    s: string;
+    v: number;
+  }
+  interface ModeData {
+    hits: Hit[];
+    hint: string;
+  }
+
+  const DATA: Record<Mode, ModeData> = JSON.parse(
+    document.getElementById('rd-data')?.textContent ?? '{}'
+  );
+
+  const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const barPct = (v: number) => Math.max(v * 100, 3);
+  const scoreText = (v: number) => (v > 0 ? v.toFixed(2) : '—');
+  const esc = (s: string) =>
+    s.replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string
+    );
+  const showBars = (box: HTMLElement) => {
+    const bars = [...box.querySelectorAll<HTMLElement>('.bar span')];
+    if (rm) {
+      bars.forEach((b) => b.classList.add('show'));
+      return;
+    }
+    bars.forEach((b) => b.classList.remove('show'));
+    requestAnimationFrame(() => bars.forEach((b) => b.classList.add('show')));
+  };
+
+  const init = (root: HTMLElement) => {
+    const hitsBox = root.querySelector<HTMLElement>('[data-rd-hits]');
+    const hintBox = root.querySelector<HTMLElement>('[data-rd-hint]');
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-rd-mode]')];
+    if (!hitsBox || !hintBox || tabs.length === 0) return;
+
+    const render = (mode: Mode) => {
+      const d = DATA[mode];
+      if (!d) return;
+      hitsBox.innerHTML = d.hits
+        .map(
+          (h) => `<div class="hitrow">
+            <div class="hit-t"><b>${esc(h.t)}</b><i>${esc(h.s)}</i></div>
+            <div class="bar"><span style="--rd-w:${barPct(h.v)}%"></span></div>
+            <div class="score">${scoreText(h.v)}</div>
+          </div>`
+        )
+        .join('');
+      hintBox.textContent = d.hint;
+      showBars(hitsBox);
+    };
+
+    tabs.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.rdMode as Mode;
+        tabs.forEach((t) => {
+          const on = t === btn;
+          t.classList.toggle('on', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        root.dataset.mode = mode;
+        render(mode);
+      });
+      // 键盘可达：role=tab 的按钮用 ←/→ 切换（Enter/Space 是 <button> 原生行为）
+      btn.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        const i = tabs.indexOf(btn);
+        const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next?.focus();
+        next?.click();
+      });
+    });
+
+    // 首屏：脚本接管后按当前模式播一次展开动画（与设计稿 `render('kw')` 等价）；
+    // reduce 下 showBars 直接置终态。
+    showBars(hitsBox);
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-retrieval-demo]').forEach(init);
+</script>
+
+<style>
+  /* ============================================================
+     卡片外壳（设计稿 .demo-card L111–112）
+     外层容器的双宽度（`.art-wide`）定义在 global.css —— 必须放全局，
+     否则 Astro 的作用域属性会让容器被父级 `.mid` 的 `min-width:0` 压回列宽，
+     突破 1000px 直接失效（详见 global.css 里的注释）。
+     ============================================================ */
+  .demo-card {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 6px 22px -6px rgba(42, 77, 46, 0.11);
+    /* 组件 `<style>` 优先级高于 Tailwind utilities；外层 `.prose-k p` 的
+       `margin-bottom:17px` 也会命中卡片里所有 <p>，这里用 `.rd-hint` 精确覆盖。 */
+    margin-top: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+
+  /* ---------- 卡头（设计稿 .demo-hd L113–116） ---------- */
+  .demo-hd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    background: rgba(242, 241, 228, 0.5);
+    border-bottom: 1px solid var(--color-line2);
+  }
+  .demo-hd .t {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-ink3);
+    letter-spacing: 0.04em;
+  }
+  .demo-hd .hint {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--color-ink4);
+    font-family: var(--font-mono);
+  }
+
+  /* ---------- 卡体 + 分段控件（设计稿 .demo-bd / .seg L117–122） ---------- */
+  .demo-bd {
+    padding: 20px 18px;
+  }
+  .seg {
+    display: inline-flex;
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+    border-radius: 100px;
+    padding: 3px;
+    margin-bottom: 16px;
+  }
+  .seg .rd-tab {
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-ink3);
+    padding: 7px 16px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.24s, color 0.24s, box-shadow 0.24s;
+  }
+  /* 组件 `<style>` 不在 @layer 内、优先级高于 Tailwind utilities，
+     但这里的 `.on` 只与本文件内的基础声明竞争，不需要 !important。 */
+  .seg .rd-tab.on {
+    background: var(--color-card);
+    color: var(--color-gd);
+    box-shadow: 0 1px 3px rgba(42, 77, 46, 0.05);
+  }
+  .seg .rd-tab:focus-visible {
+    outline: 2px solid var(--color-gm);
+    outline-offset: 2px;
+  }
+
+  /* ---------- 命中行（设计稿 .hitrow L123–128） ---------- */
+  .hitrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px dashed var(--color-line);
+  }
+  .hitrow:last-child {
+    border-bottom: none;
+  }
+  .hit-t {
+    flex: 1;
+    min-width: 0;
+    font-size: 13.5px;
+    color: var(--color-ink2);
+  }
+  .hit-t b {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .hit-t i {
+    display: block;
+    font-style: normal;
+    font-size: 11.5px;
+    color: var(--color-ink4);
+    margin-top: 3px;
+  }
+
+  /* ---------- 分数条（设计稿 .bar L129–131 + 脚本 L720） ----------
+     设计稿把宽度写在内联 style 上；这里改成 CSS 变量 `--rd-w`，
+     于是「无 JS 兜底直接置终值」只需要一条 CSS 规则（见文件末尾），
+     不必依赖任何脚本写入。 */
+  .bar {
+    width: 110px;
+    height: 7px;
+    border-radius: 100px;
+    background: var(--color-paper2);
+    overflow: hidden;
+    flex: none;
+  }
+  .bar span {
+    display: block;
+    height: 100%;
+    width: var(--rd-w, 0%);
+    border-radius: 100px;
+    background: var(--color-gd);
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .bar span.show {
+    transform: scaleX(1);
+  }
+  .score {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--color-gd);
+    width: 44px;
+    text-align: right;
+    flex: none;
+  }
+
+  /* ---------- 提示文案（设计稿内联 style L581） ---------- */
+  .rd-hint {
+    font-size: 12.5px;
+    color: var(--color-ink4);
+    margin-top: 14px;
+    margin-bottom: 0;
+    line-height: 1.7;
+  }
+
+  /* 分值改变时给数字一点强调（不影响布局） */
+  @keyframes rd-pop {
+    from {
+      opacity: 0.35;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .demo-card[data-mode] .score {
+    animation: rd-pop 0.4s ease-out;
+  }
+
+  @media (max-width: 700px) {
+    .bar {
+      width: 70px; /* 设计稿 @media(max-width:700px){.bar{width:70px}} */
+    }
+    .demo-bd {
+      padding-top: 17px;
+      padding-bottom: 17px;
+      padding-left: 15px;
+      padding-right: 15px;
+    }
+    .seg .rd-tab {
+      padding-left: 12px;
+      padding-right: 12px;
+      font-size: 12px;
+    }
+  }
+
+  /* ---------- 减少动态效果：直接置终态（Global Constraints #3） ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .bar span {
+      transition: none;
+      transform: scaleX(1);
+    }
+    .demo-card[data-mode] .score {
+      animation: none;
+    }
+  }
+
+  /* ---------- 无 JS 兜底（Global Constraints #4） ----------
+     脚本不跑时：
+       1) 分数条必须展开到终值，而不是一排空条 —— `transform: scaleX(1)` 直接置终态，
+          宽度仍由 `--rd-w` 决定；
+       2) 模式切换按钮保持静息态，内容展示的是服务端渲染的初始模式（完整内容，不是空壳）。
+     `:root:not(.js)` 的 `.js` 由 BaseLayout 的 inline script 打上，与全站口径一致。 */
+  :root:not(.js) .bar span {
+    transform: scaleX(1);
+    transition: none;
+  }
+  :root:not(.js) .demo-card[data-mode] .score {
+    animation: none;
+  }
+  :root:not(.js) .seg .rd-tab {
+    cursor: default;
+  }
+</style>

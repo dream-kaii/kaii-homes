@@ -1,0 +1,303 @@
+---
+// 文章详情页 `/writing/<slug>/`
+//
+// 结构来源：design-mockup/article-mockup.html
+//   - 页头 `.ahead`：HTML L441–455 / CSS L73–90（brief 修补 1：逐字搬）
+//   - 左栏：进度环 + 本文信息 + 标签（CSS L216–242 / HTML L394–430）
+//   - 右栏：目录 + 相关文章（CSS L301–318 / HTML L680–700）
+//   - 正文双宽度：`.art` 760px（正文） / `.art-wide` 1000px（插图），CSS L79–80
+//
+// 三栏骨架来自 ContentLayout；正文排版类 `.prose-k` 定义在 global.css
+// （Task 10 的项目详情页共用同一套，所以不能塞进本页的 `<style>`）。
+import { getCollection, render } from 'astro:content';
+import ContentLayout from '../../layouts/ContentLayout.astro';
+import TocList from '../../components/TocList.astro';
+import ProgressRing from '../../components/ProgressRing.astro';
+import SourceList from '../../components/SourceList.astro';
+
+export async function getStaticPaths() {
+  const items = await getCollection('writing');
+  if (items.length === 0) throw new Error('writing 内容集合为空');
+  return items.map((p) => ({ params: { slug: p.id }, props: { post: p } }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const toc = headings.filter((h) => h.depth === 2).map((h) => ({ href: '#' + h.slug, label: h.text }));
+const isPlanned = post.data.status === 'planned';
+const iso = post.data.date.toISOString().slice(0, 10);
+
+const CAT_LABEL: Record<string, string> = { agent: 'Agent', java: 'Java', algo: '算法' };
+
+// 相关文章：同分类优先，不足 3 条用最近的补满（设计稿右栏只有 3 条）
+const all = (await getCollection('writing')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+const related = [
+  ...all.filter((p) => p.id !== post.id && p.data.category === post.data.category),
+  ...all.filter((p) => p.id !== post.id && p.data.category !== post.data.category),
+].slice(0, 3);
+---
+
+<ContentLayout
+  title={`${post.data.title} — kaii`}
+  description={post.data.description}
+  active="writing"
+>
+  <!-- ============ 左栏：进度环 + 本文信息 + 标签 ============ -->
+  <div slot="left" class="text-right">
+    <ProgressRing />
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">本文信息</h5>
+      <dl class="grid grid-cols-[auto_1fr] justify-end gap-x-3 gap-y-[7px]">
+        <dt class="text-right font-mono text-[10.5px] text-ink4">发布</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">{iso}</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">阅读</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">约 {post.data.minutes} 分钟</dd>
+        <dt class="text-right font-mono text-[10.5px] text-ink4">分类</dt>
+        <dd class="text-left text-[12.5px] font-medium text-ink2">
+          {CAT_LABEL[post.data.category] ?? post.data.category}
+        </dd>
+        {
+          isPlanned && (
+            <>
+              <dt class="text-right font-mono text-[10.5px] text-ink4">状态</dt>
+              <dd class="text-left text-[12.5px] font-medium text-amber">未完成</dd>
+            </>
+          )
+        }
+      </dl>
+    </div>
+
+    <div class="mb-5 border-b border-line2 pb-5">
+      <h5 class="mb-3 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">标签</h5>
+      <div class="flex flex-wrap justify-end gap-1.5">
+        {
+          post.data.tags.map((tg) => (
+            <a
+              href="/writing/"
+              class="rounded-full border border-line bg-paper2 px-2.5 py-1 font-mono text-[10.5px] text-gm no-underline transition hover:border-gh hover:bg-[#EAF2CE] hover:text-gd"
+            >
+              {tg}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 中栏：正文 ============ -->
+  <!--
+    双宽度（brief 修补 3）：
+      `.art`  = 760px —— 正文列
+      `.art-wide` = 1000px —— 插图列（`<RetrievalDemo />` 自带这个容器）
+    两者都在 global.css 里定义；这里给 `<article>` 上 `.art`。
+    1440px 下列宽 740px < 760px，所以正文不会溢出容器；
+    而插图靠 `.rd-wrap` 的 `overflow-x: clip` 突破列宽又不产生横向滚动。
+  -->
+  <article class="prose-k art" data-planned={isPlanned ? 'true' : undefined}>
+    <header class="ahead">
+      <div class="crumb">
+        <a href="/writing/">文章</a> / {CAT_LABEL[post.data.category] ?? post.data.category}
+      </div>
+      <h1>{post.data.title}</h1>
+      <p class="alede">{post.data.description}</p>
+      <div class="ameta">
+        <span>{iso}</span>
+        <span>约 {post.data.minutes} 分钟</span>
+        <div class="tg">
+          {post.data.tags.map((tg) => <span>{tg}</span>)}
+        </div>
+      </div>
+    </header>
+
+    {
+      isPlanned && (
+        <div class="my-6 flex items-start gap-3 rounded-[13px] border border-[#F0E0BC] bg-[#FDF6E8] px-5 py-4 text-[13.5px] leading-relaxed text-ink2">
+          <svg
+            class="mt-0.5 h-4 w-4 flex-none"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-amber)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 9v4M12 17h.01" />
+          </svg>
+          <span>
+            这篇文章还在写。可以先看看已经完成的
+            <a href="/writing/rag-hybrid-retrieval/" class="text-gd underline">
+              《为什么 RAG 一定要做混合检索》
+            </a>
+            。
+          </span>
+        </div>
+      )
+    }
+
+    <Content />
+
+    {post.data.sources.length > 0 && <SourceList sources={post.data.sources} />}
+  </article>
+
+  <!-- ============ 右栏：目录 + 相关文章 ============ -->
+  <div slot="right">
+    {toc.length > 0 && <TocList items={toc} />}
+    <div class="mt-7 border-t border-line2 pt-5">
+      <h5 class="mb-2.5 font-mono text-[9.5px] font-bold tracking-[.11em] text-ink4">相关文章</h5>
+      {
+        related.map((r) => (
+          <a href={`/writing/${r.id}/`} class="rel-link">
+            <b>{r.data.title}</b>
+            <i>
+              {CAT_LABEL[r.data.category] ?? r.data.category} · 约 {r.data.minutes} 分钟
+            </i>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</ContentLayout>
+
+<style>
+  /* ============================================================
+     页头（设计稿 `.ahead` / `.crumb` / `.alede` / `.ameta`，L73–90）
+     文案与结构逐字搬；`.mid .ahead{padding-top:0}` 由 ContentLayout 的
+     顶部留白承担，这里只写底边距。
+     ============================================================ */
+  .ahead {
+    padding-bottom: 34px;
+  }
+  .crumb {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--color-ink4);
+    margin-bottom: 18px;
+  }
+  .crumb a {
+    color: var(--color-ink4);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .crumb a:hover {
+    color: var(--color-gd);
+  }
+  .ahead h1 {
+    font-size: clamp(28px, 3.9vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.034em;
+    line-height: 1.2;
+    margin-bottom: 18px;
+    /* 中文长标题不撑破列（plan Review Focus #3） */
+    overflow-wrap: anywhere;
+  }
+  .alede {
+    font-size: 16.5px;
+    color: var(--color-ink2);
+    line-height: 1.8;
+    margin-bottom: 22px;
+    overflow-wrap: anywhere;
+  }
+  .ameta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--color-ink4);
+    font-family: var(--font-mono);
+  }
+  .ameta .tg {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .ameta .tg span {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--color-gd);
+    background: var(--color-paper2);
+    border: 1px solid var(--color-line);
+    padding: 3px 9px;
+    border-radius: 100px;
+  }
+  /* 页头里的 h1/p 不该吃到 `.prose-k p` 的正文段落样式 */
+  .prose-k .ahead h1,
+  .prose-k .ahead p {
+    margin-bottom: 0;
+  }
+  .prose-k .ahead h1 {
+    margin-bottom: 18px;
+  }
+  .prose-k .alede {
+    margin-bottom: 22px;
+  }
+
+  /* ---------- 右栏相关文章（设计稿 `.toc2 .rel a` L400–412） ---------- */
+  .rel-link {
+    display: block;
+    font-size: 12.2px;
+    color: var(--color-ink3);
+    text-decoration: none;
+    line-height: 1.6;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--color-line2);
+    transition: color 0.22s, padding-left 0.22s;
+  }
+  .rel-link:last-child {
+    border-bottom: none;
+  }
+  .rel-link:hover {
+    color: var(--color-gd);
+    padding-left: 4px;
+  }
+  .rel-link b {
+    display: block;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--color-ink2);
+  }
+  .rel-link:hover b {
+    color: var(--color-gd);
+  }
+  .rel-link i {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-ink4);
+    display: block;
+    margin-top: 3px;
+  }
+
+  @media (max-width: 700px) {
+    .ahead h1 {
+      font-size: 26px;
+    }
+    .alede {
+      font-size: 14.5px;
+    }
+    .ameta {
+      gap: 10px;
+    }
+  }
+  @media (max-width: 420px) {
+    .ahead h1 {
+      font-size: 23px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .crumb a,
+    .rel-link {
+      transition: none;
+    }
+    .rel-link:hover {
+      padding-left: 0;
+    }
+  }
+</style>
