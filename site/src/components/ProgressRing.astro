@@ -6,12 +6,18 @@
     <circle cx="30" cy="30" r="26" fill="none" stroke="var(--color-line)" stroke-width="4" />
     <circle data-ring-fg cx="30" cy="30" r="26" fill="none" stroke="var(--color-gd)"
             stroke-width="4" stroke-linecap="round"
-            stroke-dasharray="163.4" stroke-dashoffset="163.4" />
+            stroke-dasharray="163.363" stroke-dashoffset="163.363" />
   </svg>
-  <span data-ring-label class="font-mono text-[10.5px] tracking-wide text-ink4">0% 已读</span>
+  {/*
+      标签内容不预渲染 —— 服务端给不出真实进度，写死「0% 已读」在无 JS 时是个假数字
+      （站点别处已明确「0 是假数据，比留白更糟」）。改由脚本注入，无 JS 时该行留空。
+    */}
+    <span data-ring-label class="font-mono text-[10.5px] tracking-wide text-ink4" hidden></span>
 </div>
 <script>
-  const CIRC = 163.4;
+  // 圆周长：2π×26。原先写 163.4（截断值），满进度时圆环差一丝不闭合，
+  // 这里直接算出来，避免魔数写两遍导致两处不同步。
+  const CIRC = 2 * Math.PI * 26;
 
   // 作用域查询：每个进度环只操作自己那一份 DOM，同页多个实例互不串号
   const init = (root: ParentNode) => {
@@ -21,7 +27,11 @@
       const h = document.documentElement.scrollHeight - innerHeight;
       const p = h > 0 ? Math.min(scrollY / h, 1) : 0;
       if (fg) fg.style.strokeDashoffset = String(CIRC * (1 - p));
-      if (lb) lb.textContent = Math.round(p * 100) + '% 已读';
+      if (lb) {
+        lb.textContent = Math.round(p * 100) + '% 已读';
+        // 首次更新时显示（模板里带 hidden，保证无 JS 时不出现假数字）
+        lb.hidden = false;
+      }
     };
     addEventListener('scroll', upd, { passive: true });
     upd();

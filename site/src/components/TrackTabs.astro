@@ -243,29 +243,47 @@ const ICONS: Record<string, string> = {
 </style>
 
 <script>
-  // @ts-nocheck —— 浏览器运行时 JS；astro check 的 strict 对 DOM 查询结果过严。
-  //
   // ⚠️ 不能用 `document.currentScript` 取组件根：Astro 把 <script> 编译成 **ESM 模块**，
-  // 模块脚本里 `document.currentScript` 恒为 null（模块没有当前脚本的概念）——
-  // 实测这样做会让整个切换逻辑静默失效（面板永不切换）。改用全局 querySelector 定位。
+  // 模块脚本里 `document.currentScript` 恒为 null（模块没有「当前脚本」的概念）——
+  // 实测这样做会让整个切换逻辑静默失效（面板永不切换）。改用 querySelector 定位；
   // 页面上只有一个学习路线 Tab 组件，选择器无歧义。
-  const ttBar = document.querySelector('[data-track-tabs]');
-  const ttWrap = document.querySelector('[data-track-panels]');
+  //
+  // 这里不用 `@ts-nocheck`：下面做了显式的 null / 联合类型收窄，
+  // 既能通过 astro check 的 strict，也顺带防住了「事件 detail 缺 key」这种脏输入
+  // （收到 undefined 时直接 return，而不是把三个面板全 hidden 造成白屏）。
+  const ttBar = document.querySelector<HTMLElement>('[data-track-tabs]');
+  const ttWrap = document.querySelector<HTMLElement>('[data-track-panels]');
+
+  const readKey = (e: Event): string | null => {
+    const k = (e as CustomEvent<{ key?: unknown }>).detail?.key;
+    return typeof k === 'string' && k ? k : null;
+  };
+
   if (ttBar && ttWrap) {
-    const ttTabs = Array.from(ttBar.querySelectorAll('[data-track-tab]'));
-    const ttPanels = Array.from(ttWrap.querySelectorAll('[data-track-panel]'));
-    const ttSync = (key) => {
+    const ttTabs = Array.from(ttBar.querySelectorAll<HTMLElement>('[data-track-tab]'));
+    const ttPanels = Array.from(ttWrap.querySelectorAll<HTMLElement>('[data-track-panel]'));
+
+    const ttSync = (key: string) => {
       ttTabs.forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.trackTab === key)));
-      ttPanels.forEach((p) => (p.hidden = p.dataset.trackPanel !== key));
+      ttPanels.forEach((p) => {
+        p.hidden = p.dataset.trackPanel !== key;
+      });
     };
+
     ttBar.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-track-tab]');
-      if (btn && btn.dataset.trackTab) {
-        ttSync(btn.dataset.trackTab);
-        document.dispatchEvent(new CustomEvent('track-change', { bubbles: true, detail: { key: btn.dataset.trackTab } }));
-      }
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const btn = target.closest<HTMLElement>('[data-track-tab]');
+      const key = btn?.dataset.trackTab;
+      if (!key) return;
+      ttSync(key);
+      document.dispatchEvent(new CustomEvent('track-change', { bubbles: true, detail: { key } }));
     });
+
     // 接收来自左栏切换器的事件（双向联动）。bubbles 到 document，这里统一收口。
-    document.addEventListener('track-change', (e) => ttSync(e.detail.key));
+    document.addEventListener('track-change', (e) => {
+      const key = readKey(e);
+      if (key) ttSync(key);
+    });
   }
 </script>

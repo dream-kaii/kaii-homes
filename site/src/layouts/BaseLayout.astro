@@ -16,6 +16,23 @@ const { title, description = site.role, active } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/*
+      这一行是**全站「无 JS 兜底」的隐式契约**，改动前请读完本条注释。
+
+      它给 <html> 加 `.js` 类，而全站有 4 处样式依赖 `:root:not(.js)`，
+      用来在「脚本没跑」时把内容强制显示为终态（否则白屏或停在初始值）：
+        - src/pages/index.astro            数字滚动 → 直接显示终值
+        - src/components/Glossary.astro    名词速查 → 展开
+        - src/components/TrackTabs.astro   学习路线 → 第一条路线可见
+        - src/components/Hero.astro        荧光笔 → 终态
+
+      两条硬约束：
+        1. 必须是 `is:inline`（同步执行，不经过打包/延迟），否则首帧会闪一下初始态；
+        2. 必须在 <head> 内，且早于任何依赖它的样式生效。
+
+      若把它改成 `type="module"`（延迟执行）或移出 head，上述 4 处兜底会
+      **同时静默失效** —— 表现为「关掉 JS 后首页一片空白」，且构建不报错。
+    */}
     <script is:inline>document.documentElement.classList.add('js');</script>
     <title>{title}</title>
     <meta name="description" content={description} />

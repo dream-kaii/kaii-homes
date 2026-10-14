@@ -175,22 +175,35 @@ const toc = tracks
 </ContentLayout>
 
 <script>
-  // @ts-nocheck —— 浏览器运行时 JS（理由同 TrackTabs.astro）。
-  // 左栏路线切换器（[data-track-key]）与中栏 Tab 双向联动：
-  //   点击左栏 → 更新自身 aria-pressed + 在 document 广播 track-change（TrackTabs 切面板）；
-  //   监听 document 上的 track-change → 同步自身高亮（中栏点 Tab 时左栏也跟随）。
-  const sw = document.querySelector('[data-track-switch]');
+  // 左栏路线切换器（[data-track-key]）与中栏 Tab 双向联动。
+  // 不用 `@ts-nocheck`：下面做了显式的 null / 类型收窄（与 TrackTabs.astro 同一口径）。
+  const sw = document.querySelector<HTMLElement>('[data-track-switch]');
+
+  const readKey = (e: Event): string | null => {
+    const k = (e as CustomEvent<{ key?: unknown }>).detail?.key;
+    return typeof k === 'string' && k ? k : null;
+  };
+
   if (sw) {
-    const btns = Array.from(sw.querySelectorAll('[data-track-key]'));
-    const paint = (key) => btns.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.trackKey === key)));
+    const btns = Array.from(sw.querySelectorAll<HTMLElement>('[data-track-key]'));
+    const paint = (key: string) =>
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.trackKey === key)));
+
     sw.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-track-key]');
-      if (!b || !b.dataset.trackKey) return;
-      paint(b.dataset.trackKey);
-      document.dispatchEvent(new CustomEvent('track-change', { bubbles: true, detail: { key: b.dataset.trackKey } }));
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const b = target.closest<HTMLElement>('[data-track-key]');
+      const key = b?.dataset.trackKey;
+      if (!key) return;
+      paint(key);
+      document.dispatchEvent(new CustomEvent('track-change', { bubbles: true, detail: { key } }));
     });
+
     // 中栏 Tab 点击也会广播同一事件 —— 左栏跟随高亮，保持两个控件状态一致。
-    document.addEventListener('track-change', (e) => paint(e.detail.key));
+    document.addEventListener('track-change', (e) => {
+      const key = readKey(e);
+      if (key) paint(key);
+    });
   }
 </script>
 
