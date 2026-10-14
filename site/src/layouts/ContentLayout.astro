@@ -17,9 +17,14 @@ const { title, description, active, hasLeft = true, hasRight = true } = Astro.pr
         <slot name="left" />
       </aside>
     )}
-    <div class="mid">
+    {/* 主 landmark。用 <main> 而不是 <div class="mid">：
+        首页在 Task 8 已补了 <main>，但 ContentLayout 承载的 7 个页面（项目列表 / 项目详情×3 /
+        文章列表 / 文章详情×8 / 后续的学习路线、关于页）此前都没有主 landmark，
+        屏幕阅读器无法跳转到正文。三栏里只有中栏是正文，左右两栏是 <aside>，语义正好对上。
+        样式由 .mid 承担，<main> 不改变布局（display 未声明，沿用 grid item 默认行为）。 */}
+    <main class="mid" id="main">
       <slot />
-    </div>
+    </main>
     {hasRight && (
       <aside class="rail-r self-start pt-14">
         <slot name="right" />
