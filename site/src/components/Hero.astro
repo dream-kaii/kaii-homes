@@ -518,6 +518,37 @@ const badgeText = site.available ? '开放实习机会' : '欢迎交流';
     let tx = 0;
     let ty = 0;
 
+    // rAF 只在「有位移需要追」时运行，追平后自动停帧。
+    //
+    // 为什么不做成常驻 `(function loop(){ ... requestAnimationFrame(loop) })()`：
+    // 那个写法即使鼠标从未进入 hero 区（rx/ty 恒为 0）也会每帧写一次 transform，
+    // 在低端机上是一笔持续的合成开销，与本项目「Performance 99」的目标相冲突。
+    // 现在是「事件点火 → 追平 → 停」，静态时零开销。
+    let rafId = 0;
+    let running = false;
+    const EPS = 0.01;
+
+    const frame = () => {
+      rx += (tx - rx) * 0.075;
+      ry += (ty - ry) * 0.075;
+      art.style.transform = `translate3d(${rx.toFixed(3)}px,${ry.toFixed(3)}px,0) scale(1.05)`;
+      if (Math.abs(tx - rx) < EPS && Math.abs(ty - ry) < EPS) {
+        // 追平：吸附到目标值，停止循环
+        rx = tx;
+        ry = ty;
+        art.style.transform = `translate3d(${rx.toFixed(3)}px,${ry.toFixed(3)}px,0) scale(1.05)`;
+        running = false;
+        return;
+      }
+      rafId = requestAnimationFrame(frame);
+    };
+
+    const tick = () => {
+      if (running) return;
+      running = true;
+      rafId = requestAnimationFrame(frame);
+    };
+
     hero.addEventListener('mousemove', (ev: MouseEvent) => {
       const r = hero.getBoundingClientRect();
       tx = ((ev.clientX - r.left) / r.width - 0.5) * 14;
@@ -526,18 +557,21 @@ const badgeText = site.available ? '开放实习机会' : '欢迎交流';
         glow.style.left = ev.clientX - r.left + 'px';
         glow.style.top = ev.clientY - r.top + 'px';
       }
+      tick();
     });
 
     hero.addEventListener('mouseleave', () => {
       tx = 0;
       ty = 0;
+      tick();
     });
 
-    (function loop() {
-      rx += (tx - rx) * 0.075;
-      ry += (ty - ry) * 0.075;
-      art.style.transform = `translate3d(${rx.toFixed(3)}px,${ry.toFixed(3)}px,0) scale(1.05)`;
-      requestAnimationFrame(loop);
-    })();
+    // 页面不可见时不必追（切到别的标签页还跑 rAF 是纯浪费）
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && running) {
+        cancelAnimationFrame(rafId);
+        running = false;
+      }
+    });
   }
 </script>
