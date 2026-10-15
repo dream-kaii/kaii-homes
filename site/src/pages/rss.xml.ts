@@ -6,8 +6,8 @@ import type { APIContext } from 'astro';
 /**
  * RSS 订阅源 `/rss.xml`
  *
- * 只收录 `status: published` 的文章 —— 7 篇 `planned` 是占位（页面上标「即将发布」），
- * 放进订阅源会让读者点进来看到半成品。
+ * 只收录 `status: published` 的文章 —— `planned` 的还在写（页面上标「即将发布」），
+ * 放进订阅源会让读者点进来看到半成品。当前 4 篇 published / 4 篇 planned。
  *
  * 注意：`writing` 集合用的是 glob loader，条目标识是 `p.id`（不是旧 API 的 `p.slug`），
  * 与 `src/pages/writing/[...slug].astro` 的 `params: { slug: p.id }` 保持一致。
