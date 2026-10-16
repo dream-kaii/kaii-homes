@@ -39,8 +39,9 @@ steps:
     duration: 1 周
     body: 面试出现频率最高的一类。两种形态要分清：双指针解决「有序数组里找配对」，滑动窗口解决「连续子串/子数组满足某条件」。
     article:
-      status: planned
+      status: published
       title: 滑动窗口题型的统一思路
+      href: /writing/sliding-window/
 
   - id: b4
     title: 链表：考的是指针操作
@@ -49,8 +50,9 @@ steps:
     tips:
       - 做链表题一定要画图。在纸上画出指针的移动过程，比在脑子里想快十倍，而且不容易错。
     article:
-      status: planned
+      status: published
       title: 链表题的指针套路整理
+      href: /writing/linked-list-patterns/
 
   - id: b5
     title: 树与图：递归思维的分水岭

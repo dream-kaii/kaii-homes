@@ -43,8 +43,9 @@ steps:
     tips:
       - Anthropic 有个反直觉的观察：他们做 SWE-bench 的 Agent 时，花在优化工具定义上的时间比优化提示词还多。工具的命名、参数、描述，就是模型的世界观。
     article:
-      status: planned
+      status: published
       title: 工具调用的三个工程问题：超时、幂等与重试边界
+      href: /writing/tool-calling-pitfalls/
     docs:
       - { label: LangChain · Tools ↗, url: https://docs.langchain.com/oss/python/langchain/tools }
       - { label: Agents ↗, url: https://docs.langchain.com/oss/python/langchain/agents }
@@ -63,8 +64,9 @@ steps:
     duration: 1 周
     body: 到这一步你会发现：光靠提示词约束不住模型。像「知识类问题必须先检索」「投诉不要进 Agent」这种规则，写在提示词里模型随时可以不听 —— 要用确定性的流程节点把它固定下来。
     article:
-      status: planned
+      status: published
       title: 为什么我用 LangGraph 而不是纯 Agent 循环
+      href: /writing/graph-orchestration/
     docs:
       - { label: LangGraph 概览 ↗, url: https://docs.langchain.com/oss/python/langgraph/overview }
       - { label: Interrupts ↗, url: https://docs.langchain.com/oss/python/langgraph/interrupts }

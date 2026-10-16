@@ -1,0 +1,312 @@
+---
+title: 滑动窗口题型的统一思路
+description: 这类题的模板其实非常固定：右指针扩张、不满足条件时左指针收缩、过程中更新答案。用几道经典题讲透这一个套路。
+date: 2026-10-01
+category: algo
+tags: [Hot 100, 滑动窗口]
+minutes: 8
+status: published
+sources:
+  - title: NeetCode Roadmap
+    url: https://neetcode.io/roadmap
+    kind: roadmap
+  - title: LeetCode 3. Longest Substring Without Repeating Characters
+    url: https://leetcode.cn/problems/longest-substring-without-repeating-characters/
+    kind: official
+  - title: LeetCode 209. Minimum Size Subarray Sum
+    url: https://leetcode.cn/problems/minimum-size-subarray-sum/
+    kind: official
+  - title: LeetCode 438. Find All Anagrams in a String
+    url: https://leetcode.cn/problems/find-all-anagrams-in-a-string/
+    kind: official
+---
+
+## 为什么滑动窗口能省掉重复计算 {/* s1 */}
+
+先说一句实话：我一开始学滑动窗口，是把它当成"又一类要背的模板"的。背完模板做题，做出来也就做出来了，但下次换个问法，我还是要盯着题目想很久 —— **模板记住了，题型变了还是不会。**
+
+后来我发现自己一直没搞清楚一件事：这个模板到底在省什么？想明白这个，题目才真的变成同一道题。
+
+### 暴力解法到底浪费在哪
+
+拿「无重复字符的最长子串」举例。暴力做法是枚举每一个起点 `i`，然后从 `i` 往右一格一格延伸，遇到重复就停：
+
+```python
+def length_of_longest_substring_brute(s: str) -> int:
+    """暴力：枚举起点，每个起点往后延伸。O(n^2)。"""
+    best = 0
+    n = len(s)
+    for i in range(n):
+        seen = set()
+        j = i
+        while j < n and s[j] not in seen:
+            seen.add(s[j])
+            j += 1
+        best = max(best, j - i)
+    return best
+```
+
+这段代码逻辑上没错，能跑通。问题在于它做了大量重复工作。
+
+设 `s = "abcabcbb"`。当 `i = 0` 时，它一直延伸到 `j = 3`（此时 `s[3] = 'a'` 与前面的 `'a'` 重复），得到长度 3。然后 `i` 变成 1，它**把 `seen` 清空，从头再来一遍** —— 又看了一遍 `'b'`、`'c'`，这两步的结论跟上一轮完全一样。
+
+更关键的是，当 `i = 1` 时，区间 `[1, 3)` 本来就是合法的，而且它一定比 `[1, j')` 的任何真子区间都长。也就是说，`i = 1` 时右指针**根本不需要从 1 重新出发**，它直接从 3 接着走就行了。
+
+这就是全部的秘密：**右指针不需要回退。**
+
+### 单调性：窗口为什么可以只进不退
+
+滑动窗口能成立，靠的是一个单调性前提：
+
+> **如果区间 `[left, right)` 是合法的，那么它的任意子区间也合法。**
+
+对「不含重复字符」来说这就是废话 —— 一段没有重复的子串，它的任何连续片段当然也没有重复。「子数组和大于等于 target」也是同理，和只会越加越大。但这句话**不是对所有题型都成立**：比如「子数组和恰好等于 target」，一段合法的区间删掉一个元素可能就不合法了，这时候窗口就不适用，得换前缀和。
+
+有了这个单调性，`left` 和 `right` 就可以各自只往前走，两个指针加起来最多走 `2n` 步。**每个元素进窗口一次、出窗口一次，总复杂度 O(n)。** 暴力那层循环，省掉的就是它。
+
+## 一个模板走天下 {/* s2 */}
+
+把上面那段想清楚之后，所有这类题都能写成同一个形状：
+
+```python
+def sliding_window_template(s, target):
+    left = 0
+    window_state = ...     # 窗口维护的状态
+    answer = ...           # 答案初值
+
+    for right in range(len(s)):
+        # 1. 右指针扩张：把 s[right] 吞进窗口，更新 window_state
+        add(s[right])
+
+        # 2. 当窗口不合法时，左指针收缩直到重新合法
+        while not valid(window_state):
+            remove(s[left])
+            left += 1
+
+        # 3. 收缩完之后，用当前窗口更新答案
+        answer = update(answer, right - left + 1)
+
+    return answer
+```
+
+三步各自的职责非常清楚：
+
+1. **右指针一直往前走**，把元素放进窗口。这是外层 `for`，不回头。
+2. **窗口不合法时，左指针往前收**，直到重新合法。注意是 `while` 不是 `if` —— 收缩到什么样的程度才算够，不同题目不一样。
+3. **每次收缩完更新一次答案**。放在 `while` 之后、在 `for` 体里，位置不能挪。
+
+### 变量的地方只有一个
+
+真正需要动脑的只有 `valid()` —— **怎么判断窗口合法**。剩下的三件事（扩张、收缩、更新）在所有题里长得一模一样。
+
+我把这个 `valid` 拆成两个更具体的问题，基本就能覆盖绝大多数题：
+
+- **窗口维护的是什么状态？** 是字符计数、是一个和、还是一个距离？这个状态决定了你要在 `add` / `remove` 里做什么。
+- **什么条件算"不合法"？** 出现重复字符是非法、和小于 target 是非法、需要出现的字符没凑齐是非法。这个条件决定了 `while` 什么时候停。
+
+绝大多数人卡住，都是卡在这两个问题里，而不是卡在模板上。下一节拿三道题具体过一遍。
+
+## 题一：无重复字符的最长子串 {/* s3 */}
+
+> 给定一个字符串 `s`，找出其中不含重复字符的最长子串的长度。
+
+### 为什么能用窗口
+
+因为「无重复」有单调性：区间 `[left, right)` 无重复，它的任何子区间也无重复。所以右指针不必回退。
+
+### 窗口维护什么状态
+
+一个**字符到出现次数的映射**。注意是计数而不是集合 —— 窗口里同一个字符可能短暂地出现两次，收缩一次可能不够，必须知道"现在还欠几次"。
+
+### 收缩条件怎么定
+
+当新进来的字符在窗口里**变得重复**（计数大于 1）时，就一直移动 `left`，直到这个字符的计数回到 1。
+
+```python
+def length_of_longest_substring(s: str) -> int:
+    from collections import defaultdict
+
+    left = 0
+    count = defaultdict(int)   # 窗口内每个字符的出现次数
+    best = 0
+
+    for right, ch in enumerate(s):
+        count[ch] += 1                       # 扩张：把 ch 放进窗口
+
+        while count[ch] > 1:                 # 不合法：ch 出现了两次
+            count[s[left]] -= 1              # 收缩：把最左边的字符移出去
+            left += 1
+
+        best = max(best, right - left + 1)   # 收缩后更新答案
+
+    return best
+```
+
+心算验证一下 `s = "abcabcbb"`：
+
+| right | ch | 收缩后 left | 收缩后窗口 | 窗口长度 | best |
+| --- | --- | --- | --- | --- | --- |
+| 0 | a | 0 | `a` | 1 | 1 |
+| 1 | b | 0 | `ab` | 2 | 2 |
+| 2 | c | 0 | `abc` | 3 | 3 |
+| 3 | a | 1 | `bca` | 3 | 3 |
+| 4 | b | 2 | `cab` | 3 | 3 |
+| 5 | c | 3 | `abc` | 3 | 3 |
+| 6 | b | 5 | `cb` | 2 | 3 |
+| 7 | b | 7 | `b` | 1 | 3 |
+
+最终返回 3，正确答案。
+
+这里有两行值得盯一下。`right = 3` 时吃进 `'a'`，它在窗口 `"abc"` 里已经出现过，`left` 从 0 走到 1 —— 走一步就够。而 `right = 6` 时吃进 `'b'`，窗口是 `"abcab"`，`left` 得从 3 一路走到 5（依次移出 `'a'`、`'b'`）才重新合法。**同一个 `while` 循环，一次走一步，一次走两步 —— 这就是为什么必须是 `while` 而不是 `if`。**
+
+## 题二：长度最小的子数组 {/* s4 */}
+
+> 给定一个含有 `n` 个正整数的数组和一个正整数 `target`，找出该数组中满足其和 **大于等于** `target` 的长度最小的**连续**子数组，返回其长度。
+
+### 为什么能用窗口
+
+因为数组**全是正整数**：往窗口里加元素，和一定不减；从窗口里减元素，和一定不增。所以窗口和关于区间长度单调 —— 这题的前提「正整数」这三个字不是装饰，如果把元素换成任意整数，这题就得用前缀和 + 二分了。
+
+### 窗口维护什么状态
+
+一个整数 `total`，就是当前窗口所有元素的和。
+
+### 收缩条件怎么定
+
+合法条件是 `total >= target`，**不合法是 `total < target`**。所以窗口在 `total` 够大的时候反而是"合法"的 —— 这题是我自己的一个高频翻车点，下面单独说。
+
+```python
+def min_sub_array_len(target: int, nums: list[int]) -> int:
+    left = 0
+    total = 0
+    best = float("inf")        # 用 inf 表示"还没找到符合条件的窗口"
+
+    for right, x in enumerate(nums):
+        total += x                       # 扩张
+
+        # 只要满足和 >= target，就尝试尽可能收窄窗口
+        while total >= target:
+            best = min(best, right - left + 1)   # 更新答案
+            total -= nums[left]                  # 收缩
+            left += 1
+
+    return 0 if best == float("inf") else best
+```
+
+### 容易写错的地方：收缩的时机
+
+我在这题上错过两次，都是同一个地方：**答案的更新位置，跟另外两道题是反的。**
+
+模板里写的是「收缩完再更新答案」，意思是「把窗口收成一个**合法**的窗口，然后看它」。这题的合法条件是 `total >= target`，所以正确的写法是**先更新答案、再收缩**，用 `while` 一口气收到不合法为止：
+
+- 收缩**前**：窗口是合法的（和够大），这时记录长度
+- 收缩**后**：窗口是合法的（和够大）吗？不一定 —— 收缩到最后一定会掉到 `target` 以下，然后退出 `while`
+
+心算一下 `target = 7, nums = [2, 3, 1, 2, 4, 3]`：
+
+- `right = 0, 1, 2` 时 `total` 分别是 2、5、6，都不到 7，`while` 一次都没进。
+- `right = 3` 时 `total = 2+3+1+2 = 8`，第一次进 `while`：`best = 4`（窗口 `[2,3,1,2]`），减掉 `nums[0] = 2`，`total = 6`，`left = 1`。不满足条件，退出。
+- `right = 4` 时 `total = 6 + 4 = 10`。进 `while`：`best = min(4, 4) = 4`（窗口 `[3,1,2,4]`），减掉 `nums[1] = 3`，`total = 7`，`left = 2`。
+- 仍然 `total >= 7`：`best = min(4, 3) = 3`（窗口 `[1,2,4]`），减掉 `nums[2] = 1`，`total = 6`，`left = 3`。退出。
+- `right = 5` 时 `total = 6 + 3 = 9`。进 `while`：`best = min(3, 3) = 3`（窗口 `[2,4,3]`），减掉 `nums[3] = 2`，`total = 7`，`left = 4`。
+- 仍然够：`best = min(3, 2) = 2`（窗口 `[4,3]`），减掉 `nums[4] = 4`，`total = 3`，`left = 5`。退出。
+
+最终 `best = 2`，即子数组 `[4,3]`。正确答案。
+
+注意 `right = 4` 那一轮：`while` 进了两次，第一次记录的长度是 4，第二次才是 3。**如果每轮只记录一次长度（比如用 `if` 而不是 `while`），这道题会退化成 O(n²) 都算不上 —— 它会直接漏掉最优解。**
+
+如果偷懒把更新放在 `while` **外面**（照抄另外两道题的位置），`right = 5` 那一轮就只会记录到收缩完的长度 1，答案是错的。**"照抄模板"这件事本身就是这题最大的坑** —— 模板记住的是骨架，`valid` 的语义要一道一道想。
+
+## 题三：找到字符串中所有字母异位词 {/* s5 */}
+
+> 给定两个字符串 `s` 和 `p`，找到 `s` 中所有 `p` 的异位词的子串，返回这些子串的起始索引。
+
+### 为什么能用窗口
+
+异位词的判定是**与字符顺序无关的**：两个子串只要每个字母的出现次数完全相同，就是异位词。这意味着一件事 —— 窗口的左边界完全没有存在的必要，**窗口长度是固定的 `len(p)`**。
+
+所以这题严格来说属于「定长窗口」，右指针走到哪儿，左指针就被动跟到哪儿。这类题的收缩条件特别好写：`right - left + 1 > len(p)` 就收缩。
+
+### 窗口维护什么状态
+
+长度 26 的计数数组。这题最值得学的技巧就在这里 —— **不要用字典，用定长数组**：
+
+```python
+def find_anagrams(s: str, p: str) -> list[int]:
+    from collections import Counter
+
+    n, m = len(s), len(p)
+    if n < m:
+        return []
+
+    need = [0] * 26          # p 的字符计数
+    window = [0] * 26        # 当前窗口的字符计数
+    for ch in p:
+        need[ord(ch) - ord('a')] += 1
+
+    res = []
+    for right, ch in enumerate(s):
+        window[ord(ch) - ord('a')] += 1        # 扩张
+
+        left = right - m + 1                    # 定长窗口：left 被动跟随
+        if left < 0:
+            continue
+
+        if window == need:                      # 两个 26 长度的数组直接比
+            res.append(left)
+
+        window[ord(s[left]) - ord('a')] -= 1    # 收缩：把即将离开窗口的字符减掉
+
+    return res
+```
+
+心算 `s = "cbaebabacd", p = "abc"`（`m = 3`）：
+
+- `right = 2`：窗口 `"cba"`，计数与 `"abc"` 完全一致 → 记录 `left = 0`。
+- `right = 3`：吃进 `'e'`、吐出 `'c'`，窗口 `"bae"` → 不匹配。
+- `right = 4`：窗口 `"aeb"` → 不匹配。
+- `right = 5`：窗口 `"eba"` → 不匹配。
+- `right = 6`：窗口 `"bab"` → 不匹配。
+- `right = 7`：窗口 `"aba"` → 不匹配。
+- `right = 8`：窗口 `"bac"` → 计数一致，记录 `left = 6`。
+- `right = 9`：窗口 `"acd"` → 不匹配。
+
+返回 `[0, 6]`，与 LeetCode 的示例输出一致。
+
+### 容易写错的地方：为什么是数组不是字典
+
+三个理由，按重要性排：
+
+1. **比较是 O(1) 的。** Python 里 `list == list` 会逐元素比较，26 个固定元素，代价是常数。而 `dict == dict` 要先比大小、再比键集、再逐个比值，虽然也是常数级但常数大得多，而且每轮都要重新比对整个键集合。用数组是**把"比较两个词频"这件事压缩成一次定长比较**。
+2. **不会因为多出来的键而误判。** 用字典做词频，最容易踩的坑是窗口里出现了 `p` 中不存在的字符（比如上面那个 `'e'`），如果只比较「已有键的值」，就会把它误判成匹配。定长 26 数组没有"多余的键"这个概念 —— 不在 `p` 里的字符会实实在在占掉一个计数位，两个数组自然就不相等了。
+3. **省掉一堆"计数归零就删键"的边界处理。** 用字典维护词频时，一个字符计数减到 0 之后是删掉还是留着，会直接影响相等判断；用数组的话这个烦恼根本不存在。
+
+代价是它**只适用于字符集有限且很小**的场景。如果题目换成"包含任意 Unicode 字符"，数组就得开到字典大小，这时候还是老老实实用哈希表 + 一个额外的 `matched` 计数器。
+
+## 小结 {/* s6 */}
+
+把这三道题摆在一起，模板的骨架和变化的部分就分得很清楚了：
+
+| 题目 | 窗口状态 | 收缩条件 | 更新答案的位置 |
+| --- | --- | --- | --- |
+| 无重复字符的最长子串 | 字符计数（哈希表） | 当前字符计数 > 1 | 收缩后 |
+| 长度最小的子数组 | 窗口元素之和 | 和 >= target 时持续收缩 | 收缩**前** |
+| 找到字符串中所有字母异位词 | 长度 26 的计数数组 | 窗口长度超过 `len(p)` | 收缩前后均可 |
+
+几条值得记住的：
+
+- **右指针绝不回退**，这是 O(n) 的来源。暴力解法浪费掉的，就是每一次重新出发时重复走的那一段。
+- **窗口能用的前提是单调性**：合法区间的子区间也合法。没有这个前提就别硬套，换前缀和或者别的。
+- **`while` 而不是 `if`**：收缩可能要收缩很多步才重新合法，这一点在「无重复字符的最长子串」里体现得最明显。
+- **更新答案的位置不是模板的一部分**，它跟着 `valid` 的语义走 —— 「长度最小的子数组」就是反例。
+- **定长窗口是滑动窗口的一个特例**，`left` 由 `right` 算出来，不需要单独维护，收缩条件退化成"长度超了就减一个"。
+- 字符集小的时候，**定长计数数组比哈希表更好**，比较代价是常数，而且没有多余的键带来的误判风险。
+
+最后回到开头那句实话。**模板有用，但它只是骨架。** 我现在的做法是：拿到题先不写代码，先问自己两个问题 —— 窗口里维护什么状态、合法条件是什么。这两个问题答得出来，模板自己就长出来了；答不出来，说明这题可能压根不该用滑动窗口。
+
+## 参考 {/* s7 */}
+
+- NeetCode Roadmap —— 滑动窗口专题的题目顺序编排得不错：[neetcode.io/roadmap](https://neetcode.io/roadmap)
+- LeetCode 3. [Longest Substring Without Repeating Characters](https://leetcode.cn/problems/longest-substring-without-repeating-characters/)
+- LeetCode 209. [Minimum Size Subarray Sum](https://leetcode.cn/problems/minimum-size-subarray-sum/)
+- LeetCode 438. [Find All Anagrams in a String](https://leetcode.cn/problems/find-all-anagrams-in-a-string/)

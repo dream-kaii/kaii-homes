@@ -1,0 +1,402 @@
+---
+title: 链表题的指针套路整理
+description: 哑结点简化边界、快慢指针找中点判环、三指针反转——链表题的变化不多，把这几招练熟就够了。
+date: 2026-09-29
+category: algo
+tags: [Hot 100, 链表]
+minutes: 7
+status: published
+sources:
+  - title: NeetCode Roadmap
+    url: https://neetcode.io/roadmap
+    kind: roadmap
+  - title: LeetCode 官方题解 · 环形链表 II
+    url: https://leetcode.cn/problems/linked-list-cycle-ii/solutions/
+    kind: official
+  - title: LeetCode 官方题解 · 反转链表
+    url: https://leetcode.cn/problems/reverse-linked-list/solutions/
+    kind: official
+---
+
+## 为什么链表题值得单独整理 {/* s1 */}
+
+链表题的题号很多，题型其实很少。
+
+数组题有前缀和、二分、单调栈各种花样；链表没有随机访问，能做的只有两件事：**改指针**、**顺着指针走**。所有链表题最后都落到这两件事的组合上，所以适合按套路而不是按题号整理：
+
+| 招式 | 解决的问题 | 代表题 |
+| --- | --- | --- |
+| 哑结点（dummy） | 头节点被删/被换，需要特判 | 删除链表元素、删除倒数第 N 个节点 |
+| 快慢指针 | 一遍扫描拿到位置信息 | 找中点、判环、找环入口 |
+| 三指针反转 | 就地翻转指针方向 | 反转链表、反转区间 |
+| 多指针合并 | 同时推进多条链 | 合并两个有序链表、两两交换、K 个一组 |
+
+四招里最容易错的不是思路，是**边界**：改指针的顺序、条件里的 `and`、`prev` 初始值。
+
+> **提示**
+>
+> 骨架里那句话我一直认：**在纸上画出指针的移动过程，比在脑子里想快十倍。** 链表题失分基本不是「不会」，是「漏了一个指针」。
+
+## 哑结点：把「头节点特判」整类分支干掉 {/* s2 */}
+
+### 它解决的是什么问题
+
+链表题里有一类分支最烦：**要动的那个节点恰好是头节点**。
+
+比如「删除链表中等于 `val` 的所有节点」：
+
+```python
+def remove_elements(head, val):
+    # 先单独把「连续的开头全是 val」处理掉
+    while head and head.val == val:
+        head = head.next
+    cur = head
+    while cur and cur.next:
+        if cur.next.val == val:
+            cur.next = cur.next.next   # 跳过被删节点
+        else:
+            cur = cur.next
+    return head
+```
+
+代码能跑，但两个 `while` 做的是**同一件事**：审视「下一个节点该不该被删」。为何写两遍？主循环里 `cur` 自己永远不会被删 —— 它已被上一轮验证过；头节点没有「上一轮」，必须特判。
+
+哑结点只干一件事：**造个假头，让真头节点也拥有「上一轮」。**
+
+```python
+def remove_elements(head, val):
+    dummy = ListNode(0, head)   # 假的头，指向真正的头
+    cur = dummy                 # 从假头开始，它的 next 就是待审视节点
+    while cur.next:
+        if cur.next.val == val:
+            cur.next = cur.next.next   # 删掉 cur.next
+        else:
+            cur = cur.next
+    return dummy.next            # 真头节点是 dummy 的下一个
+```
+
+特判没了。真头节点和其他节点完全一样 —— 都是某个 `cur` 的 `next`。
+
+### 为什么这样写就对了
+
+哑结点的正确性来自一个朴素的观察：**「删除」改的永远是「前一个节点」的 `next`。** 被删节点必须有前驱，而头节点没有 —— 除非你给它造一个；哑结点就是那个前驱。
+
+循环条件写的是 `while cur.next` 而非 `while cur`：循环体读的是 `cur.next.val`，判断对象是「下一个节点存不存在」。这也依赖哑结点 —— `dummy` 一定不为 `None`，第一次进循环时 `cur` 就是安全的。
+
+### 不这么写会怎样
+
+回到第一版。它有两个 `while`，每个边界（`head and`、`cur and cur.next`）都得单独推；改成「删除倒数第 N 个节点」还要再来一遍 —— 那个操作同样可能删掉头：
+
+```python
+def remove_nth_from_end(head, n):
+    dummy = ListNode(0, head)
+    fast = slow = dummy
+    for _ in range(n + 1):      # fast 先走 n+1 步 → slow 落到「待删节点的前驱」
+        fast = fast.next
+    while fast:
+        fast, slow = fast.next, slow.next
+    slow.next = slow.next.next
+    return dummy.next
+```
+
+不用 dummy，`slow` 得从 `head` 起步，而「删头」必须单独写 `if`。**哑结点的价值不在少写两行，而在于消灭了一整类分支** —— 分支越少，要单独推理的边界就越少。
+
+> **注意**
+>
+> 哑结点常见的三个错：
+> 1. 忘记 `return dummy.next` 而是 `return head` —— 头被删掉时返回废节点。
+> 2. 把 `cur` 初始化成 `head` 而不是 `dummy` —— 等于没上哑结点。
+> 3. 循环条件写成 `while cur and cur.next` —— 加 `cur` 不报错，但说明你没想清楚 `cur` 会不会为空。
+
+## 快慢指针：三个问题，一套指针 {/* s3 */}
+
+### 它解决的是什么问题
+
+链表只能单向走、没有下标，「中间节点在哪」「这条路会不会绕圈」这类问题用不了数组那套思路。
+
+快慢指针的做法是：**让两个指针以不同速度走同一条路，用相对位置反过来推出链表的形状。** 速度差就是信息来源；三个看似不同的问题用的是同一套指针。
+
+### 问题一：找中点
+
+`slow` 每次走一步、`fast` 每次走两步，`fast` 走到头时 `slow` 正好在中间。
+
+```python
+def middle_node(head):
+    slow = fast = head
+    while fast and fast.next:      # 两个条件缺一不可
+        slow = slow.next
+        fast = fast.next.next
+    return slow
+```
+
+为什么能落在中点？`fast` 路程是 `slow` 的两倍，两者同时出发同时停下，所以 `fast` 到终点时 `slow` 恰好走了一半。
+
+坑在循环条件 `while fast and fast.next`：顺序不能反，也一个都不能少 —— 循环体里要读 `fast.next.next`：
+
+- 少了 `fast.next`：偶数节点时 `fast` 先跨过末尾变成 `None`，下一步读 `fast.next` 直接 `AttributeError`。
+- 少了 `fast`：奇数节点时 `fast` 走完最后一步变成 `None`，判断 `fast.next` 崩掉。
+
+更隐蔽的差异：**这个条件决定了偶数长度时返回偏左还是偏右的中点。** 上面写法在 `1 -> 2 -> 3 -> 4` 上返回 `3`（右中点）；改成 `while fast.next and fast.next.next` 则返回 `2`（左中点）。回文链表、重排链表的切分位置对左右中点有要求，错了答案就对不上。
+
+### 问题二：判环
+
+同一套指针。有环时快指针一直绕圈，并且**一定**会在环里追上慢指针。
+
+```python
+def has_cycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow is fast:
+            return True
+    return False
+```
+
+为什么一定会相遇？进环后 `slow` 每次走 1、`fast` 每次走 2，两者距离每轮**净减少 1**。距离是非负整数，每次减 1 迟早减到 0 —— 即相遇。这比「套圈」严谨：不是 `fast` 追上 `slow`，而是距离被稳定消耗掉了。
+
+```python
+# 反面写法：只判断 fast，不判断 fast.next
+while fast:
+    slow = slow.next
+    fast = fast.next.next    # 节点数为偶数时，fast.next 是 None，这里直接崩
+```
+
+这个写法有环时永远不崩，**只在无环的偶数长度链表上崩** —— 测试用例里往往恰好有这么一个。判环挂掉多半不是原理没想明白，是循环条件少写了一半。
+
+### 问题三：找环入口
+
+这是三问里唯一要推的。结论先给：**相遇后一个指针回头部，两个指针都每次走一步，再次相遇处就是环入口。**
+
+设符号：
+
+- `a` = 头到环入口的距离（走过的节点数）
+- `b` = 环入口到相遇点的距离
+- `c` = 相遇点往前到环入口的距离（环长 `L = b + c`）
+
+相遇时：
+
+- `slow` 走了 `a + b`
+- `fast` 走了 `a + b + k·L`（`k ≥ 1`，`fast` 至少多绕了一整圈）
+
+`fast` 速度是 `slow` 的两倍，路程也是两倍：
+
+```
+a + b + k·L = 2(a + b)
+        k·L = a + b
+   a + b + c = a + b + c   ← 代入 L = b + c
+        a   = k·L - b
+        a   = (k-1)·L + (L - b)
+        a   = (k-1)·L + c
+```
+
+最后一行 `a = (k-1)·L + c` 就是全部秘密：**从头到环入口的路程 `a`，等于从相遇点绕 `k-1` 圈再走到环入口的路程。**
+
+所以一个指针从**头**出发、另一个从**相遇点**出发，都每次走一步 —— 走完 `a` 步时前者正好到入口，后者绕 `k-1` 圈加 `c` 步也正好到入口，两者在入口相遇。
+
+```python
+def detect_cycle_entry(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow is fast:
+            # 相遇了：一个指针回头部，两个都改成同速
+            slow = head
+            while slow is not fast:
+                slow = slow.next
+                fast = fast.next
+            return slow
+    return None
+```
+
+容易绕进去的一点：`fast` 走的为什么是 `a + b + k·L` 而非 `a + b + L`？因为环短、`slow` 进环晚时，`fast` 可能在 `slow` 入环前就绕了不止一圈。但**推导里 `k` 被消掉了** —— 结论漂亮就漂亮在这：入口位置不依赖 `k`、不依赖环长，只依赖「同速前进」。
+
+> **注意**
+>
+> 前提是 `fast` 和 `slow` 的**速度比恰好是 2 : 1**。改成 3 : 1 等式就不成立，相遇点会变，第二阶段也不能直接调同速。看到「快慢指针」，先确认速度比。
+
+### 为什么这三个问题共用一套指针
+
+因为快慢指针的本质不是「两个指针」，而是**用速度差把一维链表变成可测量的东西**：
+
+- 速度比 2:1 且走到头 → 慢指针的位置就是中点（路程关系）
+- 速度比 2:1 且在环内 → 距离每轮减 1，必然相遇（存在性）
+- 速度比 2:1 且相遇后改同速 → `a = (k-1)·L + c`（同余关系）
+
+三个问题的循环条件、初始化、推进方式一模一样，差别只在**相遇之后做什么**。别当成三道题背，记住这套指针，再看题目要你从哪个位置读出答案。
+
+## 三指针反转：先存 next，还是先改指针 {/* s4 */}
+
+### 它解决的是什么问题
+
+反转链表要就地翻转每个节点的 `next`，不能开新链表（否则空间非 O(1)）。
+
+麻烦在于：**改掉一个节点的 `next` 就等于把「后面的路」弄丢了** —— `cur.next` 是你唯一能到达后续节点的通道。
+
+所以反转的本质就一句话：**在断掉 `cur.next` 之前，先把下一站存好。** 这就是三指针顺序的全部理由。
+
+```python
+def reverse_list(head):
+    prev = None       # 反转后，原头节点会成为尾节点，它的 next 是 None
+    cur = head
+    while cur:
+        nxt = cur.next    # ① 先存：这是唯一通往后面的路
+        cur.next = prev   # ② 再改：掉头指向前一个
+        prev = cur        # ③ 前驱后移
+        cur = nxt         # ④ 当前节点后移（用存下来的 nxt，不能用 cur.next）
+    return prev
+```
+
+### 为什么这样写就对了
+
+把循环体看成「把 `cur` 接到已反转的半条链头部」，四步就是在做这件事：
+
+1. `nxt = cur.next` —— 保护现场。四步里只有这一步不改变结构。
+2. `cur.next = prev` —— 掉头。`prev` 恰好是「已反转好的那半条链的头」。
+3. `prev = cur` —— 反转好的半边扩大，新头是 `cur`。
+4. `cur = nxt` —— 往前走。这里必须用 `nxt`：`cur.next` 已指向 `prev`，用它会把指针带回去，直接死循环。
+
+循环结束时 `cur` 是 `None`（走过了原尾巴），`prev` 停在原尾节点上 —— 那正是反转后的新头。所以 `return prev` 而非 `return head`（`head` 现在是尾节点，`next` 已被改过）。
+
+### 不这么写会怎样
+
+**先改指针，再想存 next** —— 最常见的写法错误：
+
+```python
+while cur:
+    cur.next = prev     # 先把路断了
+    prev = cur
+    cur = cur.next      # 这里的 cur.next 已经是 prev 了！
+```
+
+`cur.next = prev` 一旦执行完，就再也拿不到原链表的后续节点；`cur = cur.next` 实际是把 `cur` 往回挪 —— 两节点间来回弹，循环要么立刻结束（只反转了开头），要么死循环。
+
+**`prev` 初始成 `head`** —— 也错：第一次迭代 `cur.next = prev` 就是 `head.next = head`，直接造成自环。`prev` 必须是 `None`，因为**反转后的尾节点的 `next` 必须是 `None`**，而 `None` 就是「已反转的空链表」。
+
+**`return head`** —— 逻辑全对，只是返回值错了：原来的头现在是尾，拿到它只能看到一个节点。
+
+### 区间反转：把同一个模式换个起点
+
+「反转链表 II」要求在位置 `left` 到 `right` 之间反转。先走到第 `left - 1` 个节点当前驱，再对后面这段跑同一件事：
+
+```python
+def reverse_between(head, left, right):
+    dummy = ListNode(0, head)
+    prev = dummy
+    for _ in range(left - 1):       # prev 停在待反转区间的前驱
+        prev = prev.next
+
+    cur = prev.next
+    for _ in range(right - left):   # 头插法：每次把 cur 的下一节点搬到区间最前面
+        nxt = cur.next
+        cur.next = nxt.next
+        nxt.next = prev.next
+        prev.next = nxt
+    return dummy.next
+```
+
+这里换了视角（头插法 vs 原地掉头），但仍是同一件事：**每个节点被接走前都要先存好原来的 `next`。** 套路不换，换的只是「接到哪一边」。
+
+> **提示**
+>
+> 链表题真的值得画图。我的做法是画三个小格子标 `prev / cur / nxt`，每写一行就把箭头擦掉重画 —— 靠脑子模拟指针移动是最容易出错的姿势。
+
+## 多指针合并：同一套动作，换不同的编排 {/* s5 */}
+
+前两招都是「指针 + 哑结点」的组合。这节看链表变成两条（或多组）时，这套动作如何编排。
+
+### 合并两个有序链表
+
+```python
+def merge_two_lists(l1, l2):
+    dummy = ListNode(0)
+    tail = dummy
+    while l1 and l2:
+        if l1.val <= l2.val:      # <= 保证稳定性：相等时优先取 l1
+            tail.next = l1
+            l1 = l1.next
+        else:
+            tail.next = l2
+            l2 = l2.next
+        tail = tail.next
+    tail.next = l1 or l2          # 一条走完了，另一条剩下的直接整段接上
+    return dummy.next
+```
+
+关键在最后的 `tail.next = l1 or l2`。循环退出条件是「至少一条链走空了」，此时另一条链**整体有序且都 ≥ 已合并部分**，整段挂上即可。硬写进同一个循环也行，只是啰嗦一圈，还容易漏边界。
+
+### 两两交换节点
+
+```python
+def swap_pairs(head):
+    dummy = ListNode(0, head)
+    prev = dummy
+    while prev.next and prev.next.next:   # 两个条件：这一对的两个节点都得存在
+        first, second = prev.next, prev.next.next
+        prev.next = second       # ① 前驱指向第二个
+        first.next = second.next # ② 第一个指向第二个原来的后面
+        second.next = first      # ③ 第二个指向第一个 —— 换位完成
+        prev = first             # ④ prev 前进到这一对的尾部
+    return dummy.next
+```
+
+指针改动顺序同样是「先接断口，再连内部」：`first.next` 要用到 `second.next`，必须在改 `second.next` 前先读出来；顺序反过来（先 `second.next = first`），`first.next = second.next` 就会把 `first` 指向自己。
+
+循环条件 `while prev.next and prev.next.next`：交换需要一对节点，必须**同时**存在这一对的第一个和第二个，少任何一个读 `prev.next.next` 都会踩空 —— 没有 `dummy`，第一对交换同样要特判。
+
+### K 个一组翻转
+
+这道题是前面几招的拼装：**分组（快指针探测）→ 逐组反转（三指针）→ 用哑结点和 `group_prev` 串起各组。**
+
+```python
+def reverse_k_group(head, k):
+    dummy = ListNode(0, head)
+    group_prev = dummy          # 上一组的尾节点，也就是本组的前驱
+
+    while True:
+        # ① 探测：这一组是否凑够 k 个
+        kth = group_prev
+        for _ in range(k):
+            kth = kth.next
+            if not kth:
+                return dummy.next   # 不足 k 个，剩下的保持原样
+
+        group_next = kth.next       # ② 记住下一组的起点，反转会把它冲掉
+
+        # ③ 反转本组：三指针循环执行 k 次
+        prev, cur = group_next, group_prev.next
+        for _ in range(k):
+            nxt = cur.next
+            cur.next = prev
+            prev = cur
+            cur = nxt
+
+        # ④ 缝合：group_prev 接上反转后的组头，组尾接到下一组
+        new_tail = group_prev.next
+        group_prev.next = kth
+        group_prev = new_tail
+
+    return dummy.next
+```
+
+两个细节值得单说：
+
+**`prev` 的初始值是 `group_next`，不是 `None`。** 这是区间反转和整链反转的唯一区别 —— 整链反转时末尾的 `next` 该是 `None`，这里该是下一组的头；写成 `None`，反转完的组尾就指向空，后面的节点全丢。
+
+**「不足 k 个就保持原样」是题目要求**：探测循环里 `if not kth: return dummy.next` 直接返回，剩下的节点一个都不动。
+
+### 为什么这几道题是一类
+
+并排看：合并用 `dummy + tail`，两两交换用 `dummy + prev`，K 个一组用 `dummy + group_prev`。
+
+三个后缀名字不同，做的事一样：**维护一个「已处理好部分的尾巴」**，再把待处理的节点一个个接上去。所谓多指针合并，就是「哑结点 + 游标」这个模式在多个输入上的展开。
+
+## 小结 {/* s6 */}
+
+- **哑结点的意义不是少写两行**，而是把「头节点特判」整类分支消掉。凡是可能碰到头节点的操作（删除、插入、交换、反转区间），先无脑加 `dummy`。
+- **快慢指针是三个问题同一套指针**：找中点、判环、找环入口的循环条件与推进方式完全一样，只有「相遇后做什么」不同。
+- **`while fast and fast.next` 两个条件缺一不可**，顺序也不能反 —— 少写一个只在「无环 + 偶数长度」这一种输入上崩。
+- **找环入口的关键式子是 `a = (k-1)·L + c`**：从头到入口的距离，等于从相遇点绕若干圈再到入口的距离；所以相遇后一个指针回头部、两个同速前进必在入口相遇，该结论不依赖圈数。
+- **反转链表只有一个铁律：动指针之前先存 `next`。** `prev` 初始化成 `None`，返回 `prev` 而不是 `head`。
+- **链表题值得画图。** 在纸上画一遍指针的移动过程，比在脑子里想快十倍。

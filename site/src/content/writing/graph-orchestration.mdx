@@ -1,0 +1,300 @@
+---
+title: 为什么我用 LangGraph 而不是纯 Agent 循环
+description: 提示词约束不住模型。「知识类问题必须先检索」「投诉不要进 Agent」这类规则写在提示词里，模型随时可以不听——要把它们变成确定性的流程节点。
+date: 2026-10-15
+category: agent
+tags: [LangGraph, 编排]
+minutes: 12
+status: published
+sources:
+  - title: LangGraph 官方文档 · 概览
+    url: https://docs.langchain.com/oss/python/langgraph/overview
+    kind: official
+  - title: LangGraph 官方文档 · Persistence 与 Checkpointer
+    url: https://langchain-ai.github.io/langgraph/concepts/persistence/
+    kind: official
+  - title: LangGraph 官方文档 · Interrupts（人工介入）
+    url: https://docs.langchain.com/oss/python/langgraph/interrupts
+    kind: official
+---
+
+## 一句「帮我看看到哪了」，把循环露底了 {/* s1 */}
+
+先说一个我在自己项目里踩到的场景。
+
+用户问：**「我上周买的那台饮水机到哪了？」**
+
+这是个特别朴素的客服问题。人来做的话，流程一眼就能看出来：先按用户 ID 查订单，拿到订单号，再拿订单号去查物流。两步，中间有个数据依赖 —— 第二步的入参是第一步的出参。
+
+当时的实现是一个标准的 ReAct 循环：模型看到问题，决定调 `query_order`，拿到结果，再决定下一步。听起来没问题，但它踩了三个坑：
+
+- **第一轮它只调了一次工具就想着回答。** 拿到订单列表之后，模型直接开始组织语言：「您的订单已于 10 月 8 日发出，请耐心等待。」—— 它根本没去查物流，那句话是编的。
+- **提示词里写了「多步任务要拆开做」，它有时候听、有时候不听。** 同一个问题问十遍，可能有七遍老老实实调两次工具，三遍偷懒。这种「概率性服从」在演示时很好，上线之后就是投诉。
+- **重试之后它可能选错分支。** 第一次 `query_order` 超时了，它没有重试查询，而是直接跳到 `create_refund` 去想「是不是要给用户退个款」。这个跳转在业务上毫无道理，但循环里没有任何东西拦得住它。
+
+> **注意**
+>
+> 第一个坑最要命的地方在于：**它不报错。** 日志里是一次成功的工具调用、一次成功的模型输出、HTTP 200。
+> 只有用户知道回答是假的。这类问题没有办法通过加日志发现，只能通过把流程焊死来消灭。
+
+所以我改的不是提示词，是**流程的骨架**。这篇文章讲的就是这件事：哪些部分该交给模型，哪些部分**不该交给模型**。
+
+## 我们先搞清楚循环到底哪里不行 {/* s2 */}
+
+### 循环的前提假设
+
+ReAct 式的循环，结构大概是「想 → 调工具 → 观察 → 再想」，直到模型认为可以结束了。它的核心假设是：**模型每一轮都能做出正确的下一步决策。**
+
+这个假设在很多场景下是成立的。比如「帮我查一下退货政策」「这台机器保修多久」—— 单轮工具调用、单轮回答，模型判断得很准。
+
+它不成立的地方，是**有了跨步骤的数据依赖**之后。回到上面那个问题：
+
+| 步骤 | 依赖关系 | 循环里的表现 |
+| --- | --- | --- |
+| 查订单 | 需要 `user_id` | 模型能独立完成 |
+| 查物流 | 需要上一步返回的**订单号** | 模型可能跳过、可能用错参数 |
+| 组织回答 | 需要两步的结果 | 数据不全时它倾向于**编** |
+
+关键在第二行。「拿到订单号再去查物流」这个约束，在循环里只体现为**提示词里的一句话**。而提示词是软的 —— 模型可以服从，也可以不服从，而它选择不服从的时候，代码里没有任何东西会失败。
+
+### 三种「不该由模型决定」的事
+
+我把项目里所有出问题的规则捋了一遍，发现它们可以归成三类。这三类的共同点是：**它们是业务规则，不是语言理解任务。**
+
+- **顺序性的**：知识类问题必须先检索，再回答。不允许模型「觉得我知道答案」就跳过检索。
+- **边界性的**：投诉类问题不要交给 Agent 自主处理，直接转人工。这不是模型能力问题，是责任归属问题。
+- **额度的**：退款金额超过某个阈值，必须有人点确认。模型可以准备材料，但不能拍板。
+
+这三条我一开始全都写在 system prompt 里。结果是：它们全都**偶发失效**。原因不复杂 —— 提示词约束的是模型的**倾向**，不是系统的**行为**。当上下文里有别的东西在争夺注意力时（比如用户前面骂了两句），这些规则就会被稀释。
+
+## 换个思路：把不该模型决定的部分焊死 {/* s3 */}
+
+### 确定性骨架 + 一个主力 Agent 节点
+
+我没有推翻循环，而是把它**降级成图里的一个节点**。
+
+整个流程变成两部分：
+
+- **骨架**：哪些步骤必须发生、按什么顺序发生、什么条件下走哪个分支 —— 这部分是**普通代码**，由图的边决定，模型碰不到。
+- **Agent 节点**：真正需要「理解人话、挑工具、组织语言」的那一步 —— 这部分保留循环，交给模型。
+
+LangGraph 官方文档里对这个定位说得很清楚，我理解它就是为这种混搭设计的：
+
+> LangGraph gives you fine-grained control to mix deterministic, hand-coded steps with LLM-driven agentic steps in the same graph.
+>
+> （LangGraph 让你能在一个图里细粒度地混搭确定性的手写步骤和 LLM 驱动的 Agent 步骤。）
+>
+> LangGraph 官方文档 · [概览](https://docs.langchain.com/oss/python/langgraph/overview)
+
+### 焊死第一件事：知识类问题必须先检索
+
+这是收益最直接的一处。原来的写法是在提示词里叮嘱「回答前先检索」，现在的写法是**在节点里直接执行检索，检索结果作为上下文塞给下一步**：
+
+```python
+from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph, START, END
+
+# 骨架的一小段：知识类问题的确定路径
+def retrieve_node(state: State) -> State:
+    """这个节点没有模型参与 —— 检索必然发生。"""
+    docs = retriever.search(state["question"], top_k=5)
+    return {"docs": docs}          # 模型没得选，它必须基于这些 docs 回答
+
+def build_knowledge_graph() -> StateGraph:
+    g = StateGraph(State)
+    g.add_node("retrieve", retrieve_node)      # 确定性
+    g.add_node("answer", answer_node)          # 有模型，但输入已被约束
+    g.add_edge(START, "retrieve")
+    g.add_edge("retrieve", "answer")
+    g.add_edge("answer", END)
+    return g
+```
+
+对比一下就很清楚：提示词版本是「**请**先检索」，图版本是「**检索这件事在代码里发生过**」。前者是一个可以被违反的建议，后者是一个不能跳过的步骤。
+
+### 焊死第二件事：用条件边做分流
+
+第二类是边界性的规则。投诉不进 Agent，直接转人工 —— 这是一个**分类问题**，不是生成问题，所以用图的 `add_conditional_edges` 在入口处分流：
+
+```python
+def route_intent(state: State) -> str:
+    """意图分流：返回的是下一个节点的名字。"""
+    if state["intent"] == "complaint":
+        return "handoff_human"          # 投诉：直接转人工，不进 Agent
+    if state["intent"] == "knowledge":
+        return "retrieve"
+    return "agent"                      # 其余交给主力 Agent 节点
+
+g = StateGraph(State)
+g.add_node("agent", agent_node)
+g.add_node("retrieve", retrieve_node)
+g.add_node("handoff_human", handoff_human)
+
+g.add_conditional_edges(
+    START,
+    route_intent,
+    {"agent": "agent", "retrieve": "retrieve", "handoff_human": "handoff_human"},
+)
+```
+
+`add_conditional_edges` 的第三个参数是一个映射表，把路由函数的返回值翻译成目标节点名。这里用 START 作为源节点，等于把分流放在了图的入口 —— **投诉压根进不了 Agent 节点**，而不是「进了 Agent 之后请它转人工」。
+
+> **提示**
+>
+> 分流这里有一个真实踩过的点：`route_intent` 里的 `intent` 最好不要让大模型自由生成。
+> 用结构化输出约束成固定枚举（对应项目里的 RoBERTa 小模型做 17 类主题归类），
+> 否则你会得到一个「路由函数收到了没见过的字符串」的运行时错误。
+
+### 为什么节点要分这么细
+
+一个反直觉的取舍：**图上多一个节点，成本是增加一次状态读写；少一个节点，成本可能是加十行提示词，而且那十行还不一定生效。**
+
+我现在的判断标准是：**如果一条规则的违反会造成业务上不可接受的后果，那它必须变成节点或边，不能留在提示词里。**「知识类问题先检索」违反了会答错；「投诉不进 Agent」违反了会出事；「大额退款要确认」违反了可能丢钱。这三条都升级成了结构。
+
+反过来，「回答尽量礼貌」「不确定就说不知道」这类偏好，留在提示词里就好 —— 它们违反了只是体验差一点，不值得为它们加节点。
+
+## 图真正值钱的地方：它能「停下来」 {/* s4 */}
+
+如果只是把流程写死，那用 if-else 也能做。图真正带来的东西是**可以在中间停下来，并且停得住**。
+
+### 人工确认：interrupt + thread_id
+
+退款超过阈值要人工确认，这个需求在纯循环里很难做对 —— 你得自己维护「当前执行到哪一步、待确认的是什么、用户点了之后从哪继续」这一整套状态。LangGraph 的 `interrupt` 就是干这个的：
+
+```python
+from langgraph.types import Command, interrupt
+from langgraph.checkpoint.memory import InMemorySaver
+
+REFUND_THRESHOLD = 500.0
+
+def refund_node(state: State) -> State:
+    if state["amount"] <= REFUND_THRESHOLD:
+        return {"result": do_refund(state)}
+
+    # 超阈值：把当前状态交出去，等人点确认
+    decision = interrupt({
+        "question": "这笔退款超过 500 元，需要你确认",
+        "order_id": state["order_id"],
+        "amount": state["amount"],
+    })
+    if not decision.get("approved"):
+        return {"result": "已取消"}
+    return {"result": do_refund(state)}
+
+graph = builder.compile(checkpointer=InMemorySaver())
+
+config = {"configurable": {"thread_id": session_id}}
+# 第一次执行：走到 interrupt 就停住，状态被 checkpointer 存下来
+graph.invoke({"question": "帮我退了"}, config)
+# 用户点「确认」之后，用同一个 thread_id 恢复，resume 的值成为 interrupt 的返回值
+graph.invoke(Command(resume={"approved": True}), config)
+```
+
+`thread_id` 是指针 —— 它告诉 checkpointer 该加载哪一份状态。**恢复时必须用同一个 `thread_id`**，换一个就是开了一条全新的会话，之前的中断状态读不到。
+
+### 同一个机制修掉另一个坑
+
+这部分我得说清楚：**上面这个 interrupt 的用法，和我在项目 CH06 章节做的是同一件事。**
+
+CH06 的目标是「听懂人话」—— 处理「它能退吗」这种脱离上下文毫无意义的指代。做指代消解的时候会遇到一个情况：用户说「退了吧」，但整段对话里**没有订单号**。这时候纯循环的做法是让模型从上下文里猜一个，猜错了就是给别的订单退款。
+
+我采用的做法是：**缺订单号时不猜，弹一个选择器让人点。** 底层是同一个 `interrupt` / `resume` 机制 —— 图在缺参数的位置停下来，把「需要哪个订单」这个问题交给前端，用户点完之后用同一个 `thread_id` 恢复，选中的订单号作为 `interrupt()` 的返回值进入状态。
+
+所以 CH06 的 `interrupt/resume` 和 CH05 的骨架其实是同一套能力的两个用法：一个是**补参数**，一个是**做确认**。前者替代了「让模型猜」，后者替代了「让模型拍板」。
+
+## 不是所有场景都该上图 {/* s5 */}
+
+写了这么多，得泼一盆冷水。
+
+**LangGraph 的成本是实打实的**：你要定义 State 的 schema、要处理 checkpointer 的持久化、要理解 super-step 和状态合并的语义、出错时得顺着图去定位是哪个节点。一个三节点的图，代码量大概是等价 if-else 的三倍。
+
+Anthropic 在讲 agent 架构时反复强调一个原则，我把它当作默认起点：
+
+> When building applications with LLMs, we recommend finding the simplest solution possible, and only increasing complexity when needed.
+>
+> （构建 LLM 应用时，我们建议先找最简单的方案，只在确实需要时才增加复杂度。）
+>
+> Anthropic Engineering · [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+同一条原则在 LangGraph 官方的文档里也能看到对应的说法 —— 它明确把自己定位成**低层编排框架**，并且建议刚开始做 Agent 的人先用上层封装：
+
+> If you are just getting started with agents or want a higher-level abstraction, we recommend you use LangChain's agents that provide prebuilt architectures for common LLM and tool-calling loops.
+>
+> （如果你刚开始做 Agent，或者想要更高层的抽象，我们建议使用 LangChain 的 agents —— 它提供了常见 LLM 与工具调用循环的预制架构。）
+>
+> LangGraph 官方文档 · [概览](https://docs.langchain.com/oss/python/langgraph/overview)
+
+### 我现在的判断线
+
+用一句话概括：**看你有没有「不能违反的规则」和「必须跨步骤的数据依赖」。**
+
+| 场景 | 建议 |
+| --- | --- |
+| 单轮问答、FAQ 检索 | 纯循环或一次调用就够 |
+| 开放式任务（写代码、长文调研）| 纯循环更合适，本来就没有固定路径 |
+| 有明确多步依赖（查订单 → 查物流）| **上骨架** |
+| 有不可违反的业务/合规规则 | **上骨架**，规则要做成节点 |
+| 有金额、权限、不可撤销动作 | **上骨架 + interrupt** |
+
+右下三个才需要图。左上是绝大多数场景 —— 如果你在做一个客服 FAQ 机器人，上 LangGraph 是过度设计。
+
+> **注意**
+>
+> 一个我自己用来做判断的土办法：**把 system prompt 里所有「必须」「不要」「务必」开头的句子抄出来。
+> 如果其中任何一条被违反了会造成业务事故，它就欠一个节点。**
+> 我当初抄出来七条，最后有四条变成了图上的结构，剩下三条（语气、格式、兜底话术）留在了提示词里。
+
+### 还有一层：checkpointer 不是免费的
+
+顺带说一个容易被忽略的成本。只要用了 `interrupt`，checkpointer 就是必需的 —— 中断状态要靠它落盘，否则进程重启就丢了。而 `MemorySaver` / `InMemorySaver` 把检查点存在内存里，**进程重启就没了**：
+
+```python
+# 开发用：存在 RAM 里，重启进程即丢
+from langgraph.checkpoint.memory import InMemorySaver
+graph = builder.compile(checkpointer=InMemorySaver())
+
+# 上生产：换成持久化实现（官方文档给的选项包括 PostgresSaver / SqliteSaver）
+from langgraph.checkpoint.postgres import PostgresSaver
+checkpointer = PostgresSaver.from_conn_string("postgresql://...")
+checkpointer.setup()          # 建表（含索引）
+graph = builder.compile(checkpointer=checkpointer)
+```
+
+另外，长会话下检查点会**持续累积**，官方文档专门列了这一条，建议定期清理或设保留策略。这是图上多出来的一笔真实的运维账。
+
+> **提示**
+>
+> 用 `PostgresSaver` 时，`thread_id` 会写进一个长度有限的列。
+> 如果拿整段会话内容当 id，就会撞上数据库报错 —— 官方建议保持在 255 字符以内，用 UUID 更稳。
+
+## 说点实话：它没解决我想要解决的全部 {/* s6 */}
+
+我得承认一件事：**图解决了「流程会跑偏」，但没解决「可靠性」。**
+
+改成图之后，「模型跳过查询直接编答案」这类问题确实消失了 —— 检索是代码执行的，它没有机会跳过。但那些**图本身管不到的地方**，问题一个不少。
+
+举两个我项目里真实出过的、改图之后依然存在的坑：
+
+**第一个是超时和重试。** 工具执行引擎统一做了超时加重试，但 `asyncio.wait_for` 只能取消协程，**取消不了跑在线程里的同步工具**。超时触发重试后，一个已经执行过的写操作会被再执行一遍 —— 静默的数据重复，日志里完全看不出异常。最后的修法是在构建期给有副作用的工具打 `non_retryable` 黑名单：读操作照旧重试，写操作绝不。这件事跟是不是 LangGraph 无关，换任何编排方式都得处理。
+
+**第二个更隐蔽。** 多轮对话要按 token 预算裁剪历史，原实现按「一问一答」成对删除。一旦对话里有工具调用，这个假设就不成立 —— 窗口会把 `assistant(tool_calls)` 和对应的 `tool` 消息拆开。**超限之后窗口以 tool 行开头，被上游直接拒收，之后每一轮都失败。** 修法是升级成分组感知裁剪：一个组是一个 `user`，或者 `user + assistant(tool_calls) + tool… + assistant`，保证窗口必然以 `user` 开头。这个 bug 同样和图编排无关，是上下文管理的问题。
+
+所以结论要说得克制一点：
+
+- **图让「流程」变得确定** —— 该发生的步骤一定发生，不该进的节点一定进不去。
+- **图不让「工具」变得可靠** —— 超时怎么判、写操作能不能重试、上下文怎么裁，这些是另外的问题，得单独解。
+
+把这两件事分开看，选型时就不会有错误的期待：**LangGraph 不是可靠性的银弹，它是流程的骨架。** 我需要它，是因为我需要「知识类问题必须先检索」这条规则**在代码里成立**，而不是在提示词里被祈祷。
+
+## 小结 {/* s7 */}
+
+- **纯循环的失效点不是理解能力，是服从率。** 提示词里的「必须以…」「不要…」都是概率性的，模型偶尔不听话，而代码不会因此报错。
+- **判断哪些部分该焊死，看违反后的后果。** 会造成业务事故的规则（顺序依赖、边界归属、金额额度）必须变成节点或边；只影响体验的偏好留在提示词里。
+- **具体的三种焊法**：检索前置 → 确定性节点；意图分流 → `add_conditional_edges`；大额确认 → `interrupt` + `thread_id`。
+- **`interrupt` 必须配 checkpointer 和同一个 `thread_id`。** 缺参数时弹选择器让人点，比让模型猜安全得多 —— 这也是我在 CH06 的用法。
+- **别默认上图。** Anthropic 的原话是 "find the simplest solution possible"；LangGraph 官方也建议新手先用上层封装。有没有不可违反的规则和跨步骤依赖，才是决定性的判断线。
+- **图管流程，不管可靠性。** 超时、幂等、上下文裁剪这些坑，换成什么编排方式都还在。
+
+---
+
+MewHelp 是一个按章节逐步长出来的电商客服项目，CH05「把稳定的部分焊死」引入图编排、CH06「听懂人话」补上指代消解与 `interrupt/resume`。文中提到的坑都来自这个项目的真实评审记录。技术栈是 FastAPI / LangGraph / LangChain / Milvus / BGE-M3 / Reranker / MCP / Langfuse / RoBERTa。
