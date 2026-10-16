@@ -73,6 +73,33 @@ function collectFromSource(src) {
   return map;
 }
 
+
+/**
+ * 归一化标题文本，用于 MDX 路径的模糊匹配。
+ *
+ * 为什么需要：MDX 编译会把标题里的 ASCII 双引号 `"` 等标点转义/改写，
+ * 导致 `text.startsWith(v.text)` 匹配失败 → 插件放弃改写 id →
+ * 回落到 Astro 默认 slug（形如 `从一次哈希没生效说起--s1`），锚点静默失效。
+ * （实测：用中文引号「」的标题没事，换成 ASCII 双引号就坏 ——
+ *   因为 MDX/HTML 会把 ASCII 双引号序列化成 `&quot;`。）
+ *
+ * 所以比对前先剥掉引号、空白、以及 `&quot;` 这类实体，只留下实义字符。
+ */
+function normalizeHeading(s) {
+  return String(s ?? '')
+    .replace(/&quot;|&#34;|&apos;|&#39;|&amp;/g, '') // HTML 实体
+    // 各种标点：ASCII 单双引号、反引号、中文直角引号、中文弯引号、全角引号。
+    // 用 \u 转义写，避免源文件编码差异导致字符类被破坏（踩过：中文弯引号
+    // 被写成 ASCII 直引号，归一化静默失效）。
+    //
+    // 为什么连反引号也要剥：Markdown 的 `` `code` `` 在源码里带反引号，
+    // 渲染成 <code> 后纯文本不含反引号。源侧（stash map 的 text）与
+    // 渲染侧（jsxTextOf）如果不统一剥掉，含行内代码的标题就匹配不上。
+    .replace(/["'`\u300c\u300d\u300e\u300f\u201c\u201d\u2018\u2019\uff02\uff07]/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
 export const STASH_KEY = 'explicitHeadingIds';
 
 // ────────────────────────────── .md 路径（rehype） ──────────────────────────────
@@ -116,6 +143,10 @@ export default function rehypeHeadingIds() {
 /** @param {any} node @returns {string} */
 function jsxTextOf(node) {
   if (!node || typeof node !== 'object') return '';
+  // children 可能是数组（标题里含行内 `code`、链接等时就是多个节点），
+  // 逐个取文本再拼起来 —— 漏掉这一支会让含行内代码的标题匹配失败，
+  // 锚点静默回落到 Astro 默认 slug（`带-code-的-标题--s3`）。
+  if (Array.isArray(node)) return node.map(jsxTextOf).join('');
   switch (node.type) {
     case 'Literal':
       return typeof node.value === 'string' ? node.value : '';
@@ -125,6 +156,17 @@ function jsxTextOf(node) {
       return (node.children ?? []).map(jsxTextOf).join('');
     case 'JSXExpressionContainer':
       return node.expression?.type === 'Literal' ? String(node.expression.value) : '';
+    // ESTree 节点：多个 children 会被编译成 `[a, b, c]`（ArrayExpression），
+    // 例如标题里含行内 `code` 或链接。漏掉这一支时 text 取到空串，
+    // 归一化后匹配不到，锚点静默回落成 `带-code-的-标题--s3`。
+    case 'ArrayExpression':
+      return (node.elements ?? []).map(jsxTextOf).join('');
+    case 'CallExpression':
+      return (node.arguments ?? []).map(jsxTextOf).join('');
+    case 'ObjectExpression': {
+      const prop = (node.properties ?? []).find((p) => (p?.key?.name ?? p?.key?.value) === 'children');
+      return prop ? jsxTextOf(prop.value) : '';
+    }
     default:
       return '';
   }
@@ -156,9 +198,16 @@ function fixMdxAst(ast, map) {
       const childProp = byName.children;
       if (idProp && childProp) {
         const text = jsxTextOf(childProp.value).trim();
-        const hit = text ? byText.find((v) => text === v.text || text.startsWith(v.text)) : null;
+        // 归一化后再比：见 normalizeHeading 的注释（ASCII 引号会被 MDX 转义）
+        const norm = normalizeHeading(text);
+        const hit = norm
+          ? byText.find((v) => normalizeHeading(v.text) === norm || norm.startsWith(normalizeHeading(v.text)))
+          : null;
         if (hit) {
           idProp.value = { type: 'Literal', value: hit.id };
+          // 标题文本统一压成纯文本：与 `.md` 路径 walkRehype 的处理一致，
+          // 也保证 `getHeadings()` 与 DOM 两侧的 text 相同。
+          // （代价：标题里原有的行内 <code> 会被展平，视觉差异可忽略。）
           childProp.value = { type: 'Literal', value: hit.text };
           patched += 1;
         }
@@ -219,7 +268,10 @@ function patchGetHeadings(ast, byText) {
           .replace(/\s*\{#[\w-]+\}\s*$/, '')
           .replace(/\s*\{\/\*[\s\S]*?\*\/\}\s*$/, '')
           .trim();
-        const hit = byText.find((v) => cleaned === v.text || cleaned.startsWith(v.text));
+        const normCleaned = normalizeHeading(cleaned);
+        const hit = byText.find(
+          (v) => normalizeHeading(v.text) === normCleaned || normCleaned.startsWith(normalizeHeading(v.text))
+        );
         if (hit) {
           // 就地改 value（不要替换整个 Property 节点，否则破坏 ESTree 形状，
           // 下游 astring 序列化会抛 `this[node.value.type] is not a function`）

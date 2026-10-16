@@ -21,8 +21,9 @@ steps:
     tips:
       - 为什么用数组 + 链表 + 红黑树？为什么扩容是 2 倍？为什么负载因子是 0.75？这几个问题背后是同一件事：在时间、空间和哈希冲突之间找平衡。
     article:
-      status: planned
+      status: published
       title: HashMap 的每个设计决策，背后的权衡是什么
+      href: /writing/hashmap-tradeoffs/
 
   - id: c2
     title: MySQL：先会写，再懂它为什么慢
