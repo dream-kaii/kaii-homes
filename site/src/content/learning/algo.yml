@@ -31,8 +31,9 @@ steps:
     tips:
       - 判断标准：看到「是否存在」「有没有重复」「配对」这类字眼，你应该下意识想到 Hash。
     article:
-      status: planned
+      status: published
       title: Hot 100 哈希专题：识别信号再用套路
+      href: /writing/hash-patterns/
 
   - id: b3
     title: 双指针与滑动窗口

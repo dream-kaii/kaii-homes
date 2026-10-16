@@ -20,8 +20,9 @@ steps:
     tips:
       - 重点看这两句：「Workflows 是预定义代码路径编排 LLM 和工具」「Agents 是 LLM 动态决定自己的流程」。想清楚你的场景属于哪一种。
     article:
-      status: planned
+      status: published
       title: 我用一个客服场景讲清 Workflow 和 Agent 的分界
+      href: /writing/workflow-vs-agent/
     docs:
       - { label: Building Effective Agents ↗, url: https://www.anthropic.com/engineering/building-effective-agents }
 
@@ -33,8 +34,9 @@ steps:
       - 目标很朴素：能用 curl 或十几行 Python 拿到一次流式回复，并让第二句话接得住第一句的上下文。
     warn: 各家上游现在基本都兼容 OpenAI 协议。把 base_url、model、api_key 全放进环境变量，之后换供应商就不用改代码。
     article:
-      status: planned
+      status: published
       title: 从零跑通一次流式对话：那些框架替你做的事
+      href: /writing/streaming-first-chat/
 
   - id: a3
     title: 让模型会调工具

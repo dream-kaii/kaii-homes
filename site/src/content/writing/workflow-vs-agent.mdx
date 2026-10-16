@@ -1,0 +1,298 @@
+---
+title: 我用一个客服场景讲清 Workflow 和 Agent 的分界
+description: Anthropic 那篇入门材料给了很清楚的区分——大多数场景用固定的 workflow 就够了，硬上 Agent 只会换来更慢、更贵、更难调。用一个客服场景把这条线画清楚。
+date: 2026-10-05
+category: agent
+tags: [概念, Workflow]
+minutes: 9
+status: published
+sources:
+  - title: Building Effective Agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    kind: official
+  - title: LangGraph 官方文档 · Workflows and Agents
+    url: https://docs.langchain.com/oss/python/langgraph/workflows-agents
+    kind: official
+---
+
+## 两个客服问题，两种命 {/* s1 */}
+
+我在做一个电商客服项目，聊天页上线之后，用户问得最多的两句话是：
+
+- **「我的快递到哪了？」**
+- **「我买的那个东西有问题，你看着办。」**
+
+第一句我处理得很轻松。意图清楚，路径固定：查订单 → 拿单号 → 查物流 → 组织一句话回答。四个步骤，谁先谁后是写死的，中间没有一步需要模型「想办法」。
+
+第二句我卡了很久。「你看着办」这四个字里没有任何信息。模型得自己决定：要不要先去查他最近买过什么、那个东西有没有过保、够不够资格退款、还是直接转人工。**路径在问题里，而问题的答案不确定。**
+
+后来我才意识到，我卡住的地方其实就是整条学习路线的第一步：
+
+- 第一句，是一个 **workflow** —— 流程由我写好。
+- 第二句，才对得上 **agent** —— 流程由模型在运行时自己定。
+
+这两个词现在被混用得很厉害，好像「用了大模型」就叫 Agent。但 Anthropic 在 [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) 里给了一个非常干脆的划分，这篇文章就围着它展开。
+
+## Anthropic 给的这两句话，值得背下来 {/* s2 */}
+
+那篇文章开头先把「Agent」这个词的混乱摊开说了一遍：有人说 Agent 是完全自主的系统，也有人说 Agent 就是按预设流程走的实现。Anthropic 把这两类统称 **agentic systems（智能体系统）**，然后在里面画了一条架构上的分界线。原文是这两句：
+
+> Workflows are systems where LLMs and tools are orchestrated through predefined code paths.
+>
+> Agents, on the other hand, are systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks.
+>
+> Anthropic Engineering · [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+翻译过来：
+
+> **Workflow** 是 LLM 和工具**通过预先定义好的代码路径**被编排的系统。
+>
+> **Agent** 则是 LLM **动态决定自己的流程和工具使用**、自己掌控「怎么完成任务」的系统。
+
+差别就落在**「谁决定下一步」**这一个点上：
+
+| | 谁决定下一步 | 路径 | 典型表现 |
+| --- | --- | --- | --- |
+| Workflow | 写代码的人 | 预定义，跑几次都一样 | 稳定、好测、可预测 |
+| Agent | 模型 | 运行时生成，每次可能不同 | 灵活、能兜住意外 |
+
+LangGraph 官方文档对这个区分的措辞基本一致，只是更短：
+
+> Workflows have predetermined code paths and are designed to operate in a certain order. Agents are dynamic and define their own processes and tool usage.
+>
+> （Workflow 拥有预定义的代码路径，按特定顺序运行；Agent 是动态的，自己定义流程和工具用法。）
+>
+> LangGraph 官方文档 · [Workflows and Agents](https://docs.langchain.com/oss/python/langgraph/workflows-agents)
+
+> **提示**
+>
+> 这两个定义里有个容易被忽略的前提：**它们说的是「谁控制流程」，不是「谁调用工具」。**
+> 一个 workflow 里的模型照样在调工具 —— 只是「什么时候调哪个」已经被代码定好了。
+> 所以「我的系统会调工具」并不能证明它是 Agent。
+
+## 五种 workflow：客服场景逐个对一遍 {/* s3 */}
+
+Anthropic 那篇文章的价值在于，它没有停在二分法上，而是把 workflow 又拆成了五种常见模式。我拿客服场景逐个对了一遍，发现每种都能找到真实的位置。
+
+### Prompt Chaining：把一步难任务拆成几步简单任务
+
+**做法**：每个 LLM 调用处理上一个的输出，串成一条链；中间可以插程序化的「闸门」检查。
+
+Anthropic 举的例子是「先写营销文案，再翻译成另一种语言」。放到客服里，最典型的是**退款回复的生成**：
+
+```python
+# Prompt Chaining：三步串行，每步只做一件小事
+def refund_reply(order: Order, reason: str) -> str:
+    # 1) 先判定资格（分类任务，模型只需回答「能 / 不能」）
+    eligible = llm.invoke(
+        f"订单状态={order.status}，购买天数={order.age_days}，"
+        f"用户理由={reason}。是否符合退款政策？只回答 yes 或 no。"
+    ).content.strip()
+
+    # 2) 闸门：程序化检查，模型说不行就直接走人工话术
+    if eligible != "yes":
+        return build_policy_reply(order)      # 普通代码，没有第二次模型调用
+
+    # 3) 资格确认后再组织人话回复
+    return llm.invoke(
+        f"用客服口吻写一段退款受理回复，订单号 {order.id}，"
+        f"金额 {order.amount} 元。不要承诺到账时间。"
+    ).content
+```
+
+适合它的信号是：**任务能被干净地拆成固定的子任务**。拆不开、或者子任务数量取决于输入，那它就不合适。
+
+### Routing：分流，让每类问题走自己的路
+
+**做法**：先分类输入，再把它导向专门的后续处理。
+
+这也是 Anthropic 自己给的客服例子：把「一般咨询 / 退款申请 / 技术支持」分别导向不同的下游流程、提示词和工具。我在项目里就是在图的入口做这件事 —— 投诉类直接转人工，压根不进主 Agent：
+
+```python
+# Routing：意图分流，不同类别走不同的下游
+def route_intent(state: State) -> str:
+    if state["intent"] == "complaint":
+        return "handoff_human"    # 投诉：人对人，不进模型自主流程
+    if state["intent"] == "knowledge":
+        return "retrieve"         # 知识类：先检索再回答
+    return "agent"                # 其余：交给主力 Agent 节点
+
+graph.add_conditional_edges(
+    START, route_intent,
+    {"agent": "agent", "retrieve": "retrieve", "handoff_human": "handoff_human"},
+)
+```
+
+Routing 的收益是**关注点分离**：如果不分流，为了讨好一类输入而调优的提示词，往往会把另一类做坏。它成立的前提也很清楚 —— **类别要能分准**，用一个 LLM 或者一个传统分类器都行。
+
+### Parallelization：拆开并行，或者投票取多数
+
+**做法**：两个变体。**Sectioning** 是把任务切成互不依赖的子任务并行跑；**Voting** 是同一件事跑多次，再汇总。
+
+客服里最好用的其实是 Sectioning 版的**护栏**：Anthropic 明确提到，一个模型实例处理用户请求、另一个实例专门筛查不当内容，效果比让同一个 LLM 调用同时干这两件事要好。我项目里对应的是「意图识别」和「回答生成」分开 —— 一个小的 RoBERTa 模型做 17 类主题归类，主模型只管组织语言。
+
+Voting 则适合**质量校验**：同一段回复生成三次，让评委挑出没有承诺过头的那一版。
+
+### Orchestrator-Workers：中心模型临时派活
+
+**做法**：一个中心 LLM 动态拆解任务，派给若干 worker，最后汇总。
+
+Anthropic 特别点明了它和 Parallelization 的关键区别：**子任务不是预先定义的，而是由 orchestrator 根据具体输入决定的。** 客服里它对应的是「一次问了好几个问题」的场景 —— 用户一口气发来「我那个订单还没到，另外发票怎么开，还有会员怎么取消」，中心模型拆成三条子任务分头处理再合并。
+
+> **注意**
+>
+> Orchestrator-Workers 和 Agent 只差一步，容易混淆。
+> 区别在于**「拆解」和「执行」是分开的**：orchestrator 先把计划定下来，worker 按计划执行；
+> 而 Agent 是边走边看，每一步的结果都会改变它下一个决定。前者更像「先列清单再干活」。
+
+### Evaluator-Optimizer：一个写，一个挑错，循环
+
+**做法**：一个 LLM 调用生成，另一个给出评价和反馈，循环改进。
+
+Anthropic 说它最适合两种条件同时成立的时候：**人类说得出好在哪，模型也接得住这个反馈**。客服里就是**话术合规**：生成回复 → 评估器检查有没有违规承诺、有没有漏掉必要信息 → 不通过就带着 critique 重写。
+
+### 五种模式放一起看
+
+| 模式 | 一句话 | 客服里的位置 |
+| --- | --- | --- |
+| Prompt Chaining | 拆成固定几步串起来 | 判资格 → 写回复 |
+| Routing | 先分类再分流 | 投诉转人工、知识先检索 |
+| Parallelization | 并行、或投票 | 护栏模型与主模型分离 |
+| Orchestrator-Workers | 中心模型临时派活 | 一个问题拆成多个子任务 |
+| Evaluator-Optimizer | 生成 + 评审循环 | 话术合规检查 |
+
+## 那什么才算 Agent {/* s4 */}
+
+上面五种全部是 workflow。Agent 在 Anthropic 的排布里是**最后一步、也是最重的一步**：
+
+> Agents can handle sophisticated tasks, but their implementation is often straightforward. They are typically just LLMs using tools based on environmental feedback in a loop.
+>
+> （Agent 能处理复杂任务，但实现往往很朴素 —— 它们通常就是 LLM 在一个循环里、根据环境反馈来使用工具。）
+>
+> Anthropic Engineering · [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+判断该不该上 Agent，原文给了很明确的条件：
+
+> Agents can be used for open-ended problems where it's difficult or impossible to predict the required number of steps, and where you can't hardcode a fixed path.
+>
+> （Agent 适用于开放式问题：需要的步骤数难以或无法预测，并且你没法硬编码一条固定路径。）
+
+对照一下我那两句客服问题：
+
+| | 「我的快递到哪了」 | 「你看着办」 |
+| --- | --- | --- |
+| 步骤数 | 固定，4 步 | 不确定，1 到 N 步 |
+| 能否硬编码路径 | 能 | 不能 |
+| 谁决定调哪个工具 | 代码 | 模型 |
+| 该用什么 | **Workflow** | **Agent** |
+
+第二句难，不是因为它「更复杂」，而是因为**它的步骤在问题到达之前是未知的**。这正是 Agent 存在的理由。
+
+### 这句原则值得贴在显示器上
+
+Anthropic 在「什么时候不该用」那一节几乎没有绕弯子：
+
+> When building applications with LLMs, we recommend finding the simplest solution possible, and only increasing complexity when needed.
+>
+> （构建 LLM 应用时，我们建议先找最简单的方案，只在确实需要时才增加复杂度。）
+
+紧接着那句更狠：**「This might mean not building agentic systems at all.」** —— 这可能意味着，压根不搭智能体系统。原文也解释了原因：**Agentic systems often trade latency and cost for better task performance**，它们是用延迟和成本换任务效果，所以值得先想清楚这笔交易划不划算。
+
+## 同一个需求，两种设计 {/* s5 */}
+
+把「我的快递到哪了」这个需求分别用两种方式实现一遍，差别就很直观了。
+
+**Workflow 版本** —— 路径是我写的：
+
+```python
+# 确定性骨架：每一步必然发生，顺序不可变
+def logistics_workflow(user_id: str, question: str) -> str:
+    order = query_order(user_id)              # 步骤 1，一定执行
+    if not order:
+        return "没查到您的订单，方便提供订单号吗？"
+
+    shipment = query_logistics(order.no)      # 步骤 2，入参来自步骤 1
+    if shipment is None:
+        return "物流信息暂时查询不到，我帮您问一下。"   # 兜底，不是模型编的
+
+    return render_reply(order, shipment)      # 步骤 3，模板 + 必要时的润色
+```
+
+**Agent 版本** —— 路径是模型决定的：
+
+```python
+# 同一个需求，改成循环：模型自己决定调什么、调几次
+def logistics_agent(user_id: str, question: str) -> str:
+    messages = [system_prompt, user_msg(user_id, question)]
+    for _ in range(MAX_STEPS):                # 必须设上限，否则可能绕圈
+        msg = llm_with_tools.invoke(messages)
+        if not msg.tool_calls:
+            return msg.content                # 模型认为可以答了
+        for call in msg.tool_calls:
+            messages.append(run_tool(call))   # 结果回灌，进入下一轮
+    return "抱歉，我需要转给人工客服。"        # 到顶了还没结论
+```
+
+同一件事，四个维度的账完全不同：
+
+| 维度 | Workflow 版本 | Agent 版本 |
+| --- | --- | --- |
+| **可预测性** | 高。永远是 2 次查询 + 1 次输出 | 低。可能调 1 次就答，也可能调 4 次 |
+| **可调试性** | 高。出问题就是某个函数，日志里能直接定位 | 低。要复盘一整条决策链，还得看它当时「想到哪」 |
+| **成本** | 固定。token 数基本恒定 | 浮动。步数不定，最坏情况是上限 × 每步开销 |
+| **失败模式** | 只可能是查询失败或数据缺失 —— **能被显式处理** | 会出现「跳步」「编答案」「选错工具」这类**不报错的失败** |
+
+最后一行是我真正吃过亏的地方。Agent 版本里最危险的失败不是报错，是**它没报错**：模型跳过了查物流那一步，直接说「您的订单已于 10 月 8 日发出，请耐心等待」，HTTP 200，日志干净，只有用户知道答案是编的。
+
+这不是提示词写得不够严厉的问题。**只要下一步是模型决定的，它就保留了「决定错」的权利** —— 而一个 workflow 里，模型根本没有这个权利。
+
+> **注意**
+>
+> 注意上面 Agent 版本里的 `MAX_STEPS`。原文也把这条列为 Agent 的必要设置：
+> 除了「任务完成」这种自然终止条件，通常还要加上**最大迭代次数**这类停止条件来维持控制。
+> 不给 Agent 设上限，等于把预算的决定权也交出去了。
+
+### 我自己的项目最后选了哪边
+
+得诚实说一件事：**MewHelp 最后不是一个纯 Agent。**
+
+它是一个混合体 —— **图编排 + 确定性节点 + 一个主力 Agent 节点**。查订单、检索知识库、意图分流、大额退款确认，这些全是确定性节点，模型碰不到；只有真正需要「理解人话、挑工具、组织语言」的那一步，才交回给循环。
+
+这正是上面那条原则的落地：**大多数场景用固定的 workflow 就够了，只在确实需要判断的地方放 Agent。** 我一开始也想过整条链路都做成 Agent 循环，做完才发现 —— 需要模型自由发挥的地方，其实只有一处。
+
+## 一个可以现在就用的判断法 {/* s6 */}
+
+如果只想带走一个可操作的东西，是这个问句：
+
+> **「这件事的步骤数，在用户的输入到达之前，我知道吗？」**
+
+- **知道**，而且能写成固定的顺序 → **Workflow**，别犹豫。
+- **不知道**，得看输入长什么样才能定 → **Agent**，但要配上步数上限和护栏。
+
+顺着这条线还能往下问三层，答案会自动收敛：
+
+1. **路径能预先枚举吗？** 能 → workflow；不能 → Agent。
+2. **搞错了后果严重吗？** 严重（涉及钱、合规、不可撤销）→ 这一小段必须回到确定性代码或人工确认。
+3. **需要多大的灵活度？** 很小的灵活度用单个模型调用加检索就够了，不必上编排。
+
+> **提示**
+>
+> 一个我自己的土办法：把需求里的动词圈出来。
+> 「查、算、校验」这类动作，通常是确定性的，属于 workflow；
+> 「判断、权衡、决定要不要」这类动作，才是模型该干的。
+> 一个需求里如果只圈出前者，那它根本不是 Agent 场景。
+
+## 小结 {/* s7 */}
+
+- **分界线只有一条：谁决定下一步。** Workflow 的路径由代码预定，Agent 的路径由模型在运行时生成。
+- **「会调工具」不等于 Agent。** Workflow 里的模型照样调工具，区别在于「什么时候调哪个」已经被写死了。
+- **五种 workflow 模式**分别是 Prompt Chaining、Routing、Parallelization、Orchestrator-Workers、Evaluator-Optimizer —— 它们都是 workflow，不是 Agent。
+- **该用 Agent 的条件很明确**：步骤数无法预测、路径无法硬编码。少一个都不够。
+- **默认从最简单的方案起步**，这是 Anthropic 的原话；Agent 是拿延迟和成本换效果，别不假思索地买这笔账。
+- **连我的客服项目最后也是混合体** —— 确定性骨架加一个 Agent 节点。绝大多数「Agent 需求」，拆开看只有一小块真的是。
+
+下一章开始动手：先用十几行代码把一次对话跑通，再谈框架。
+
+---
+
+本文是 Agent 学习路线的第 1 步「先读概念，别急着写代码」。MewHelp 是一个按章节逐步长出来的电商客服项目，技术栈是 FastAPI / LangGraph / LangChain / Milvus / BGE-M3 / Reranker / MCP / Langfuse / RoBERTa。文中提到的判断来自作者软件工程在读期间的实际开发。

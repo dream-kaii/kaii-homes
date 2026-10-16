@@ -1,0 +1,367 @@
+---
+title: 从零跑通一次流式对话：那些框架替你做的事
+description: 不要用框架起步。先手写一遍 HTTP 调用、处理流式返回、拼装多轮消息，你才会明白框架到底在替你做什么——以及它没替你做什么。
+date: 2026-10-06
+category: agent
+tags: [流式输出, 基础]
+minutes: 10
+status: published
+sources:
+  - title: OpenAI API 文档 · Chat Completions（流式）
+    url: https://platform.openai.com/docs/api-reference/chat
+    kind: official
+  - title: Building Effective Agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    kind: official
+---
+
+## 一个 T 恤文案写错三次的工具 {/* s1 */}
+
+我第一次正经写 LLM 应用，不是从 Agent 开始的，是从一个「文案润色小工具」开始的。需求特别小：用户输入一段商品描述，模型返回三个改写版本。前端一个输入框、一个按钮、一块输出区。
+
+第一版我用了 LangChain。一个下午跑通，效果不错。但有两件事让我很不舒服：
+
+- **加载了两三百毫秒之后才蹦出第一个字。** 用户点了按钮，界面卡在那里一动不动，七八秒后一大段文字「唰」地全部出现。我当时以为是网络问题，后来才发现是我根本没开流式 —— 框架默认是非流式的，我压根不知道有这个选项。
+- **报错的时候我不知道错在哪。** 有一次 API key 过期了，框架抛了一个 `AuthenticationError`，但这个异常被包了三层，栈里全是我没读过的库的内部方法。我花了四十分钟才把「哦，是 key 过期了」这一句话从栈里挖出来。
+
+真正让我下定决心的是第三件事。我想搞清楚「流式」到底是什么，于是翻框架源码，翻到一个叫 `astream` 的方法，里面在处理 `data: ` 前缀和 `[DONE]` 标记 —— **这些名字我完全陌生。** 我意识到我在用一个自己不理解的东西，而它出错的时候我没有能力定位。
+
+所以我把框架删了，用 `requests` 手写了一遍。这篇文章就是那一次的过程。
+
+> **提示**
+>
+> 这篇文章是 Agent 学习路线的第 2 步。第 1 步是先想清楚「Workflow 和 Agent 的分界线在哪」—— 如果你还没搞清楚「哪些步骤该由代码写死、哪些该交给模型决定」，建议先看那篇。
+> 这一篇只做一件事：**把一次对话跑起来**。工具调用、检索、编排都是后面的事。
+
+## 先用 curl 打一次，把协议看清楚 {/* s2 */}
+
+手写的第一原则：**先看原始数据长什么样。** 不要一上来就写 Python 类封装，先用 `curl` 打一炮，看看服务端到底吐了什么东西过来。
+
+```bash
+curl https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "stream": true,
+    "messages": [
+      {"role": "system", "content": "你是电商客服，只回答订单相关问题。"},
+      {"role": "user", "content": "用一句话说明你能做什么。"}
+    ]
+  }'
+```
+
+`stream: true` 是那个开关。加上它，返回就变成了这个样子（每一行是一条独立的 SSE 事件）：
+
+```text
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","choices":[{"delta":{"role":"assistant","content":""},"index":0}]}
+
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","choices":[{"delta":{"content":"我"},"index":0}]}
+
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","choices":[{"delta":{"content":"可以"},"index":0}]}
+
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","choices":[{"delta":{"content":"帮你"},"index":0}]}
+
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","choices":[{"delta":{},"finish_reason":"stop"}],"usage":{...}}
+
+data: [DONE]
+```
+
+把这段和「非流式」的返回对比一下，差别就是整个问题的核心：
+
+| | 非流式 | 流式（SSE） |
+| --- | --- | --- |
+| 返回体 | 一个完整 JSON | 一长串 `data: ` 行 |
+| 首个字节时间 | 等于**整个回答生成完**的时间 | 等于**第一个 token** 生成完的时间 |
+| 结束标志 | JSON 解析完就结束了 | 最后一行 `data: [DONE]` |
+| 客户端要做的事 | `resp.json()` | 逐行读、剥前缀、拼 JSON、再解析 |
+
+第一行值得单独说：`delta` 里 `content` 是空字符串。**流式的第一个 chunk 经常是空的**，它只是用来告诉你「角色是 assistant，开始吧」。如果你的代码拿到空字符串就直接打印，那没什么问题；但如果你用「第一个 chunk 的文本」来判断请求是否成功，就会误判。
+
+还有一行也要注意：倒数第二条的 `delta` 是 `{}`，带了一个 `finish_reason: "stop"`。**这是一个「结束」信号但不带正文的 chunk。** `[DONE]` 才是流真的结束了。两者含义不同，后面会讲为什么。
+
+## 流式到底是怎么工作的 {/* s3 */}
+
+### SSE 是最无聊的那部分协议
+
+上面那个格式叫 **SSE（Server-Sent Events）**。别看名字唬人，它其实只是「HTTP 响应体里的纯文本，按行发」：
+
+- 每个事件以 `data: ` 开头（**注意冒号后面那个空格，它是协议的一部分**）
+- 两个事件之间用空行分隔
+- `data: [DONE]` 是一个约定俗成的结束标记，**它不是 SSE 协议的一部分**，是 OpenAI 定义的
+
+这点区别很重要。SSE 规范本身规定的结束方式是「服务端关闭连接」。`[DONE]` 只是这家 API 额外塞进来的一个哨兵值。所以你的解析代码里如果有 `if line == "data: [DONE]: break"`，那是**在适配 OpenAI 的约定**，不是在做 SSE 解析。换一家 provider 就得看它有没有这个标记。
+
+顺便，SSE 是一个**单向**协议：服务端推、客户端收。这就是为什么它比 WebSocket 更适合「模型逐字吐字」这个场景 —— 我们不需要双向通信。
+
+> **注意**
+>
+> `data: ` 后面的空格不要自己动手去掉。有些实现会写成 `data:{...}`（没有空格），解析时应该写成「剥掉 `data:` 前缀，再 `strip()`」，而不是「剥掉 `data: ` 这六个字符」。后者遇到没空格的实现会留下一段 JSON 前的空格，虽然大多数 `json.loads` 能忍，但遇到 `data:` 紧跟换行（心跳包）时就崩了。
+
+### 为什么不能等全部返回再显示
+
+回头看上面那张表里最关键的一行：**首个字节时间。**
+
+非流式模式下，服务端要等模型把整段话生成完，才把响应发给你。假设生成一段 300 字的中文回答需要 6 秒，那用户点完按钮后就要盯着空白界面 6 秒。这 6 秒里没有任何反馈 —— 用户的第一反应是「是不是没点上」，然后开始重复点击。
+
+流式模式下，第一个 token 通常在几百毫秒内就到了。用户立刻看到字在往外蹦。**总时长没变，但感知完全变了。**
+
+这背后是一条更朴素的工程判断，Anthropic 在那篇 [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) 里其实也提到过类似的意思：Agent 系统里延迟是体验的一部分，能把中间状态暴露出来的地方就该暴露。流式就是最便宜的一种 —— 它不需要你改任何业务逻辑，只是别把中间结果捂到最后。
+
+我自己项目 MewHelp 的第一章标题就是「**先把一次对话做稳**」，描述里第一句是「流式输出让用户不用干等」。现在回想，这一章的技术标签里有 `SSE` 是有道理的：**它是整条链路上唯一一个纯前端体验、但需要后端配合才能做对的东西。**
+
+## 跨 chunk 的坑：JSON 会被切成两半 {/* s4 */}
+
+现在讲那个我真正踩过的坑。
+
+手写流式解析，最直觉的写法是按行读：
+
+```python
+import json
+import requests
+
+def chat_naive(messages):
+    """看起来对的写法。跑小请求时确实不报错。"""
+    resp = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        json={"model": "gpt-4o-mini", "stream": True, "messages": messages},
+        stream=True,
+    )
+    for line in resp.iter_lines():          # 按行读
+        if not line:
+            continue
+        text = line.decode("utf-8")
+        if not text.startswith("data: "):
+            continue
+        payload = text[len("data: "):]
+        if payload == "[DONE]":
+            break
+        chunk = json.loads(payload)          # ← 这里会炸
+        yield chunk["choices"][0]["delta"].get("content", "")
+```
+
+问题出在注释那一行。
+
+`resp.iter_lines()` 是按**字节流里的换行符**切分的，而 TCP 传过来的字节块（chunk）**跟逻辑上的行没有任何关系**。HTTP 响应体是一串字节，它在路上会被拆成多个 TCP 包，`requests` 一层层解包之后交给你的，可能是：
+
+```text
+第 1 块：b'data: {"id":"chatcmpl-xxx","choices":[{"delta":{"content":"\xe6\x88\x91'
+第 2 块：b'"},"index":0}]}\n\n'
+```
+
+注意第 1 块的结尾 —— **连这个 JSON 都没结束，还断在了一个中文字符的字节序列中间**。`iter_lines()` 在这种情况下到底会返回什么？答案是：它内部有缓冲，遇到不完整的行会等下一块，所以**它不会把半个 JSON 交给你**。
+
+那坑在哪？
+
+坑在 `iter_lines()` **不保证**后面的块一定会来，而且更常见的情况是：**一次读取里包含多行**。比如服务端为了效率把三条 `data: ` 事件塞进一个 TCP 包：
+
+```text
+第 1 块：b'data: {"choices":[{"delta":{"content":"我"}}]}\n\ndata: {"choices":[{"delta":{"content":"可以"}}]}\n\ndata: {"choices":[{"delta":{"content":"帮你"}}]}\n\n'
+```
+
+这种情况下 `iter_lines()` 还是会按 `\n` 拆开，你不会漏数据。
+
+**真正的坑是我一开始写的不是 `iter_lines`，而是 `iter_content`：**
+
+```python
+for raw in resp.iter_content(chunk_size=None):
+    for line in raw.split(b"\n"):     # ← 灾难
+        ...
+```
+
+`iter_content` 给你的是**任意大小的字节块**。你在每个块内部按 `\n` 切，跨界的那一行就会被切成两半 —— 前半截被 `json.loads` 炸一次，后半截再炸一次，而 `json.JSONDecodeError` 如果被 `except` 吞掉，你看到的现象就是**模型回答到一半，后面的话凭空消失了。**
+
+我第一次遇到的时候现象是：模型输出「这个订单的状态是：」，然后停了。日志里没有任何异常。我以为是模型本身的问题，问了三遍都一样 —— 直到我把原始字节打印出来才看到那个被切断的 JSON。
+
+> **注意**
+>
+> 这个坑的特征是**偶发**：本地测十次可能十次都对，因为本地网络延迟低、块边界刚好落在行边界上。
+> 一上生产的网络环境就开始零星地丢字，而且没法复现。**这类 bug 的定位成本远高于它的修复成本。**
+
+### 正确做法：缓冲拼接
+
+修法很简单，但姿势一定要对：**先把字节攒进缓冲区，只在遇到完整行的时候才取出来处理。**
+
+```python
+import json
+import requests
+
+API_URL = "https://api.openai.com/v1/chat/completions"
+
+def stream_chat(messages, model="gpt-4o-mini"):
+    """流式调用，逐段 yield 正文。缓冲区跨 chunk 保留。"""
+    with requests.post(
+        API_URL,
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        json={"model": model, "stream": True, "messages": messages},
+        stream=True,
+    ) as resp:
+        resp.raise_for_status()
+        buffer = b""
+
+        for raw in resp.iter_content(chunk_size=None):
+            if not raw:
+                continue
+            buffer += raw                       # ① 先拼，永远不直接解析
+            while b"\n" in buffer:
+                line, buffer = buffer.split(b"\n", 1)   # ② 只取完整的一行
+                line = line.strip()
+                if not line.startswith(b"data:"):
+                    continue
+                data = line[len(b"data:"):].strip()      # ③ 剥前缀后统一 strip
+                if data == b"[DONE]":
+                    return
+                try:
+                    chunk = json.loads(data)
+                except json.JSONDecodeError:
+                    # 不静默吞掉：这一行可能只是心跳/注释，但值得看见
+                    continue
+                delta = chunk["choices"][0].get("delta") or {}
+                text = delta.get("content")
+                if text:
+                    yield text
+```
+
+三个关键点：
+
+- **① 缓冲先行。** `buffer += raw`，然后*在缓冲里*找完整的行。绝不假设一次 `raw` 等于一行，也绝不假设一行等于一条完整 JSON。
+- **② 处理完要保留残留。** `split(b"\n", 1)` 返回的第二段可能是半行，放回 `buffer` 等下一块。**很多人的实现是 `for line in buffer.split(b"\n")`，那半行就被提前消费掉了** —— 这是第二个变体的同一个坑。
+- **③ 前缀剥完统一 `strip()`。** 上面说过 `data:` 后面不一定有空格，别去写死长度。
+
+> **提示**
+>
+> `raise_for_status()` 不能省。流式请求的错误也分两种：**请求阶段**（401、429、参数错）会直接返回错误状态码和一段普通 JSON；**流中途**的错误则是塞在 `data: ` 里的一个 `error` 对象。
+> 前者靠 `raise_for_status()` 抓，后者得在循环里检查 `chunk.get("error")`。**很容易只做前者。**
+
+## 多轮对话：第二句话怎么接得住第一句 {/* s5 */}
+
+一次对话跑通了，接下来是「多轮」。
+
+刚接触的时候我有个天真的误解：以为服务端会帮我记着上下文。不会的。**Chat Completions 接口是无状态的** —— 每一轮你都要把之前所有的消息原样重新发一遍，模型才会「记得」。
+
+`messages` 的参数结构就三种角色：
+
+| role | 谁说的 | 说明 |
+| --- | --- | --- |
+| `system` | 开发者 | 人设和规则。**只有一条**，放最前面 |
+| `user` | 用户 | 用户说的话 |
+| `assistant` | 模型 | 模型上一轮的回复。**由你从历史里补回去** |
+
+「第二句话接得住第一句」的机制，就是**你手动把第一段对话追加进数组**：
+
+```python
+class ChatSession:
+    def __init__(self, system_prompt: str):
+        # system 只放一条，且永远是第一条
+        self.messages = [{"role": "system", "content": system_prompt}]
+
+    def send(self, user_text: str):
+        self.messages.append({"role": "user", "content": user_text})
+
+        collected = []
+        for piece in stream_chat(self.messages):
+            collected.append(piece)
+            yield piece                     # 一边推给前端，一边攒
+
+        # 关键一步：把模型这一轮的完整回复补回历史
+        full = "".join(collected)
+        self.messages.append({"role": "assistant", "content": full})
+        return full
+
+
+session = ChatSession("你是电商客服，回答订单和退换货相关的问题。")
+for piece in session.send("我上周买的饮水机到哪了？"):
+    print(piece, end="", flush=True)
+for piece in session.send("那我要退货，怎么弄？"):
+    print(piece, end="", flush=True)
+```
+
+注意 `send` 最后那一步。**很多人写漏了它**，现象是：第二轮问「那我要退货」时，模型一脸茫然地反问「请问您说的是哪个商品」。因为它的历史里只有两句 `user`，中间少了它自己上一轮的回答，「那」这个指代就没有指代对象了。
+
+> **注意**
+>
+> 追加进历史的必须是你**实际发给用户的那份回答**，不是「你期望模型的回答」。
+> 如果你在流式过程中做了过滤、截断、或者因为客户端断开提前 break，历史里存的必须是用户真正看到的内容 —— 否则模型对自己的「上一句话」的认知会和用户不一致，下一轮就会答错。
+
+### 历史会一直涨，这才是真正的麻烦
+
+`messages` 数组只增不减。三轮对话可能几百 token，聊到三十轮就是几万。而 API 是按输入 token 计费的 —— **每一轮你都要把全部历史重发一遍，成本是 O(n²)。**
+
+这就是 MewHelp 第一章描述里那句「**历史按 token 预算裁剪避免越聊越贵**」的由来。具体怎么裁，后面有专门一篇讲上下文管理的文章，这里先记住两件事：
+
+1. **`system` 消息永远不裁。** 它是人设，是每一轮都需要的。
+2. **裁剪的单位不能是「一条消息」。** 这个坑我们后面会详细讲。
+
+## 回头再看框架：它替你做了什么 {/* s6 */}
+
+手写完之后，再回头看 LangChain 那种框架，心态会完全不一样 —— 你不再觉得它神秘，而是能一条条数出来它到底做了什么。
+
+**① 流式解析。** 上面那三十行缓冲拼接的代码，框架里是一个 `astream()` 方法。它帮你处理了 `data: ` 前缀、`[DONE]`、心跳行、错误对象，并统一吐给你一个消息对象。这是最实在的一层。
+
+**② 多 provider 适配。** OpenAI、Anthropic、通义、DeepSeek 的请求体格式和流式格式**都不一样**：字段名不同、结束标记不同、有的用 `delta` 有的用别的事件名。框架的价值在这里是「换 provider 不改业务代码」。对只用一个 provider 的应用，这层价值不大；对要做降级或比价的应用，这层省掉的工作量很大。
+
+**③ 重试与超时。** 这是手写时最容易漏的一层。手写版本里 `requests.post` 一挂就直接抛出去了，没有退避、没有抖动、没有区分「可重试」和「不可重试」。框架通常有一套默认的 retry 策略。
+
+> **注意**
+>
+> 但「框架有重试」这件事**本身也是个坑**。我在项目里遇到过的最严重的问题之一就是超时重试把写操作执行了两次 —— 因为框架的重试逻辑默认假设工具是幂等的，而我们注册的工具不是。
+> 这件事的详细经过写在 [工具调用的三个工程问题](/writing/tool-calling-pitfalls/) 里：**默认重试是有用的，但你必须知道自己哪些操作不能被重试。**
+
+**④ 消息格式统一。** 手写的 `{"role": "user", "content": ...}` 这个裸字典，一旦引入工具调用就会变成 `assistant(tool_calls)` + `tool` 消息的组合结构，再过一层多模态就是 content 数组。框架用 `SystemMessage` / `HumanMessage` / `AIMessage` 这类对象把这套结构固化了，还顺手做了序列化 —— 存数据库、从数据库读回来的时候省事。
+
+**⑤ 可观测。** 有了统一的消息对象和回调机制，才能在每一个环节插钩子。我在项目里接 Langfuse 的时候，接的是 LangChain 的回调层，而不是自己写的 HTTP 封装 —— 后者的代价是要给每一处调用手写埋点。
+
+一句话总结：**框架替你做的事，全都是「所有 provider 都要面对的低层琐事」。** 它不改变你的业务设计，它只是让你少写几十行样板。
+
+## 框架没替你做什么 {/* s7 */}
+
+这一节是我最想写的。**用完框架之后，上面那些「它替你做了的事」你都可以忘掉；但下面这几件事，你忘了就会出事。**
+
+### 一、工具调用解析失败的错误处理
+
+模型返回的 tool call 参数是一段**流式拼出来的 JSON**。它可能因为上游中断、模型自己生成了非法 JSON 而拼不出来。这时候不同库的处理方式不同 —— LangChain 会把它们放进 `invalid_tool_calls` 而不是抛异常。
+
+如果你只读了 `tool_calls`，就会拿到一个空列表。于是这一轮**既没有工具调用，也没有正文输出**，程序正常返回，用户看到一个空消息，日志里一切正常。
+
+```python
+calls   = getattr(acc, "tool_calls", None) or []
+invalid = getattr(acc, "invalid_tool_calls", None) or []
+
+# 工具调用 JSON 无法解析时，处理不当本轮会静默无输出
+if not calls and invalid:
+    raise ValueError(f"工具调用 JSON 无法解析：{invalid}")
+```
+
+**框架不会替你抛这个错**，因为它不知道你的业务里「空输出」是合法的还是异常的。这件事只有你自己知道。这个问题出现在工具调用阶段，后面的章节会展开讲。
+
+### 二、上下文的裁剪策略
+
+框架提供的是「怎么把消息发出去」，不是「发哪几条出去」。
+
+裁剪策略是一整套业务判断：留最近几轮？更早的怎么压缩成摘要？`system` 之外的哪些消息是同一组？工具调用链能拆吗？
+
+我在 MewHelp 里踩过一个特别典型的坑（详细经过见 [为什么我用 LangGraph 而不是纯 Agent 循环](/writing/graph-orchestration/)）：**最初的裁剪逻辑按「一问一答」成对删除，这在没有工具调用的对话里成立，但从第二章加入工具调用之后就崩了** —— 窗口会把 `assistant(tool_calls)` 和它对应的 `tool` 消息从中间拆开，超限后窗口以 `tool` 行开头被上游拒收，**之后每一轮请求都失败**。
+
+修复方式是把裁剪单位从「一条消息」升级为「一组」：一个组是 `user`，或者 `user + assistant(tool_calls) + tool… + assistant`。保证窗口必然以 `user` 开头。
+
+框架对这件事的态度是：**它给你 `trim_messages()` 这样的工具函数，但用不用、按什么单位裁，是你的决定。** 而且默认的工具函数往往是按条裁的 —— 正好就是踩坑的那个版本。
+
+### 三、评估
+
+最后一件事最容易被跳过：**你怎么知道改动之后变好了？**
+
+框架不提供评估，评估也没有框架可依赖。它需要你自己准备一批问题、自己定义什么算「答对了」、自己跑回归。我在项目里做到第四章（检索质量）才建了完整的评估集，但回头看，**这件事其实从第一章就该开始 —— 哪怕只有二十条问题。**
+
+原因很简单：流式、多轮、裁剪这些东西的改动，都会同时影响「答得对不对」和「答得快不快」。没有一套固定的问题集，你无法判断某次改动是优化还是退化，只能凭感觉。而凭感觉的结论通常是错的。
+
+## 小结 {/* s8 */}
+
+- **先用 `curl` 打一次，再用十几行 Python 手写一遍。** 不理解 `data: ` 和 `[DONE]` 的人，框架报错时定位不了问题。
+- **SSE 是「按行发送的纯文本」**，`data: ` 前缀和冒号后的空格都是协议的一部分；`[DONE]` 是 OpenAI 的约定，不是 SSE 规范。
+- **别为了体验等全部返回。** 流式不改变总时长，改变的是「用户什么时候看到第一个字」。
+- **流式 chunk 是碎片化的字节，不是行。** 必须先缓冲拼接、只在遇到完整行时才解析，并且处理完要保留残留。这个坑偶发、难复现，定位成本很高。
+- **Chat Completions 是无状态的。** 多轮对话靠你把历史重新发一遍 —— 包括模型自己上一条回复，漏了它第二句就接不住。
+- **框架替你做的是低层琐事**：流解析、多 provider 适配、重试超时、消息对象、可观测钩子。
+- **框架没替你做的是业务判断**：工具调用解析失败要主动抛错、上下文裁剪按什么单位、以及怎么评估你的改动。
+- 最后一条：**框架的默认行为不是你的设计决策。** 默认重试假设幂等、默认裁剪按条数 —— 这两个默认值都在我项目里出过事。
