@@ -183,17 +183,24 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 <script>
   // ============================================================
   // 分类筛选（设计稿 L564–577 的 fbtn 逻辑）
-  // 作用域：整个筛选器 + 列表都在本页，但读写一律走 `[data-*]` 容器查询，
-  // 不用全局 id（Global Constraints #2）。
-  // 无 JS 时：全部 8 张卡照常显示，筛选按钮是静息态 —— 不会出现空白页。
+  //
+  // ⚠️ 作用域必须用 `document`，不能用 `main` —— 这是踩过的坑：
+  //   本页是三栏布局 `DIV.shell > [ASIDE.rail-l, MAIN.mid, ASIDE.rail-r]`，
+  //   而**筛选按钮被放在左栏 `<aside class="rail-l">` 里**（设计稿如此），
+  //   卡片列表才在 `<main class="mid">` 里。
+  //   早期写成 `document.querySelector('main').querySelectorAll('[data-cat]')`，
+  //   结果 btns 恒为空数组 → forEach 不执行 → 一个监听器都没绑上 →
+  //   点击毫无反应，**且不报错**（静默失效），构建也照过。
+  //
+  //   定位改用 `[data-*]` 容器查询（Global Constraints #2：不用全局 id）。
+  // 无 JS 时：全部卡片照常显示，筛选按钮是静息态 —— 不会出现空白页。
   // ============================================================
-  const root = document.querySelector<HTMLElement>('main');
-  if (root) {
-    const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-cat]')].filter((b) =>
-      b.classList.contains('fbtn')
-    );
-    const cards = [...root.querySelectorAll<HTMLElement>('.wcard')];
-    const empty = root.querySelector<HTMLElement>('[data-writing-empty]');
+  const fltRoot = document.querySelector<HTMLElement>('[data-writing-filter]');
+  const listRoot = document.querySelector<HTMLElement>('[data-writing-list]');
+  if (fltRoot && listRoot) {
+    const btns = [...fltRoot.querySelectorAll<HTMLButtonElement>('button.fbtn[data-cat]')];
+    const cards = [...listRoot.querySelectorAll<HTMLElement>('.wcard')];
+    const empty = document.querySelector<HTMLElement>('[data-writing-empty]');
 
     btns.forEach((btn) => {
       btn.addEventListener('click', () => {
